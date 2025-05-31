@@ -1,0 +1,14 @@
+<script lang="ts">
+	import type { ToolInvocation } from '../../app.d.ts';
+	import { getToolComponent } from '$lib/utils/toolRenderer.js';
+
+	interface Props {
+		toolInvocation: ToolInvocation;
+	}
+
+	let { toolInvocation }: Props = $props();
+
+	let ToolComponent = $derived(getToolComponent(toolInvocation));
+</script>
+
+<svelte:component this={ToolComponent} {toolInvocation} />

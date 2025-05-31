@@ -1,0 +1,118 @@
+@import 'tailwindcss';
+
+/* Base styles */
+html,
+body {
+	height: 100%;
+	margin: 0;
+	padding: 0;
+}
+
+#svelte {
+	height: 100%;
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+	width: 6px;
+	height: 6px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: rgba(156, 163, 175, 0.5);
+	border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: rgba(156, 163, 175, 0.8);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+	background: rgba(75, 85, 99, 0.5);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+	background: rgba(75, 85, 99, 0.8);
+}
+
+/* Prose improvements */
+.prose {
+	max-width: none;
+}
+
+.prose p {
+	margin-top: 0.75em;
+	margin-bottom: 0.75em;
+}
+
+.prose p:first-child {
+	margin-top: 0;
+}
+
+.prose p:last-child {
+	margin-bottom: 0;
+}
+
+.prose ul,
+.prose ol {
+	margin-top: 0.75em;
+	margin-bottom: 0.75em;
+}
+
+.prose li {
+	margin-top: 0.25em;
+	margin-bottom: 0.25em;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4,
+.prose h5,
+.prose h6 {
+	margin-top: 1em;
+	margin-bottom: 0.5em;
+}
+
+.prose h1:first-child,
+.prose h2:first-child,
+.prose h3:first-child,
+.prose h4:first-child,
+.prose h5:first-child,
+.prose h6:first-child {
+	margin-top: 0;
+}
+
+/* Focus styles */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+	outline: 2px solid rgb(59, 130, 246);
+	outline-offset: 2px;
+}
+
+/* Animation for typing indicator */
+@keyframes pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}
+
+.animate-pulse {
+	animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Smooth transitions */
+* {
+	transition-property: color, background-color, border-color, opacity;
+	transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+	transition-duration: 150ms;
+}
