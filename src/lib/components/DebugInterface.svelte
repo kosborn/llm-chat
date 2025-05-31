@@ -8,15 +8,29 @@
 	let messagesContainer: HTMLDivElement = $state();
 
 	function handleKeyDown(event: KeyboardEvent) {
-		if (event.key === 'Escape') {
+		// Cmd+D to toggle debug mode (Mac) or Ctrl+D (Windows/Linux)
+		if ((event.metaKey || event.ctrlKey) && event.key === 'd') {
+			event.preventDefault();
+			handleDebugToggle();
+		}
+		// Escape to close panel
+		if (event.key === 'Escape' && isOpen) {
+			event.preventDefault();
 			isOpen = false;
 		}
 	}
 
 	function handleDebugToggle() {
-		debugStore.toggle();
 		if (!debugStore.isEnabled) {
-			isOpen = false;
+			debugStore.enable();
+			isOpen = true;
+			// Add a test message to verify it's working
+			debugStore.log('test', { message: 'Debug interface enabled', timestamp: Date.now() });
+		} else {
+			debugStore.toggle();
+			if (!debugStore.isEnabled) {
+				isOpen = false;
+			}
 		}
 	}
 
@@ -90,9 +104,9 @@
 <!-- Toggle Button -->
 <div class="fixed right-4 bottom-4 z-50">
 	<button
-		onclick={() => (isOpen = !isOpen)}
+		onclick={handleDebugToggle}
 		class="relative flex h-12 w-12 items-center justify-center rounded-full bg-gray-800 text-white shadow-lg transition-colors hover:bg-gray-700 dark:bg-gray-200 dark:text-gray-800 dark:hover:bg-gray-300"
-		title="Toggle Debug Interface"
+		title="Toggle Debug Interface (Cmd+D)"
 	>
 		{#if debugStore.newMessageCount > 0 && debugStore.isEnabled && !isOpen}
 			<div
@@ -107,7 +121,7 @@
 			<div class="absolute -top-1 -left-1 h-3 w-3 rounded-full bg-blue-500"></div>
 		{/if}
 
-		{#if debugStore.isEnabled && isOpen}
+		{#if isOpen}
 			<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
 					stroke-linecap="round"
@@ -130,7 +144,7 @@
 </div>
 
 <!-- Debug Interface Panel -->
-{#if debugStore.isEnabled && isOpen}
+{#if isOpen}
 	<div
 		class="fixed right-4 bottom-20 z-40 h-[80vh] w-[90vw] max-w-4xl rounded-lg border border-gray-200 bg-white shadow-2xl md:w-[60vw] dark:border-gray-700 dark:bg-gray-900"
 	>
@@ -154,10 +168,10 @@
 						</span>
 					{/if}
 					<button
-						onclick={handleDebugToggle}
+						onclick={() => (isOpen = false)}
 						class="rounded px-2 py-1 text-xs text-gray-600 hover:bg-gray-200 dark:text-gray-400 dark:hover:bg-gray-700"
 					>
-						{debugStore.isEnabled ? 'Disable' : 'Enable'}
+						Close
 					</button>
 					<button
 						onclick={() => debugStore.clear()}
