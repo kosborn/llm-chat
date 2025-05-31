@@ -39,16 +39,24 @@ class ClientChatService {
 	}
 
 	private async tryServerSide(messages: ChatMessage[]): Promise<ChatResponse> {
+		const outboundMessages = messages.map((msg) => ({
+			role: msg.role,
+			content: msg.content
+		}));
+
+		// Log outbound message to debug store
+		debugStore.logOutboundMessage(outboundMessages, 'server', {
+			provider: 'groq', // Server-side uses Groq
+			model: 'meta-llama/llama-4-scout-17b-16e-instruct'
+		});
+
 		const response = await fetch('/api/chat', {
 			method: 'POST',
 			headers: {
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
-				messages: messages.map((msg) => ({
-					role: msg.role,
-					content: msg.content
-				}))
+				messages: outboundMessages
 			})
 		});
 
@@ -98,6 +106,12 @@ class ClientChatService {
 				role: msg.role as 'user' | 'assistant' | 'system',
 				content: msg.content
 			}));
+
+			// Log outbound message to debug store
+			debugStore.logOutboundMessage(aiMessages, 'client', {
+				provider: currentProvider,
+				model: currentModel
+			});
 
 			// Log API request
 			debugStore.logApiRequest({

@@ -49,6 +49,7 @@
 			error: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
 			message_update: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
 			final_response: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
+			outbound_message: 'bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200',
 			test: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
 		};
 		return colors[type] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
@@ -96,7 +97,7 @@
 	function selectPreset(preset: string) {
 		switch (preset) {
 			case 'api':
-				selectedTypes = new Set(['api_request', 'api_response', 'api_metadata']);
+				selectedTypes = new Set(['api_request', 'api_response', 'api_metadata', 'outbound_message']);
 				break;
 			case 'tools':
 				selectedTypes = new Set(['tool_call', 'tool_result']);

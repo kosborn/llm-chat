@@ -14,6 +14,7 @@ interface DebugMessage {
 		| 'error'
 		| 'message_update'
 		| 'final_response'
+		| 'outbound_message'
 		| 'test';
 	data: unknown;
 	metadata?: {
@@ -190,6 +191,23 @@ class DebugStore {
 
 	logFinalResponse(content: string, metadata?: DebugMessage['metadata']): void {
 		this.log('final_response', { content, completedAt: Date.now() }, metadata);
+	}
+
+	logOutboundMessage(
+		messages: unknown,
+		path: 'server' | 'client',
+		metadata?: DebugMessage['metadata']
+	): void {
+		this.log(
+			'outbound_message',
+			{
+				messages,
+				path,
+				messageCount: Array.isArray(messages) ? messages.length : 1,
+				sentAt: Date.now()
+			},
+			metadata
+		);
 	}
 
 	getMessagesByType(type: DebugMessage['type']): DebugMessage[] {
