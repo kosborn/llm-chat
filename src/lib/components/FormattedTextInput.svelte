@@ -120,19 +120,66 @@
 		hoveredTool = null;
 	}
 
-	function handleToolKeydown(event: KeyboardEvent, toolName: string) {
-		if (event.key === 'Enter' || event.key === ' ') {
-			event.preventDefault();
-			const tool = getToolData(toolName);
-			if (tool) {
-				hoveredTool = tool;
-				const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
-				tooltipPosition = { 
-					x: rect.left + rect.width / 2, 
-					y: rect.top - 10 
-				};
+	function handleMouseMove(event: MouseEvent) {
+		if (!value.trim()) return;
+		
+		const textarea = event.currentTarget as HTMLTextAreaElement;
+		
+		// Use textarea properties to calculate approximate character position
+		const rect = textarea.getBoundingClientRect();
+		const x = event.clientX - rect.left - 16; // Account for padding
+		const y = event.clientY - rect.top - 12; // Account for padding
+		
+		// Estimate character position based on font metrics
+		const lineHeight = 24; // Approximate line height
+		const charWidth = 8; // Approximate character width
+		const lineNumber = Math.floor(y / lineHeight);
+		const charInLine = Math.floor(x / charWidth);
+		
+		// Calculate approximate text position
+		const lines = value.split('\n');
+		let charPosition = 0;
+		
+		for (let i = 0; i < lineNumber && i < lines.length; i++) {
+			charPosition += lines[i].length + 1; // +1 for newline
+		}
+		
+		if (lineNumber < lines.length) {
+			charPosition += Math.min(charInLine, lines[lineNumber].length);
+		}
+		
+		// Find which segment contains this position
+		let currentPos = 0;
+		let hoveredSegment = null;
+		
+		for (const segment of segments) {
+			const segmentEnd = currentPos + segment.text.length;
+			if (charPosition >= currentPos && charPosition < segmentEnd) {
+				hoveredSegment = segment;
+				break;
 			}
-		} else if (event.key === 'Escape') {
+			currentPos = segmentEnd;
+		}
+		
+		// Show tooltip if hovering over a tool segment
+		if (hoveredSegment && hoveredSegment.isFormatted && hoveredSegment.text.startsWith('@')) {
+			if (hoverTimeout) {
+				clearTimeout(hoverTimeout);
+			}
+			
+			hoverTimeout = setTimeout(() => {
+				const toolName = hoveredSegment.text.slice(1);
+				const tool = getToolData(toolName);
+				if (tool) {
+					hoveredTool = tool;
+					tooltipPosition = { x: event.clientX, y: event.clientY - 10 };
+				}
+			}, 100);
+		} else {
+			if (hoverTimeout) {
+				clearTimeout(hoverTimeout);
+				hoverTimeout = null;
+			}
 			hoveredTool = null;
 		}
 	}
@@ -177,19 +224,14 @@
 				{#if segment.isFormatted && segment.className}
 					{#if segment.text.startsWith('@')}
 						<span 
-							class="{segment.className} cursor-help pointer-events-auto"
-							role="button"
-							tabindex="0"
+							class="{segment.className}"
 							style="text-decoration: underline; text-decoration-color: rgba(59, 130, 246, 0.5); text-decoration-thickness: 2px; text-underline-offset: 1px;"
-							onmouseenter={(e) => handleToolHover(e, segment.text.slice(1))}
-							onmouseleave={handleToolLeave}
-							onkeydown={(e) => handleToolKeydown(e, segment.text.slice(1))}
 						>{segment.text}</span>
 					{:else}
 						<span class="{segment.className}">{segment.text}</span>
 					{/if}
 				{:else}
-					<span class="text-gray-900 dark:text-gray-100 pointer-events-none">{segment.text}</span>
+					<span class="text-gray-900 dark:text-gray-100">{segment.text}</span>
 				{/if}
 			{/each}
 		</div>
@@ -209,6 +251,7 @@
 		onkeydown={handleKeydown}
 		onfocus={handleFocus}
 		onblur={handleBlur}
+		onmousemove={handleMouseMove}
 	></textarea>
 
 	<!-- Tooltip -->
