@@ -102,3 +102,91 @@ export function getFallbackProvider(currentProvider: string): ProviderId | null 
 		selectBestAvailableProvider() || (availableProviders.length > 0 ? availableProviders[0] : null)
 	);
 }
+
+export interface EnvironmentStatus {
+	providers: Record<
+		ProviderId,
+		{
+			hasKey: boolean;
+			isValid: boolean;
+			keyPrefix?: string;
+			displayName: string;
+		}
+	>;
+	summary: {
+		totalProviders: number;
+		availableProviders: number;
+		configuredKeys: number;
+		validKeys: number;
+	};
+}
+
+export function getEnvironmentStatus(): EnvironmentStatus {
+	const providerStatus: Record<ProviderId, any> = {};
+	let configuredKeys = 0;
+	let validKeys = 0;
+
+	// Check Groq
+	const groqHasKey = !!GROQ_API_KEY;
+	const groqIsValid = groqHasKey && GROQ_API_KEY !== 'your_groq_api_key_here';
+	if (groqHasKey) configuredKeys++;
+	if (groqIsValid) validKeys++;
+	providerStatus.groq = {
+		hasKey: groqHasKey,
+		isValid: groqIsValid,
+		keyPrefix: groqIsValid ? GROQ_API_KEY.substring(0, 8) + '...' : undefined,
+		displayName: PROVIDERS.groq.displayName
+	};
+
+	// Check Anthropic
+	const anthropicHasKey = !!ANTHROPIC_API_KEY;
+	const anthropicIsValid = anthropicHasKey && ANTHROPIC_API_KEY !== 'your_anthropic_api_key_here';
+	if (anthropicHasKey) configuredKeys++;
+	if (anthropicIsValid) validKeys++;
+	providerStatus.anthropic = {
+		hasKey: anthropicHasKey,
+		isValid: anthropicIsValid,
+		keyPrefix: anthropicIsValid ? ANTHROPIC_API_KEY.substring(0, 8) + '...' : undefined,
+		displayName: PROVIDERS.anthropic.displayName
+	};
+
+	// Check OpenAI
+	const openaiHasKey = !!OPENAI_API_KEY;
+	const openaiIsValid = openaiHasKey && OPENAI_API_KEY !== 'your_openai_api_key_here';
+	if (openaiHasKey) configuredKeys++;
+	if (openaiIsValid) validKeys++;
+	providerStatus.openai = {
+		hasKey: openaiHasKey,
+		isValid: openaiIsValid,
+		keyPrefix: openaiIsValid ? OPENAI_API_KEY.substring(0, 8) + '...' : undefined,
+		displayName: PROVIDERS.openai.displayName
+	};
+
+	// Check Google
+	const googleHasKey = !!GOOGLE_API_KEY;
+	const googleIsValid = googleHasKey && GOOGLE_API_KEY !== 'your_google_api_key_here';
+	if (googleHasKey) configuredKeys++;
+	if (googleIsValid) validKeys++;
+	providerStatus.google = {
+		hasKey: googleHasKey,
+		isValid: googleIsValid,
+		keyPrefix: googleIsValid ? GOOGLE_API_KEY.substring(0, 8) + '...' : undefined,
+		displayName: PROVIDERS.google.displayName
+	};
+
+	const availableProviders = getAvailableProviders();
+
+	return {
+		providers: providerStatus,
+		summary: {
+			totalProviders: Object.keys(PROVIDERS).length,
+			availableProviders: availableProviders.length,
+			configuredKeys,
+			validKeys
+		}
+	};
+}
+
+export function getRequiredEnvironmentVariables(): string[] {
+	return ['GROQ_API_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GOOGLE_API_KEY'];
+}

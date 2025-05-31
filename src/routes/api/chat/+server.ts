@@ -5,7 +5,9 @@ import {
 	getAvailableProviders,
 	getDefaultModels,
 	selectBestAvailableProvider,
-	getFallbackProvider
+	getFallbackProvider,
+	getEnvironmentStatus,
+	getRequiredEnvironmentVariables
 } from '$lib/providers/server.js';
 import { getDefaultModelForProvider } from '$lib/providers/index.js';
 
@@ -61,7 +63,8 @@ export async function POST({ request }: { request: Request }) {
 			if (availableProviders.length === 0) {
 				debugLog(`[${requestId}] Health check FAILED - No valid API keys configured`, {
 					configuredProviders: 0,
-					requiredEnvVars: ['GROQ_API_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GOOGLE_API_KEY']
+					requiredEnvVars: getRequiredEnvironmentVariables(),
+					envStatus: getEnvironmentStatus()
 				});
 				return new Response(
 					JSON.stringify({
@@ -109,19 +112,8 @@ export async function POST({ request }: { request: Request }) {
 				messageCount: messages.length,
 				requestedProvider: provider,
 				requestedModel: model,
-				envCheck: {
-					groqKey:
-						!!process.env.GROQ_API_KEY && process.env.GROQ_API_KEY !== 'your_groq_api_key_here',
-					anthropicKey:
-						!!process.env.ANTHROPIC_API_KEY &&
-						process.env.ANTHROPIC_API_KEY !== 'your_anthropic_api_key_here',
-					openaiKey:
-						!!process.env.OPENAI_API_KEY &&
-						process.env.OPENAI_API_KEY !== 'your_openai_api_key_here',
-					googleKey:
-						!!process.env.GOOGLE_API_KEY &&
-						process.env.GOOGLE_API_KEY !== 'your_google_api_key_here'
-				}
+				envStatus: getEnvironmentStatus(),
+				requiredEnvVars: getRequiredEnvironmentVariables()
 			});
 			return new Response(
 				JSON.stringify({
