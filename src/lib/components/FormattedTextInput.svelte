@@ -30,7 +30,6 @@
 	}: Props = $props();
 
 	let textareaElement: HTMLTextAreaElement;
-	let isFocused = $state(false);
 
 	let segments = $state([]);
 	let hoveredTool = $state<ToolMetadata | null>(null);
@@ -57,12 +56,10 @@
 
 	function handleFocus(event: FocusEvent) {
 		onFocus?.(event);
-		isFocused = true;
 	}
 
 	function handleBlur(event: FocusEvent) {
 		onBlur?.(event);
-		isFocused = false;
 	}
 
 	export function getTextarea() {
@@ -91,67 +88,40 @@
 		}
 	}
 
-	function handleToolHover(event: MouseEvent, toolName: string) {
-		// Clear any existing timeout
-		if (hoverTimeout) {
-			clearTimeout(hoverTimeout);
-		}
-		
-		// Set new timeout for 100ms delay
-		hoverTimeout = setTimeout(() => {
-			const tool = getToolData(toolName);
-			if (tool) {
-				hoveredTool = tool;
-				const rect = (event.target as HTMLElement).getBoundingClientRect();
-				tooltipPosition = { 
-					x: rect.left + rect.width / 2, 
-					y: rect.top - 10 
-				};
-			}
-		}, 100);
-	}
 
-	function handleToolLeave() {
-		// Clear timeout if hovering stops before delay
-		if (hoverTimeout) {
-			clearTimeout(hoverTimeout);
-			hoverTimeout = null;
-		}
-		hoveredTool = null;
-	}
 
 	function handleMouseMove(event: MouseEvent) {
 		if (!value.trim()) return;
-		
+
 		const textarea = event.currentTarget as HTMLTextAreaElement;
-		
+
 		// Use textarea properties to calculate approximate character position
 		const rect = textarea.getBoundingClientRect();
 		const x = event.clientX - rect.left - 16; // Account for padding
 		const y = event.clientY - rect.top - 12; // Account for padding
-		
+
 		// Estimate character position based on font metrics
 		const lineHeight = 24; // Approximate line height
 		const charWidth = 8; // Approximate character width
 		const lineNumber = Math.floor(y / lineHeight);
 		const charInLine = Math.floor(x / charWidth);
-		
+
 		// Calculate approximate text position
 		const lines = value.split('\n');
 		let charPosition = 0;
-		
+
 		for (let i = 0; i < lineNumber && i < lines.length; i++) {
 			charPosition += lines[i].length + 1; // +1 for newline
 		}
-		
+
 		if (lineNumber < lines.length) {
 			charPosition += Math.min(charInLine, lines[lineNumber].length);
 		}
-		
+
 		// Find which segment contains this position
 		let currentPos = 0;
 		let hoveredSegment = null;
-		
+
 		for (const segment of segments) {
 			const segmentEnd = currentPos + segment.text.length;
 			if (charPosition >= currentPos && charPosition < segmentEnd) {
@@ -160,13 +130,13 @@
 			}
 			currentPos = segmentEnd;
 		}
-		
+
 		// Show tooltip if hovering over a tool segment
 		if (hoveredSegment && hoveredSegment.isFormatted && hoveredSegment.text.startsWith('@')) {
 			if (hoverTimeout) {
 				clearTimeout(hoverTimeout);
 			}
-			
+
 			hoverTimeout = setTimeout(() => {
 				const toolName = hoveredSegment.text.slice(1);
 				const tool = getToolData(toolName);
@@ -223,12 +193,13 @@
 			{#each segments as segment, index (index)}
 				{#if segment.isFormatted && segment.className}
 					{#if segment.text.startsWith('@')}
-						<span 
-							class="{segment.className}"
+						<span
+							class={segment.className}
 							style="text-decoration: underline; text-decoration-color: rgba(59, 130, 246, 0.5); text-decoration-thickness: 2px; text-underline-offset: 1px;"
-						>{segment.text}</span>
+							>{segment.text}</span
+						>
 					{:else}
-						<span class="{segment.className}">{segment.text}</span>
+						<span class={segment.className}>{segment.text}</span>
 					{/if}
 				{:else}
 					<span class="text-gray-900 dark:text-gray-100">{segment.text}</span>
@@ -260,24 +231,26 @@
 			class="pointer-events-none fixed z-50 max-w-80 rounded-lg border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-600 dark:bg-gray-800"
 			style="left: {tooltipPosition.x}px; top: {tooltipPosition.y}px; transform: translateX(-50%) translateY(-100%);"
 		>
-			<div class="flex items-center gap-2 mb-2">
+			<div class="mb-2 flex items-center gap-2">
 				<span class="text-sm">{getCategoryIcon(hoveredTool.category || 'general')}</span>
 				<div>
-					<div class="font-medium text-sm text-gray-900 dark:text-gray-100">
+					<div class="text-sm font-medium text-gray-900 dark:text-gray-100">
 						@{hoveredTool.name}
 					</div>
-					<div class="text-xs text-gray-500 dark:text-gray-400 capitalize">
+					<div class="text-xs text-gray-500 capitalize dark:text-gray-400">
 						{hoveredTool.category || 'general'}
 					</div>
 				</div>
 			</div>
-			<div class="text-sm text-gray-700 dark:text-gray-300 mb-2">
+			<div class="mb-2 text-sm text-gray-700 dark:text-gray-300">
 				{hoveredTool.description}
 			</div>
 			{#if hoveredTool.tags && hoveredTool.tags.length > 0}
-				<div class="flex gap-1 flex-wrap">
+				<div class="flex flex-wrap gap-1">
 					{#each hoveredTool.tags as tag (tag)}
-						<span class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+						<span
+							class="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+						>
 							{tag}
 						</span>
 					{/each}

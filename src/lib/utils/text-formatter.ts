@@ -55,8 +55,7 @@ export const defaultFormatRules: FormatRule[] = [
 	},
 	{
 		pattern: TOOL_REGEX,
-		className:
-			'text-blue-800 dark:text-blue-200',
+		className: 'text-blue-800 dark:text-blue-200',
 		validate: (match: string) => {
 			const toolName = match.slice(1); // Remove @ symbol
 			return isValidTool(toolName);
@@ -209,9 +208,7 @@ export function extractUrls(text: string): string[] {
 export function createToolRule(className?: string): FormatRule {
 	return {
 		pattern: TOOL_REGEX,
-		className:
-			className ||
-			'text-blue-800 dark:text-blue-200',
+		className: className || 'text-blue-800 dark:text-blue-200',
 		validate: (match: string) => {
 			const toolName = match.slice(1);
 			return isValidTool(toolName);

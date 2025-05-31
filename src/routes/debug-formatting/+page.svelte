@@ -180,9 +180,7 @@
 		testValue = 'Hover over @weather to see tooltip';
 		setTimeout(() => {
 			console.log('🔍 Test tooltip by hovering over @weather in the preview section');
-			console.log(
-				'💡 Look for formatted @ tool text - tooltip appears automatically on hover'
-			);
+			console.log('💡 Look for formatted @ tool text - tooltip appears automatically on hover');
 		}, 100);
 	}
 
@@ -193,7 +191,7 @@
 		showTooltip = true;
 		console.log('Tooltip simulated - showing weather tool info');
 		tooltipDebugInfo.lastHoverEvent = new Date().toISOString();
-		
+
 		// Auto-hide after 3 seconds
 		setTimeout(() => {
 			showTooltip = false;
@@ -228,8 +226,6 @@
 	let tooltipData = $state(null);
 	let tooltipPosition = $state({ x: 0, y: 0 });
 	let showTooltip = $state(false);
-
-
 
 	function getToolData(toolName) {
 		try {
@@ -306,7 +302,10 @@
 
 					<div class="space-y-4">
 						<div>
-							<label for="formatted-input" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
+							<label
+								for="formatted-input"
+								class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+							>
 								Formatted Text Input:
 							</label>
 							<div class="relative">
@@ -375,7 +374,6 @@
 									📋 Multi-Tool Test
 								</button>
 
-
 								<button
 									onclick={simulateTooltipHover}
 									class="rounded bg-green-100 px-3 py-1 text-xs text-green-700 transition-colors hover:bg-green-200 dark:bg-green-900/30 dark:text-green-300 dark:hover:bg-green-900/50"
@@ -412,15 +410,15 @@
 													onmouseover={(e) => {
 														const toolName = segment.text.slice(1);
 														tooltipData = getToolData(toolName);
-													
+
 														// Calculate position to avoid viewport edges
 														const rect = e.target.getBoundingClientRect();
 														const tooltipWidth = 320; // max-w-xs is roughly 320px
 														const tooltipHeight = 150; // estimated height
-													
-														let x = rect.left + (rect.width / 2);
+
+														let x = rect.left + rect.width / 2;
 														let y = rect.top - 10;
-													
+
 														// Adjust if too far right
 														if (x + tooltipWidth / 2 > window.innerWidth - 20) {
 															x = window.innerWidth - tooltipWidth / 2 - 20;
@@ -433,22 +431,22 @@
 														if (y - tooltipHeight < 20) {
 															y = rect.bottom + 10;
 														}
-													
+
 														tooltipPosition = { x, y };
 														showTooltip = true;
 													}}
 													onfocus={(e) => {
 														const toolName = segment.text.slice(1);
 														tooltipData = getToolData(toolName);
-													
+
 														// Calculate position to avoid viewport edges
 														const rect = e.target.getBoundingClientRect();
 														const tooltipWidth = 320; // max-w-xs is roughly 320px
 														const tooltipHeight = 150; // estimated height
-													
-														let x = rect.left + (rect.width / 2);
+
+														let x = rect.left + rect.width / 2;
 														let y = rect.top - 10;
-													
+
 														// Adjust if too far right
 														if (x + tooltipWidth / 2 > window.innerWidth - 20) {
 															x = window.innerWidth - tooltipWidth / 2 - 20;
@@ -461,7 +459,7 @@
 														if (y - tooltipHeight < 20) {
 															y = rect.bottom + 10;
 														}
-													
+
 														tooltipPosition = { x, y };
 														showTooltip = true;
 													}}
@@ -526,7 +524,8 @@
 			{#if showTooltip && tooltipData}
 				<div
 					class="pointer-events-none fixed z-50 max-w-xs rounded-lg border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-600 dark:bg-gray-800"
-					style="left: {tooltipPosition?.x || 0}px; top: {tooltipPosition?.y || 0}px; transform: translateX(-50%) translateY(-100%);"
+					style="left: {tooltipPosition?.x || 0}px; top: {tooltipPosition?.y ||
+						0}px; transform: translateX(-50%) translateY(-100%);"
 				>
 					<div class="mb-2 flex items-center gap-2">
 						<span class="text-sm">{getCategoryIcon(tooltipData.category || 'general')}</span>

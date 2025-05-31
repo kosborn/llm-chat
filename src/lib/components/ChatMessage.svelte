@@ -1,9 +1,10 @@
 <script lang="ts">
 	import type { ChatMessage } from '../../app.d.ts';
-	import { renderMarkdown } from '$lib/utils/markdown.js';
+
 	import { onMount } from 'svelte';
 	import ToolRenderer from './ToolRenderer.svelte';
 	import MetadataDisplay from './MetadataDisplay.svelte';
+	import EnhancedText from './EnhancedText.svelte';
 	import {
 		countTokens,
 		formatTokenCount,
@@ -95,7 +96,7 @@
 		<!-- Message text content -->
 		{#if message.content}
 			<div class="prose prose-sm dark:prose-invert max-w-none">
-				{@html renderMarkdown(message.content)}
+				<EnhancedText text={message.content} />
 			</div>
 		{/if}
 
