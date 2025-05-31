@@ -88,8 +88,6 @@
 		}
 	}
 
-
-
 	function handleMouseMove(event: MouseEvent) {
 		if (!value.trim()) return;
 

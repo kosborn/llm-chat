@@ -28,7 +28,7 @@
 		try {
 			// First, get custom formatting segments
 			const customSegments = parseFormattedText(text, rules);
-			
+
 			if (!enableMarkdown) {
 				return customSegments;
 			}
