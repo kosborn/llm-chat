@@ -1,4 +1,6 @@
 import { createGroq } from '@ai-sdk/groq';
+import { createOpenAI } from '@ai-sdk/openai';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { generateText } from 'ai';
 import { json } from '@sveltejs/kit';
 
@@ -15,12 +17,28 @@ export async function POST({ request }) {
 		}
 
 		// Create provider instance with client-provided API key
-		const groq = createGroq({
-			apiKey: apiKey
-		});
+		let aiProvider;
+		let modelName;
+
+		switch (provider) {
+			case 'groq':
+				aiProvider = createGroq({ apiKey });
+				modelName = 'meta-llama/llama-4-scout-17b-16e-instruct';
+				break;
+			case 'openai':
+				aiProvider = createOpenAI({ apiKey });
+				modelName = 'gpt-4o-mini';
+				break;
+			case 'anthropic':
+				aiProvider = createAnthropic({ apiKey });
+				modelName = 'claude-3-haiku-20240307';
+				break;
+			default:
+				return json({ error: `Unsupported provider: ${provider}` }, { status: 400 });
+		}
 
 		const result = await generateText({
-			model: groq('meta-llama/llama-4-scout-17b-16e-instruct'),
+			model: aiProvider(modelName),
 			prompt: `Based on this conversation, respond with ONLY a short title (3-50 characters). Do not include any explanations, quotes, or extra text.
 
 User: ${userMessage}

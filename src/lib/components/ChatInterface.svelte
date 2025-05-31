@@ -8,6 +8,7 @@
 	import { apiKeyStore } from '$lib/stores/api-key-store.svelte.js';
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
 	import { offlineQueueStore } from '$lib/stores/offline-queue-store.svelte.js';
+	import { notificationStore } from '$lib/stores/notification-store.svelte.js';
 	import { clientChatService } from '$lib/services/client-chat.js';
 	import ChatSidebar from './ChatSidebar.svelte';
 	import ArchivedChats from './ArchivedChats.svelte';
@@ -213,11 +214,19 @@
 	async function handleRegenerateTitleFromHeader() {
 		if (!chatStore.currentChat) return;
 		
+		// Check if API key is configured
+		if (!apiKeyStore.getApiKey()) {
+			showApiConfig = true;
+			return;
+		}
+		
 		try {
 			autoRenamingChatId = chatStore.currentChat.id;
 			await chatStore.autoRenameChat(chatStore.currentChat.id, true);
 		} catch (error) {
 			console.error('Failed to regenerate title:', error);
+			// Show a user-friendly error message
+			notificationStore.error('Failed to regenerate title. Please check your API key configuration.');
 		} finally {
 			autoRenamingChatId = null;
 		}

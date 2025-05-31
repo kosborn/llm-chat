@@ -245,7 +245,12 @@ class ChatStore {
 			return;
 
 		const apiKey = apiKeyStore.getApiKey();
-		if (!apiKey) return;
+		if (!apiKey) {
+			if (forceRegenerate) {
+				notificationStore.error('API key required to regenerate title');
+			}
+			return;
+		}
 
 		try {
 			const response = await fetch('/api/chat/generate-title', {
@@ -265,9 +270,17 @@ class ChatStore {
 					await this.updateChatTitle(chatId, title.trim());
 					notificationStore.success(`Chat renamed to "${title.trim()}"`, 2000);
 				}
+			} else {
+				const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+				if (forceRegenerate) {
+					notificationStore.error(`Failed to generate title: ${errorData.error || 'API error'}`);
+				}
+				console.warn('Title generation failed:', errorData);
 			}
 		} catch (err) {
-			// Silently fail - auto-renaming is not critical
+			if (forceRegenerate) {
+				notificationStore.error('Failed to connect to title generation service');
+			}
 			console.warn('Auto-rename failed:', err);
 		}
 	}
