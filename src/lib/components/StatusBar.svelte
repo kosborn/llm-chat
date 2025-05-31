@@ -1,18 +1,14 @@
 <script lang="ts">
 	import { debugStore } from '$lib/stores/debug-store.svelte.js';
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
-	import { apiKeyStore } from '$lib/stores/api-key-store.svelte.js';
-	import {
-		formatCost,
-		getModelDisplayName,
-		getProviderDisplayName
-	} from '$lib/utils/cost-calculator.js';
+	import { providerStore } from '$lib/stores/provider-store.svelte.js';
 	import ModelSelector from './ModelSelector.svelte';
+	import type { ProviderId } from '$lib/providers/index.js';
 
 	interface Props {
-		provider?: 'groq' | 'anthropic' | 'openai';
+		provider?: ProviderId;
 		model?: string;
-		onProviderChange?: (provider: 'groq' | 'anthropic' | 'openai') => void;
+		onProviderChange?: (provider: ProviderId) => void;
 		onModelChange?: (model: string) => void;
 		disabled?: boolean;
 	}
@@ -29,47 +25,28 @@
 
 	// Status based on currently selected provider and model
 	const status = $derived(() => {
-		try {
-			// Check if we can send messages with the current provider
-			const isOnline = networkStore.isOnline;
-			const apiKey = apiKeyStore.getApiKey(provider);
-			const hasApiKey = !!apiKey;
-			const isValidApiKey = hasApiKey && apiKeyStore.validateApiKey(apiKey);
-
-			// Determine canSend status based on current provider:
-			// - If offline and no valid API key for this provider: definitely can't send
-			// - If online: can try server-side first, then client-side with API key
-			// - If offline but have valid API key: can send client-side only
-			let canSend = false;
-			if (isOnline) {
-				// Online: can always try (server-side first, then client-side fallback)
-				canSend = true;
-			} else if (isValidApiKey) {
-				// Offline but have valid API key for this provider: can send client-side
-				canSend = true;
-			}
-
-			return {
-				canSend,
-				hasApiKey,
-				isOnline,
-				isValidApiKey,
-				provider,
-				model,
-				queuedCount: 0
-			};
-		} catch (error) {
-			console.warn('Failed to get detailed status:', error);
+		const providerStatus = providerStore.status;
+		if (!providerStatus) {
 			return {
 				canSend: false,
 				hasApiKey: false,
-				isOnline: false,
+				isOnline: networkStore.isOnline,
 				isValidApiKey: false,
 				provider,
 				model,
 				queuedCount: 0
 			};
 		}
+
+		return {
+			canSend: providerStatus.canSend,
+			hasApiKey: providerStatus.hasApiKey,
+			isOnline: networkStore.isOnline,
+			isValidApiKey: providerStatus.isValidApiKey,
+			provider: providerStatus.provider,
+			model: providerStatus.model,
+			queuedCount: 0
+		};
 	});
 
 	const apiMetrics = $derived(() => {
@@ -99,6 +76,12 @@
 	});
 	const sessionCost = $derived(() => apiMetrics()?.totalCost || 0);
 	const sessionTokens = $derived(() => apiMetrics()?.totalTokens || 0);
+
+	const formatCost = (cost: number) => providerStore.formatCost(cost);
+	const getModelDisplayName = (provider: ProviderId, model: string) => 
+		providerStore.getModelDisplayName(provider, model);
+	const getProviderDisplayName = (provider: ProviderId) => 
+		providerStore.getProviderDisplayName(provider);
 </script>
 
 <div class="border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-900">
@@ -124,9 +107,9 @@
 					{#if !status().isOnline}
 						Offline
 					{:else if !status().hasApiKey}
-						No {getProviderDisplayName(provider)} API Key
+						No {getProviderDisplayName(status().provider)} API Key
 					{:else if !status().isValidApiKey}
-						Invalid {getProviderDisplayName(provider)} API Key
+						Invalid {getProviderDisplayName(status().provider)} API Key
 					{:else}
 						Can't Send
 					{/if}
@@ -240,7 +223,7 @@
 					<div class="mt-1 flex flex-wrap gap-1">
 						{#each Object.entries(apiMetrics()?.modelUsage || {}) as [model, count] (model)}
 							<span class="rounded bg-blue-100 px-2 py-0.5 text-xs dark:bg-blue-900">
-								{getModelDisplayName(status().provider || 'groq', model)}: {count}
+								{getModelDisplayName(status().provider, model)}: {count}
 							</span>
 						{/each}
 					</div>
@@ -253,7 +236,7 @@
 					<div class="mt-1 flex flex-wrap gap-1">
 						{#each Object.entries(apiMetrics()?.providerUsage || {}) as [provider, count] (provider)}
 							<span class="rounded bg-purple-100 px-2 py-0.5 text-xs dark:bg-purple-900">
-								{getProviderDisplayName(provider)}: {count}
+								{getProviderDisplayName(provider as ProviderId)}: {count}
 							</span>
 						{/each}
 					</div>

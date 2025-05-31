@@ -1,12 +1,6 @@
 <script lang="ts">
-	import {
-		getAllProviders,
-		getSupportedModels,
-		getDefaultModelForProvider,
-		getModel,
-		type ProviderId
-	} from '$lib/providers';
-	import { getModelDisplayName, getProviderDisplayName } from '$lib/utils/cost-calculator.js';
+	import { providerStore } from '$lib/stores/provider-store.svelte.js';
+	import type { ProviderId } from '$lib/providers';
 
 	interface Props {
 		provider: ProviderId;
@@ -29,23 +23,23 @@
 	}: Props = $props();
 
 	// Get providers sorted by priority
-	const providers = getAllProviders();
+	const providers = providerStore.getAllProviders();
 
 	// Get supported models for current provider
-	const supportedModels = $derived(getSupportedModels(provider).map((model) => model.id));
+	const supportedModels = $derived(providerStore.getAvailableModels(provider).map((model) => model.id));
 
 	// Ensure model is valid for current provider
 	$effect(() => {
 		if (provider && supportedModels.length > 0 && !supportedModels.includes(model)) {
 			// Switch to default model for this provider
-			onModelChange(getDefaultModelForProvider(provider));
+			onModelChange(providerStore.getDefaultModelForProvider(provider));
 		}
 	});
 
 	function handleProviderChange(newProvider: ProviderId) {
 		onProviderChange(newProvider);
 		// Auto-select default model for new provider
-		onModelChange(getDefaultModelForProvider(newProvider));
+		onModelChange(providerStore.getDefaultModelForProvider(newProvider));
 	}
 </script>
 
@@ -79,7 +73,7 @@
 		>
 			{#each supportedModels as modelOption (modelOption)}
 				<option value={modelOption}>
-					{getModelDisplayName(provider, modelOption)}
+					{providerStore.getModelDisplayName(provider, modelOption)}
 				</option>
 			{/each}
 		</select>
@@ -130,7 +124,7 @@
 			>
 				{#each supportedModels as modelOption (modelOption)}
 					<option value={modelOption}>
-						{getModelDisplayName(provider, modelOption)}
+						{providerStore.getModelDisplayName(provider, modelOption)}
 					</option>
 				{/each}
 			</select>
@@ -142,11 +136,11 @@
 				class="rounded-md bg-gray-50 p-2 text-xs text-gray-600 dark:bg-gray-800 dark:text-gray-400"
 			>
 				<div class="flex items-center gap-1">
-					<span class="font-medium">{getProviderDisplayName(provider)}:</span>
+					<span class="font-medium">{providerStore.getProviderDisplayName(provider)}:</span>
 					<span>{providers.find((p) => p.id === provider)?.description || 'AI models'}</span>
 				</div>
 				<div class="mt-1">
-					Model: <span class="font-mono">{getModelDisplayName(provider, model)}</span>
+					Model: <span class="font-mono">{providerStore.getModelDisplayName(provider, model)}</span>
 				</div>
 			</div>
 		{/if}

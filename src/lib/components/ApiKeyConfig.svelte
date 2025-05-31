@@ -1,8 +1,8 @@
 <script lang="ts">
-	import { apiKeyStore } from '$lib/stores/api-key-store.svelte.js';
+	import { providerStore } from '$lib/stores/provider-store.svelte.js';
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
-	import { getAllProviders, getProvider, type ProviderId } from '$lib/providers';
 	import { onMount } from 'svelte';
+	import type { ProviderId } from '$lib/providers/index.js';
 
 	interface Props {
 		isOpen: boolean;
@@ -21,13 +21,13 @@
 	let lastCheckTime = 0;
 
 	// Get providers sorted by priority
-	const providers = getAllProviders();
+	const providers = providerStore.getAllProviders();
 
 	// Initialize with current values - only check server once when opened
 	$effect(() => {
 		if (isOpen) {
-			apiKey = apiKeyStore.getApiKey() || '';
-			provider = apiKeyStore.provider;
+			apiKey = providerStore.getApiKey() || '';
+			provider = providerStore.currentProvider;
 			// Only check server if we haven't checked recently (within 30 seconds)
 			const now = Date.now();
 			if (now - lastCheckTime > 30000) {
@@ -48,27 +48,7 @@
 		checkingServer = true;
 
 		try {
-			const response = await fetch('/api/chat', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					messages: [{ role: 'user', content: 'health-check' }]
-				})
-			});
-
-			if (response.ok) {
-				// For health check, we expect a JSON response
-				const data = await response.json();
-				serverAvailable = data.available === true;
-			} else {
-				// Check if it's a 503 with JSON error message
-				const contentType = response.headers.get('content-type');
-				if (contentType && contentType.includes('application/json')) {
-					const data = await response.json();
-					console.log('Server unavailable:', data.error);
-				}
-				serverAvailable = false;
-			}
+			serverAvailable = await providerStore.checkServerAvailability();
 		} catch (error) {
 			console.log('Server availability check failed:', error);
 			serverAvailable = false;
@@ -106,11 +86,11 @@
 	}
 
 	function validateApiKeyFormat(key: string, prov: string): boolean {
-		return apiKeyStore.validateApiKey(key, prov as ProviderId);
+		return providerStore.validateApiKey(key, prov as ProviderId);
 	}
 
 	function getValidationError(): string {
-		const providerConfig = getProvider(provider);
+		const providerConfig = providerStore.getProvider(provider);
 		if (providerConfig) {
 			return `${providerConfig.displayName} API keys should start with "${providerConfig.apiKeyPrefix}"`;
 		}
@@ -120,28 +100,31 @@
 	function handleSave() {
 		// If server is available, we can save with empty API key
 		if (serverAvailable || isValid) {
-			apiKeyStore.setApiKey(apiKey, provider);
+			if (apiKey.trim()) {
+				providerStore.setApiKey(provider, apiKey);
+			}
+			providerStore.setProvider(provider);
 			onClose();
 		}
 	}
 
 	function handleClear() {
-		apiKeyStore.clearApiKey();
+		providerStore.clearApiKey(provider);
 		apiKey = '';
 		validateKey();
 	}
 
 	function handleCancel() {
 		// Reset to stored values
-		apiKey = apiKeyStore.getApiKey() || '';
-		provider = apiKeyStore.provider;
+		apiKey = providerStore.getApiKey() || '';
+		provider = providerStore.currentProvider;
 		validateKey();
 		onClose();
 	}
 
 	function handleUseServer() {
 		// Clear any existing API key and close
-		apiKeyStore.clearApiKey();
+		providerStore.clearApiKey();
 		onClose();
 	}
 
@@ -293,7 +276,7 @@
 							bind:value={apiKey}
 							placeholder={serverAvailable
 								? 'Optional - server AI is available'
-								: `Enter your ${getProvider(provider)?.displayName || 'AI'} API key`}
+								: `Enter your ${providerStore.getProvider(provider)?.displayName || 'AI'} API key`}
 							class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-gray-900
 								   focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
 								   dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100
@@ -340,11 +323,11 @@
 				<!-- Instructions -->
 				<div class="rounded-md bg-gray-50 p-3 dark:bg-gray-700">
 					<h4 class="mb-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-						How to get your {getProvider(provider)?.displayName || 'AI'} API key:
+						How to get your {providerStore.getProvider(provider)?.displayName || 'AI'} API key:
 					</h4>
 					<div class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-						{#if getProvider(provider)}
-							{@const currentProvider = getProvider(provider)}
+						{#if providerStore.getProvider(provider)}
+							{@const currentProvider = providerStore.getProvider(provider)}
 							<p>
 								1. Visit <a
 									href={currentProvider.signupUrl}
@@ -393,7 +376,7 @@
 
 			<!-- Actions -->
 			<div class="mt-6 flex justify-end gap-3">
-				{#if apiKeyStore.isConfigured}
+				{#if providerStore.getApiKey(provider)}
 					<button
 						onclick={handleClear}
 						class="rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50

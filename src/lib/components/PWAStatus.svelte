@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { apiKeyStore } from '$lib/stores/api-key-store.svelte.js';
+	import { providerStore } from '$lib/stores/provider-store.svelte.js';
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
 	import { offlineQueueStore } from '$lib/stores/offline-queue-store.svelte.js';
 	import { onMount } from 'svelte';
@@ -42,27 +42,7 @@
 		checkingServer = true;
 
 		try {
-			const response = await fetch('/api/chat', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					messages: [{ role: 'user', content: 'health-check' }]
-				})
-			});
-
-			if (response.ok) {
-				// For health check, we expect a JSON response
-				const data = await response.json();
-				serverAvailable = data.available === true;
-			} else {
-				// Check if it's a 503 with JSON error message
-				const contentType = response.headers.get('content-type');
-				if (contentType && contentType.includes('application/json')) {
-					const data = await response.json();
-					console.log('Server unavailable:', data.error);
-				}
-				serverAvailable = false;
-			}
+			serverAvailable = await providerStore.checkServerAvailability();
 		} catch (error) {
 			console.log('Server availability check failed:', error);
 			serverAvailable = false;
@@ -77,7 +57,7 @@
 		// If server status unknown and we're online, might not need API key
 		if (serverAvailable === null && networkStore.isOnline) return false;
 		// If server is unavailable, we need an API key
-		return serverAvailable === false && !apiKeyStore.isConfigured;
+		return serverAvailable === false && !providerStore.isConfigured;
 	}
 
 	function getStatusIcon(): string {
@@ -102,8 +82,8 @@
 		if (needsApiKey()) {
 			return 'API Key Needed';
 		}
-		if (apiKeyStore.isConfigured) {
-			return `Online (${apiKeyStore.getProviderName()})`;
+		if (providerStore.isConfigured) {
+			return `Online (${providerStore.getProviderName()})`;
 		}
 		return 'Ready to Chat';
 	}

@@ -16,7 +16,7 @@
 	<div class="text-amber-600 italic dark:text-amber-400">
 		⏳ Running {toolInvocation.toolName}...
 	</div>
-{:else if data.error}
+{:else if data?.error}
 	<ToolResultCard
 		{toolInvocation}
 		{onTechnicalView}
@@ -24,13 +24,16 @@
 		emoji="❌"
 		variant="red"
 	>
-		<div class="text-sm">
+		<div class="space-y-2 text-sm">
 			<div>
-				Expression: <code class="rounded bg-gray-100 px-2 py-1 dark:bg-gray-800"
-					>{data.expression}</code
+				<span class="font-medium text-gray-700 dark:text-gray-300">Input:</span>
+				<code class="rounded bg-gray-100 px-2 py-1 dark:bg-gray-800 ml-2"
+					>{toolInvocation.args?.expression || 'Unknown expression'}</code
 				>
 			</div>
-			<div class="mt-1 text-red-600 dark:text-red-400">Error: {data.error}</div>
+			<div class="text-red-600 dark:text-red-400">
+				<span class="font-medium">Error:</span> {data.error}
+			</div>
 		</div>
 	</ToolResultCard>
 {:else}
@@ -41,13 +44,16 @@
 		emoji="🧮"
 		variant="green"
 	>
-		<div class="text-sm">
+		<div class="space-y-2 text-sm">
 			<div>
-				Expression: <code class="rounded bg-gray-100 px-2 py-1 dark:bg-gray-800"
-					>{data.expression}</code
+				<span class="font-medium text-gray-700 dark:text-gray-300">Expression:</span>
+				<code class="rounded bg-gray-100 px-2 py-1 dark:bg-gray-800 ml-2"
+					>{toolInvocation.args?.expression || data?.expression || 'Unknown'}</code
 				>
 			</div>
-			<div class="mt-2 text-lg font-bold text-green-700 dark:text-green-300">= {data.result}</div>
+			<div class="text-lg font-bold text-green-700 dark:text-green-300">
+				Result: {data?.result ?? 'No result'}
+			</div>
 		</div>
 	</ToolResultCard>
 {/if}

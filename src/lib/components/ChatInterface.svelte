@@ -5,7 +5,7 @@
 	import type { ChatMessage, ToolInvocation } from '../../app.d.ts';
 	import { chatStore } from '$lib/stores/chat-store.svelte.js';
 	import { debugStore } from '$lib/stores/debug-store.svelte.js';
-	import { apiKeyStore } from '$lib/stores/api-key-store.svelte.js';
+	import { providerStore } from '$lib/stores/provider-store.svelte.js';
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
 	import { offlineQueueStore } from '$lib/stores/offline-queue-store.svelte.js';
 	import { notificationStore } from '$lib/stores/notification-store.svelte.js';
@@ -32,9 +32,9 @@
 	let editingTitle = $state(false);
 	let titleInput = $state('');
 
-	// Per-chat provider and model selection
-	let currentProvider = $state<import('$lib/providers').ProviderId>('groq');
-	let currentModel = $state('llama-3.3-70b-versatile');
+	// Per-chat provider and model selection - synced with providerStore
+	let currentProvider = $state<import('$lib/providers').ProviderId>(providerStore.currentProvider);
+	let currentModel = $state(providerStore.currentModel);
 
 	onMount(async () => {
 		await chatStore.init();
@@ -53,7 +53,7 @@
 
 		// Listen for network events to process offline queue
 		window.addEventListener('network-online', () => {
-			if (apiKeyStore.isConfigured) {
+			if (providerStore.isConfigured) {
 				offlineQueueStore.processQueue();
 			}
 		});
@@ -762,8 +762,14 @@
 			<StatusBar
 				provider={currentProvider}
 				model={currentModel}
-				onProviderChange={(provider) => (currentProvider = provider)}
-				onModelChange={(model) => (currentModel = model)}
+				onProviderChange={(provider) => {
+					currentProvider = provider;
+					providerStore.setProvider(provider);
+				}}
+				onModelChange={(model) => {
+					currentModel = model;
+					providerStore.setModel(model);
+				}}
 				disabled={isStreaming}
 			/>
 

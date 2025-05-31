@@ -1,12 +1,9 @@
-import { createGroq } from '@ai-sdk/groq';
-import { createOpenAI } from '@ai-sdk/openai';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
-import { apiKeyStore } from '$lib/stores/api-key-store.svelte.js';
+import { providerManager } from '$lib/providers/provider-manager.js';
 import { networkStore } from '$lib/stores/network-store.svelte.js';
 import { debugStore } from '$lib/stores/debug-store.svelte.js';
 import type { ChatMessage, ApiUsageMetadata } from '../../app.d.ts';
+import type { ProviderId } from '$lib/providers/index.js';
 
 interface ChatResponse {
 	success: boolean;
@@ -29,44 +26,49 @@ class ClientChatService {
 			};
 		}
 
-		// Try server-side first
-		try {
-			const serverResponse = await this.tryServerSide(messages, provider, model);
-			if (serverResponse.success) {
-				return serverResponse;
+		// Use provider manager to determine best provider/model
+		const requestedProvider = provider ? (provider as ProviderId) : providerManager.getCurrentProvider();
+		const requestedModel = model || providerManager.getCurrentModel();
+
+		// Check if we can send with this configuration
+		const status = await providerManager.getProviderStatus(requestedProvider, requestedModel);
+		if (!status.canSend) {
+			return {
+				success: false,
+				error: status.errorMessage || 'Cannot send message with current configuration'
+			};
+		}
+
+		// Try server-side first if available
+		if (status.isServerAvailable) {
+			try {
+				const serverResponse = await this.tryServerSide(messages, requestedProvider, requestedModel);
+				if (serverResponse.success) {
+					return serverResponse;
+				}
+			} catch (error) {
+				console.log('Server-side unavailable, falling back to client-side:', error);
 			}
-		} catch (error) {
-			console.log('Server-side unavailable, falling back to client-side:', error);
 		}
 
 		// Fallback to client-side
-		return this.sendMessageClientSide(messages, provider, model);
+		return this.sendMessageClientSide(messages, requestedProvider, requestedModel);
 	}
 
 	private async tryServerSide(
 		messages: ChatMessage[],
-		provider?: string,
-		model?: string
+		provider: ProviderId,
+		model: string
 	): Promise<ChatResponse> {
 		const outboundMessages = messages.map((msg) => ({
 			role: msg.role,
 			content: msg.content
 		}));
 
-		// Use provided provider/model or defaults (Groq first, then Anthropic)
-		const requestProvider = provider || 'groq';
-		const requestModel =
-			model ||
-			(requestProvider === 'groq'
-				? 'llama-3.3-70b-versatile'
-				: requestProvider === 'google'
-					? 'gemini-1.5-pro'
-					: 'claude-3-5-sonnet-20241022');
-
 		// Log outbound message to debug store
 		debugStore.logOutboundMessage(outboundMessages, 'server', {
-			provider: requestProvider,
-			model: requestModel
+			provider,
+			model
 		});
 
 		const response = await fetch('/api/chat', {
@@ -76,8 +78,8 @@ class ClientChatService {
 			},
 			body: JSON.stringify({
 				messages: outboundMessages,
-				provider: requestProvider,
-				model: requestModel
+				provider,
+				model
 			})
 		});
 
@@ -90,8 +92,8 @@ class ClientChatService {
 		}
 
 		// Extract provider/model info from response headers if available
-		const actualProvider = response.headers.get('X-Provider') || requestProvider;
-		const actualModel = response.headers.get('X-Model') || requestModel;
+		const actualProvider = response.headers.get('X-Provider') || provider;
+		const actualModel = response.headers.get('X-Model') || model;
 		const wasFallback = response.headers.get('X-Fallback') === 'true';
 
 		if (wasFallback) {
@@ -111,36 +113,23 @@ class ClientChatService {
 
 	private async sendMessageClientSide(
 		messages: ChatMessage[],
-		provider?: string,
-		model?: string
+		provider: ProviderId,
+		model: string
 	): Promise<ChatResponse> {
-		// Check if we have an API key
-		if (!apiKeyStore.isConfigured) {
+		// Check if we have a valid API key for this provider
+		if (!providerManager.hasValidApiKey(provider)) {
+			const providerName = providerManager.getProviderDisplayName(provider);
 			return {
 				success: false,
-				error:
-					'Server AI is unavailable and no API key is configured. Please set up your API key in the settings to continue chatting.'
-			};
-		}
-
-		// Use provided provider/model or fall back to configured ones
-		const currentProvider = provider || apiKeyStore.provider;
-		const currentModel = model || apiKeyStore.getModelForProvider(currentProvider);
-
-		// Get API key for the specific provider
-		const apiKey = apiKeyStore.getApiKey(currentProvider);
-		if (!apiKey || !apiKeyStore.validateApiKey(apiKey, currentProvider)) {
-			return {
-				success: false,
-				error: `Server AI is unavailable and your ${this.getProviderDisplayName(currentProvider)} API key format is invalid. Please check your API key in settings.`
+				error: `Server AI is unavailable and no valid ${providerName} API key is configured. Please set up your API key in the settings to continue chatting.`
 			};
 		}
 
 		const startTime = Date.now();
 
 		try {
-			const providerInstance = this.createProvider(apiKey, currentProvider);
-			const modelInstance = providerInstance(currentModel);
+			const providerInstance = providerManager.getClientProviderInstance(provider);
+			const modelInstance = providerInstance(model);
 
 			// Convert ChatMessage format to AI SDK format
 			const aiMessages = messages.map((msg) => ({
@@ -150,14 +139,14 @@ class ClientChatService {
 
 			// Log outbound message to debug store
 			debugStore.logOutboundMessage(aiMessages, 'client', {
-				provider: currentProvider,
-				model: currentModel
+				provider,
+				model
 			});
 
 			// Log API request
 			debugStore.logApiRequest({
-				provider: currentProvider,
-				model: currentModel,
+				provider,
+				model,
 				messages: aiMessages.length,
 				timestamp: startTime
 			});
@@ -173,16 +162,16 @@ class ClientChatService {
 
 			// Create API metadata
 			const apiMetadata: ApiUsageMetadata = {
-				model: currentModel,
-				provider: currentProvider,
+				model,
+				provider,
 				responseTime,
 				timestamp: Date.now()
 			};
 
 			// Log API metadata to debug store
 			debugStore.logApiMetadata({
-				model: currentModel,
-				provider: currentProvider,
+				model,
+				provider,
 				responseTime
 			});
 
@@ -217,36 +206,7 @@ class ClientChatService {
 		}
 	}
 
-	private createProvider(apiKey: string, provider?: string) {
-		const providerType = provider || apiKeyStore.provider;
-		switch (providerType) {
-			case 'groq':
-				return createGroq({ apiKey });
-			case 'openai':
-				return createOpenAI({ apiKey });
-			case 'anthropic':
-				return createAnthropic({ apiKey });
-			case 'google':
-				return createGoogleGenerativeAI({ apiKey });
-			default:
-				throw new Error(`Unsupported provider: ${providerType}`);
-		}
-	}
 
-	private getProviderDisplayName(provider: string): string {
-		switch (provider) {
-			case 'groq':
-				return 'Groq';
-			case 'openai':
-				return 'OpenAI';
-			case 'anthropic':
-				return 'Anthropic';
-			case 'google':
-				return 'Google';
-			default:
-				return provider;
-		}
-	}
 
 	async generateTitle(
 		userMessage: string,
@@ -259,41 +219,43 @@ class ClientChatService {
 			return null;
 		}
 
-		// Try server-side first
-		try {
-			const serverTitle = await this.tryServerSideTitle(
-				userMessage,
-				assistantMessage,
-				provider,
-				model
-			);
-			if (serverTitle) {
-				return serverTitle;
+		// Use provider manager to determine best provider/model
+		const requestedProvider = provider ? (provider as ProviderId) : providerManager.getCurrentProvider();
+		const requestedModel = model || providerManager.getCurrentModel();
+
+		// Check if we can send with this configuration
+		const status = await providerManager.getProviderStatus(requestedProvider, requestedModel);
+		if (!status.canSend) {
+			return null;
+		}
+
+		// Try server-side first if available
+		if (status.isServerAvailable) {
+			try {
+				const serverTitle = await this.tryServerSideTitle(
+					userMessage,
+					assistantMessage,
+					requestedProvider,
+					requestedModel
+				);
+				if (serverTitle) {
+					return serverTitle;
+				}
+			} catch (error) {
+				console.log('Server-side title generation unavailable, falling back to client-side:', error);
 			}
-		} catch (error) {
-			console.log('Server-side title generation unavailable, falling back to client-side:', error);
 		}
 
 		// Fallback to client-side
-		return this.generateTitleClientSide(userMessage, assistantMessage, provider, model);
+		return this.generateTitleClientSide(userMessage, assistantMessage, requestedProvider, requestedModel);
 	}
 
 	private async tryServerSideTitle(
 		userMessage: string,
 		assistantMessage: string,
-		provider?: string,
-		model?: string
+		provider: ProviderId,
+		model: string
 	): Promise<string | null> {
-		// Use provided provider/model or defaults (Groq first, then Anthropic)
-		const requestProvider = provider || 'groq';
-		const requestModel =
-			model ||
-			(requestProvider === 'groq'
-				? 'llama-3.3-70b-versatile'
-				: requestProvider === 'google'
-					? 'gemini-1.5-pro'
-					: 'claude-3-5-sonnet-20241022');
-
 		const response = await fetch('/api/generate-title', {
 			method: 'POST',
 			headers: {
@@ -302,8 +264,8 @@ class ClientChatService {
 			body: JSON.stringify({
 				userMessage,
 				assistantMessage,
-				provider: requestProvider,
-				model: requestModel
+				provider,
+				model
 			})
 		});
 
@@ -318,20 +280,17 @@ class ClientChatService {
 	private async generateTitleClientSide(
 		userMessage: string,
 		assistantMessage: string,
-		provider?: string,
-		model?: string
+		provider: ProviderId,
+		model: string
 	): Promise<string | null> {
-		// Use provided provider/model or fall back to configured ones
-		const currentProvider = provider || apiKeyStore.provider;
-		const currentModel = model || apiKeyStore.getModelForProvider(currentProvider);
-
 		// Check if we have an API key for the specific provider
-		const apiKey = apiKeyStore.getApiKey(currentProvider);
-		if (!apiKey) return null;
+		if (!providerManager.hasValidApiKey(provider)) {
+			return null;
+		}
 
 		try {
-			const providerInstance = this.createProvider(apiKey, currentProvider);
-			const modelInstance = providerInstance(currentModel);
+			const providerInstance = providerManager.getClientProviderInstance(provider);
+			const modelInstance = providerInstance(model);
 
 			const result = await streamText({
 				model: modelInstance,
@@ -385,27 +344,32 @@ class ClientChatService {
 		}
 	}
 
-	canSendMessages(): boolean {
+	async canSendMessages(): Promise<boolean> {
 		// Can't send if offline
 		if (!networkStore.isOnline) {
 			return false;
 		}
 
-		// If online, we can always try (server-side first, then client-side with API key)
-		return true;
+		// Check current provider status
+		const status = await providerManager.getProviderStatus();
+		return status.canSend;
 	}
 
-	getStatusMessage(): string {
+	async getStatusMessage(): Promise<string> {
 		if (!networkStore.isOnline) {
 			return "📴 You're offline. Messages will be queued and sent when you reconnect.";
 		}
 
-		// When online, we can always try server-side first
-		return '🚀 Ready to chat';
+		const status = await providerManager.getProviderStatus();
+		if (status.canSend) {
+			return '🚀 Ready to chat';
+		} else {
+			return status.errorMessage || 'Cannot send messages';
+		}
 	}
 
 	// New method to get detailed status for UI
-	getDetailedStatus(): {
+	async getDetailedStatus(): Promise<{
 		canSend: boolean;
 		hasApiKey: boolean;
 		isOnline: boolean;
@@ -413,18 +377,16 @@ class ClientChatService {
 		provider: string;
 		model: string;
 		queuedCount: number;
-	} {
-		const apiKey = apiKeyStore.getApiKey();
-		const hasApiKey = apiKeyStore.isConfigured;
-		const isValidApiKey = hasApiKey && apiKey !== null && apiKeyStore.validateApiKey(apiKey);
-
+	}> {
+		const status = await providerManager.getProviderStatus();
+		
 		return {
-			canSend: this.canSendMessages(),
-			hasApiKey,
+			canSend: status.canSend,
+			hasApiKey: status.hasApiKey,
 			isOnline: networkStore.isOnline,
-			isValidApiKey,
-			provider: apiKeyStore.getProviderName(),
-			model: apiKeyStore.getModelForProvider(),
+			isValidApiKey: status.isValidApiKey,
+			provider: providerManager.getProviderDisplayName(status.provider),
+			model: providerManager.getModelDisplayName(status.provider, status.model),
 			queuedCount: 0 // Will be updated by the component
 		};
 	}
@@ -432,6 +394,11 @@ class ClientChatService {
 	// Get API usage statistics
 	getApiUsageStats() {
 		return debugStore.getApiMetrics();
+	}
+
+	// Provider management methods
+	getProviderManager() {
+		return providerManager;
 	}
 }
 

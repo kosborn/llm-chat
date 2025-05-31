@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { createEventDispatcher } from 'svelte';
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
-	import { apiKeyStore } from '$lib/stores/api-key-store.svelte.js';
+	import { providerStore } from '$lib/stores/provider-store.svelte.js';
 	import { offlineQueueStore } from '$lib/stores/offline-queue-store.svelte.js';
 	import { clientChatService } from '$lib/services/client-chat.js';
 	import {
@@ -14,11 +14,12 @@
 	import { defaultFormatRules } from '$lib/utils/text-formatter';
 
 	import type { ToolMetadata } from '$lib/tools/types.js';
+	import type { ProviderId } from '$lib/providers/index.js';
 
 	interface Props {
 		disabled?: boolean;
 		placeholder?: string;
-		provider?: import('$lib/providers').ProviderId;
+		provider?: ProviderId;
 		model?: string;
 	}
 
@@ -286,12 +287,12 @@
 						<span>({offlineQueueStore.getQueueCount()} queued)</span>
 					{/if}
 				</div>
-			{:else if !apiKeyStore.isConfigured}
+			{:else if !providerStore.isConfigured}
 				<div class="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
 					<div class="h-2 w-2 rounded-full bg-yellow-500"></div>
 					<span>API key needed</span>
 				</div>
-			{:else if !clientChatService.canSendMessages()}
+			{:else if !providerStore.canSend}
 				<div class="flex items-center gap-1 text-red-600 dark:text-red-400">
 					<div class="h-2 w-2 rounded-full bg-red-500"></div>
 					<span>Cannot send</span>

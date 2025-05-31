@@ -11,7 +11,7 @@ import {
 	OPENAI_API_KEY,
 	GOOGLE_API_KEY
 } from '$env/static/private';
-import { PROVIDERS, getProvider, getProviderByPriority, type ProviderId } from './index.js';
+import { PROVIDERS, getProviderByPriority, type ProviderId } from './index.js';
 
 // Provider instance cache
 const providerInstances = new Map<string, any>();
@@ -64,8 +64,8 @@ export function getAvailableProviders(): ProviderId[] {
 
 export function getDefaultModels(): Record<string, string> {
 	const defaultModels: Record<string, string> = {};
-
-	Object.values(PROVIDERS).forEach((provider) => {
+	
+	providerManager.getAllProviders().forEach((provider) => {
 		defaultModels[provider.id] = provider.defaultModel;
 	});
 

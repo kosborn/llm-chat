@@ -92,13 +92,13 @@
 		}
 	}
 
-	import { getProvider } from '$lib/providers';
+	import { providerStore } from '$lib/stores/provider-store.svelte.js';
 
 	function getProviderIcon(provider?: string): string {
 		if (!provider) return '💬';
 
-		const providerConfig = getProvider(provider);
-		return providerConfig?.icon || '💬';
+		const providerConfig = providerStore.getProvider(provider as any);
+		return providerConfig?.icon || '🤖';
 	}
 
 	function getChatProvider(chat: Chat): string | undefined {
