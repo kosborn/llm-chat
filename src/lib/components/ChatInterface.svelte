@@ -214,8 +214,8 @@
 	async function handleRegenerateTitleFromHeader() {
 		if (!chatStore.currentChat) return;
 		
-		// Check if API key is configured first
-		if (!apiKeyStore.isConfigured || !apiKeyStore.getApiKey()) {
+		// Check if we can send messages (handles both server and client-side requirements)
+		if (!clientChatService.canSendMessages()) {
 			showApiConfig = true;
 			return;
 		}

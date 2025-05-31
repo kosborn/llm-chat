@@ -2,7 +2,7 @@ import type { Chat, ChatMessage } from '../../app.d.ts';
 import { chatStorage } from './chat-storage.js';
 import { notificationStore } from './notification-store.svelte.js';
 import { cloneForState, serialize } from '../utils/serialization.js';
-import { apiKeyStore } from './api-key-store.svelte.js';
+import { clientChatService } from '../services/client-chat.js';
 
 class ChatStore {
 	chats = $state<Chat[]>([]);
@@ -244,8 +244,8 @@ class ChatStore {
 		if (!userMessage || !assistantMessage || !userMessage.content || !assistantMessage.content)
 			return;
 
-		const apiKey = apiKeyStore.getApiKey();
-		if (!apiKey) {
+		// Check if we can generate titles (online and has API key if needed)
+		if (!clientChatService.canSendMessages()) {
 			if (forceRegenerate) {
 				throw new Error('API_KEY_MISSING');
 			}
@@ -253,33 +253,20 @@ class ChatStore {
 		}
 
 		try {
-			const response = await fetch('/api/chat/generate-title', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					userMessage: userMessage.content,
-					assistantMessage: assistantMessage.content,
-					apiKey: apiKey,
-					provider: apiKeyStore.provider
-				})
-			});
+			const title = await clientChatService.generateTitle(
+				userMessage.content,
+				assistantMessage.content
+			);
 
-			if (response.ok) {
-				const { title } = await response.json();
-				if (title?.trim()) {
-					await this.updateChatTitle(chatId, title.trim());
-					notificationStore.success(`Chat renamed to "${title.trim()}"`, 2000);
-				}
-			} else {
-				const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-				if (forceRegenerate) {
-					notificationStore.error(`Failed to generate title: ${errorData.error || 'API error'}`);
-				}
-				console.warn('Title generation failed:', errorData);
+			if (title?.trim()) {
+				await this.updateChatTitle(chatId, title.trim());
+				notificationStore.success(`Chat renamed to "${title.trim()}"`, 2000);
+			} else if (forceRegenerate) {
+				notificationStore.error('Failed to generate title. Please try again.');
 			}
 		} catch (err) {
 			if (forceRegenerate) {
-				notificationStore.error('Failed to connect to title generation service');
+				notificationStore.error('Failed to generate title. Please try again.');
 			}
 			console.warn('Auto-rename failed:', err);
 		}
