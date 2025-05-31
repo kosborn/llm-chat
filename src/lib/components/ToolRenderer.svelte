@@ -12,4 +12,4 @@
 	let ToolComponent = $derived(getToolComponent(toolInvocation));
 </script>
 
-<svelte:component this={ToolComponent} {toolInvocation} {onTechnicalView} />
+<ToolComponent {toolInvocation} {onTechnicalView} />

@@ -311,13 +311,7 @@
 
 			const reader = response.stream.getReader();
 			let accumulatedContent = '';
-			const accumulatedToolInvocations: Array<{
-				toolCallId: string;
-				toolName: string;
-				args: Record<string, unknown>;
-				result?: unknown;
-				state: 'call' | 'result';
-			}> = [];
+			const accumulatedToolInvocations: ToolInvocation[] = [];
 			let buffer = '';
 
 			// Store API metadata from response
@@ -345,11 +339,11 @@
 							if (part.type === 'text') {
 								accumulatedContent += part.value;
 							} else if (part.type === 'tool_call') {
-								const toolCall = {
+								const toolCall: ToolInvocation = {
 									toolCallId: part.value.toolCallId,
 									toolName: part.value.toolName,
 									args: part.value.args,
-									state: 'call' as const
+									state: 'running'
 								};
 								accumulatedToolInvocations.push(toolCall);
 							} else if (part.type === 'tool_result') {
@@ -359,7 +353,15 @@
 								if (toolIndex !== -1) {
 									accumulatedToolInvocations[toolIndex] = {
 										...accumulatedToolInvocations[toolIndex],
-										result: part.value.result,
+										result: {
+											success: true,
+											data: part.value.result,
+											metadata: {
+												executionTime: 0,
+												timestamp: new Date().toISOString(),
+												toolName: accumulatedToolInvocations[toolIndex].toolName
+											}
+										},
 										state: 'result'
 									};
 									debugStore.logToolResult(part.value, {
@@ -410,11 +412,11 @@
 								} else if (type === '2') {
 									// Tool call
 									const toolCall = JSON.parse(data);
-									const toolCallData = {
+									const toolCallData: ToolInvocation = {
 										toolCallId: toolCall.toolCallId,
 										toolName: toolCall.toolName,
 										args: toolCall.args as Record<string, unknown>,
-										state: 'call' as const
+										state: 'running'
 									};
 									accumulatedToolInvocations.push(toolCallData);
 									debugStore.logToolCall(toolCall, {
@@ -430,8 +432,16 @@
 									if (toolIndex !== -1) {
 										accumulatedToolInvocations[toolIndex] = {
 											...accumulatedToolInvocations[toolIndex],
-											result: toolResult.result,
-											state: 'result' as const
+											result: {
+												success: true,
+												data: toolResult.result,
+												metadata: {
+													executionTime: 0,
+													timestamp: new Date().toISOString(),
+													toolName: accumulatedToolInvocations[toolIndex].toolName
+												}
+											},
+											state: 'result'
 										};
 										debugStore.logToolResult(toolResult, {
 											chatId: chatStore.currentChatId,
@@ -466,7 +476,7 @@
 						// Update the message
 						const messageUpdate = {
 							content: accumulatedContent,
-							toolInvocations: accumulatedToolInvocations as ToolInvocation[]
+							toolInvocations: accumulatedToolInvocations
 						};
 						debugStore.logMessageUpdate(messageUpdate, {
 							chatId: chatStore.currentChatId,
