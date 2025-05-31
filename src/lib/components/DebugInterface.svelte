@@ -34,11 +34,14 @@
 	});
 
 	function handleDebugToggle() {
-		if (!debugEnabled) {
-			debugEnabled = true;
+		if (!debugStore.isEnabled) {
 			debugStore.enable();
+			debugEnabled = true;
 			isOpen = true;
 			debugStore.markAllAsRead();
+			
+			// Add a test message to verify the store is working
+			debugStore.log('test', { message: 'Debug interface enabled', timestamp: Date.now() });
 		} else {
 			isOpen = !isOpen;
 			if (isOpen) {
@@ -49,7 +52,7 @@
 
 	// Auto-open panel when debug is enabled and there are messages
 	$effect(() => {
-		if (debugEnabled && debugStore.messages.length > 0 && !isOpen) {
+		if (debugStore.isEnabled && debugStore.messages.length > 0 && !isOpen) {
 			isOpen = true;
 		}
 	});
@@ -70,6 +73,7 @@
 		{ value: 'api_metadata', label: 'Metadata', color: 'bg-cyan-500' },
 		{ value: 'message_update', label: 'Update', color: 'bg-yellow-500' },
 		{ value: 'final_response', label: 'Final', color: 'bg-emerald-500' },
+		{ value: 'test', label: 'Test', color: 'bg-pink-500' },
 		{ value: 'error', label: 'Error', color: 'bg-red-500' }
 	];
 
@@ -132,8 +136,13 @@
 		const allMessages = debugStore.messages || [];
 		
 		// Debug log first few messages to see structure
+		console.log('Debug store state:', {
+			isEnabled: debugStore.isEnabled,
+			messageCount: allMessages.length,
+			firstMessage: allMessages[0]
+		});
+		
 		if (allMessages.length > 0) {
-			console.log('Sample message structure:', allMessages[0]);
 			console.log('Message types found:', [...new Set(allMessages.map(m => m.type))]);
 		}
 		
@@ -158,6 +167,7 @@
 				'api_metadata': 0,
 				'message_update': 0,
 				'final_response': 0,
+				'test': 0,
 				'error': 0
 			};
 
@@ -212,6 +222,7 @@
 					'api_metadata': 0,
 					'message_update': 0,
 					'final_response': 0,
+					'test': 0,
 					'error': 0
 				},
 				apiMetrics: {
@@ -382,6 +393,7 @@
 						</p>
 						<div class="mt-2 text-xs">
 							Debug enabled: {debugEnabled}, 
+							Store enabled: {debugStore.isEnabled},
 							Verbose: {showVerbose},
 							Filter: {selectedType},
 							Total messages: {debugStore.messages.length}
@@ -403,11 +415,11 @@
 					</div>
 					{#each filteredMessages as message, index (message.id)}
 						<div class="rounded border-l-4 border-r border-t border-b bg-gray-50 p-2 dark:bg-gray-800" 
-							style="border-left-color: {getTypeColor(message.type).replace('bg-', '#').replace('500', '')}; border-left-color: {message.type === 'error' ? '#ef4444' : message.type === 'tool_call' ? '#a855f7' : message.type === 'tool_result' ? '#f97316' : message.type === 'api_request' ? '#6366f1' : message.type === 'api_response' ? '#14b8a6' : message.type === 'raw_stream' ? '#3b82f6' : message.type === 'parsed_data' ? '#22c55e' : message.type === 'api_metadata' ? '#06b6d4' : message.type === 'message_update' ? '#eab308' : message.type === 'final_response' ? '#10b981' : '#6b7280'}">
+							style="border-left-color: {getTypeColor(message.type).replace('bg-', '#').replace('500', '')}; border-left-color: {message.type === 'error' ? '#ef4444' : message.type === 'tool_call' ? '#a855f7' : message.type === 'tool_result' ? '#f97316' : message.type === 'api_request' ? '#6366f1' : message.type === 'api_response' ? '#14b8a6' : message.type === 'raw_stream' ? '#3b82f6' : message.type === 'parsed_data' ? '#22c55e' : message.type === 'api_metadata' ? '#06b6d4' : message.type === 'message_update' ? '#eab308' : message.type === 'final_response' ? '#10b981' : message.type === 'test' ? '#ec4899' : '#6b7280'}">
 							<div class="mb-1 flex items-center justify-between">
 								<div class="flex items-center gap-2">
 									<span class="rounded px-2 py-0.5 text-xs font-mono text-white" 
-										style="background-color: {message.type === 'error' ? '#ef4444' : message.type === 'tool_call' ? '#a855f7' : message.type === 'tool_result' ? '#f97316' : message.type === 'api_request' ? '#6366f1' : message.type === 'api_response' ? '#14b8a6' : message.type === 'raw_stream' ? '#3b82f6' : message.type === 'parsed_data' ? '#22c55e' : message.type === 'api_metadata' ? '#06b6d4' : message.type === 'message_update' ? '#eab308' : message.type === 'final_response' ? '#10b981' : '#6b7280'}">
+										style="background-color: {message.type === 'error' ? '#ef4444' : message.type === 'tool_call' ? '#a855f7' : message.type === 'tool_result' ? '#f97316' : message.type === 'api_request' ? '#6366f1' : message.type === 'api_response' ? '#14b8a6' : message.type === 'raw_stream' ? '#3b82f6' : message.type === 'parsed_data' ? '#22c55e' : message.type === 'api_metadata' ? '#06b6d4' : message.type === 'message_update' ? '#eab308' : message.type === 'final_response' ? '#10b981' : message.type === 'test' ? '#ec4899' : '#6b7280'}">
 										{message.type}
 									</span>
 									<span class="text-xs text-gray-500 dark:text-gray-400">{formatTimestamp(message.timestamp)}</span>

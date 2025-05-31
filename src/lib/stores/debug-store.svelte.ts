@@ -13,7 +13,8 @@ interface DebugMessage {
 		| 'api_metadata'
 		| 'error'
 		| 'message_update'
-		| 'final_response';
+		| 'final_response'
+		| 'test';
 	data: unknown;
 	metadata?: {
 		chatId?: string;
