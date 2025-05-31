@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { apiKeyStore } from '$lib/stores/api-key-store.svelte.js';
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
+	import { getAllProviders, getProvider, type ProviderId } from '$lib/providers';
 	import { onMount } from 'svelte';
 
 	interface Props {
@@ -11,13 +12,16 @@
 	let { isOpen, onClose }: Props = $props();
 
 	let apiKey = $state('');
-	let provider = $state<'groq' | 'openai' | 'anthropic' | 'google'>('groq');
+	let provider = $state<ProviderId>('groq');
 	let showKey = $state(false);
 	let isValid = $state(false);
 	let errorMessage = $state('');
 	let serverAvailable = $state(false);
 	let checkingServer = $state(false);
 	let lastCheckTime = 0;
+
+	// Get providers sorted by priority
+	const providers = getAllProviders();
 
 	// Initialize with current values - only check server once when opened
 	$effect(() => {
@@ -102,37 +106,15 @@
 	}
 
 	function validateApiKeyFormat(key: string, prov: string): boolean {
-		if (!key || key.trim().length === 0) {
-			return false;
-		}
-
-		switch (prov) {
-			case 'groq':
-				return key.startsWith('gsk_');
-			case 'openai':
-				return key.startsWith('sk-');
-			case 'anthropic':
-				return key.startsWith('sk-ant-');
-			case 'google':
-				return key.startsWith('AIza');
-			default:
-				return key.length > 10;
-		}
+		return apiKeyStore.validateApiKey(key, prov as ProviderId);
 	}
 
 	function getValidationError(): string {
-		switch (provider) {
-			case 'groq':
-				return 'Groq API keys should start with "gsk_"';
-			case 'openai':
-				return 'OpenAI API keys should start with "sk-"';
-			case 'anthropic':
-				return 'Anthropic API keys should start with "sk-ant-"';
-			case 'google':
-				return 'Google API keys should start with "AIza"';
-			default:
-				return 'Invalid API key format';
+		const providerConfig = getProvider(provider);
+		if (providerConfig) {
+			return `${providerConfig.displayName} API keys should start with "${providerConfig.apiKeyPrefix}"`;
 		}
+		return 'Invalid API key format';
 	}
 
 	function handleSave() {
@@ -288,10 +270,11 @@
 							   focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
 							   dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
 					>
-						<option value="groq">Groq (Fast, Free Tier Available)</option>
-						<option value="google">Google (Gemini Models)</option>
-						<option value="openai">OpenAI (GPT Models)</option>
-						<option value="anthropic">Anthropic (Claude Models)</option>
+						{#each providers as providerOption (providerOption.id)}
+							<option value={providerOption.id}>
+								{providerOption.displayName} ({providerOption.description})
+							</option>
+						{/each}
 					</select>
 				</div>
 
@@ -310,7 +293,7 @@
 							bind:value={apiKey}
 							placeholder={serverAvailable
 								? 'Optional - server AI is available'
-								: `Enter your ${provider === 'groq' ? 'Groq' : provider === 'openai' ? 'OpenAI' : provider === 'google' ? 'Google' : 'Anthropic'} API key`}
+								: `Enter your ${getProvider(provider)?.displayName || 'AI'} API key`}
 							class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-gray-900
 								   focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
 								   dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100
@@ -357,58 +340,21 @@
 				<!-- Instructions -->
 				<div class="rounded-md bg-gray-50 p-3 dark:bg-gray-700">
 					<h4 class="mb-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-						How to get your {provider === 'groq'
-							? 'Groq'
-							: provider === 'openai'
-								? 'OpenAI'
-								: provider === 'google'
-									? 'Google'
-									: 'Anthropic'} API key:
+						How to get your {getProvider(provider)?.displayName || 'AI'} API key:
 					</h4>
 					<div class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-						{#if provider === 'groq'}
+						{@const currentProvider = getProvider(provider)}
+						{#if currentProvider}
 							<p>
 								1. Visit <a
-									href="https://console.groq.com"
+									href={currentProvider.signupUrl}
 									target="_blank"
-									class="text-blue-600 hover:underline dark:text-blue-400">console.groq.com</a
+									class="text-blue-600 hover:underline dark:text-blue-400"
+									>{currentProvider.signupUrl}</a
 								>
 							</p>
-							<p>2. Sign up for a free account</p>
-							<p>3. Go to API Keys section</p>
-							<p>4. Create a new API key</p>
-						{:else if provider === 'openai'}
-							<p>
-								1. Visit <a
-									href="https://platform.openai.com/api-keys"
-									target="_blank"
-									class="text-blue-600 hover:underline dark:text-blue-400">platform.openai.com</a
-								>
-							</p>
-							<p>2. Sign in to your OpenAI account</p>
-							<p>3. Navigate to API Keys</p>
-							<p>4. Create a new secret key</p>
-						{:else if provider === 'anthropic'}
-							<p>
-								1. Visit <a
-									href="https://console.anthropic.com"
-									target="_blank"
-									class="text-blue-600 hover:underline dark:text-blue-400">console.anthropic.com</a
-								>
-							</p>
-							<p>2. Sign in to your Anthropic account</p>
-							<p>3. Go to API Keys section</p>
-							<p>4. Generate a new API key</p>
-						{:else if provider === 'google'}
-							<p>
-								1. Visit <a
-									href="https://ai.google.dev/"
-									target="_blank"
-									class="text-blue-600 hover:underline dark:text-blue-400">ai.google.dev</a
-								>
-							</p>
-							<p>2. Sign in with your Google account</p>
-							<p>3. Click "Get API key"</p>
+							<p>2. Sign in or create an account</p>
+							<p>3. Navigate to API Keys section</p>
 							<p>4. Create a new API key</p>
 						{/if}
 					</div>

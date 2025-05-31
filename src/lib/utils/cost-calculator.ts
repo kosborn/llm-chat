@@ -1,125 +1,6 @@
-// Cost calculator utility for different AI providers and models
+// Cost calculator utility using the centralized provider system
 
-interface ModelPricing {
-	inputCostPer1kTokens: number; // Cost per 1000 input tokens
-	outputCostPer1kTokens: number; // Cost per 1000 output tokens
-}
-
-interface ProviderPricing {
-	[model: string]: ModelPricing;
-}
-
-// Pricing data as of 2024 (in USD)
-const PRICING_DATA: Record<string, ProviderPricing> = {
-	openai: {
-		'gpt-4o': {
-			inputCostPer1kTokens: 0.005,
-			outputCostPer1kTokens: 0.015
-		},
-		'gpt-4o-mini': {
-			inputCostPer1kTokens: 0.00015,
-			outputCostPer1kTokens: 0.0006
-		},
-		'gpt-4-turbo': {
-			inputCostPer1kTokens: 0.01,
-			outputCostPer1kTokens: 0.03
-		},
-		'gpt-4': {
-			inputCostPer1kTokens: 0.03,
-			outputCostPer1kTokens: 0.06
-		},
-		'gpt-3.5-turbo': {
-			inputCostPer1kTokens: 0.0015,
-			outputCostPer1kTokens: 0.002
-		}
-	},
-	anthropic: {
-		'claude-3-5-sonnet-20241022': {
-			inputCostPer1kTokens: 0.003,
-			outputCostPer1kTokens: 0.015
-		},
-		'claude-3-5-sonnet-20240620': {
-			inputCostPer1kTokens: 0.003,
-			outputCostPer1kTokens: 0.015
-		},
-		'claude-3-opus-20240229': {
-			inputCostPer1kTokens: 0.015,
-			outputCostPer1kTokens: 0.075
-		},
-		'claude-3-sonnet-20240229': {
-			inputCostPer1kTokens: 0.003,
-			outputCostPer1kTokens: 0.015
-		},
-		'claude-3-haiku-20240307': {
-			inputCostPer1kTokens: 0.00025,
-			outputCostPer1kTokens: 0.00125
-		}
-	},
-	groq: {
-		'llama-3.3-70b-versatile': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		},
-		'llama-3.1-405b-reasoning': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		},
-		'llama-3.1-70b-versatile': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		},
-		'llama-3.1-8b-instant': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		},
-		'deepseek-r1-distill-llama-70b': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		},
-		'meta-llama/llama-4-maverick-17b-128e-instruct': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		},
-		'meta-llama/llama-4-scout-17b-16e-instruct': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		},
-		'llama3-groq-70b-8192-tool-use-preview': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		},
-		'llama3-groq-8b-8192-tool-use-preview': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		},
-		'mixtral-8x7b-32768': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		},
-		'gemma2-9b-it': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		},
-		'gemma-7b-it': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		}
-	},
-	google: {
-		'gemini-1.5-pro': {
-			inputCostPer1kTokens: 0.00125,
-			outputCostPer1kTokens: 0.005
-		},
-		'gemini-1.5-flash': {
-			inputCostPer1kTokens: 0.000075,
-			outputCostPer1kTokens: 0.0003
-		},
-		'gemini-2.0-flash-exp': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		}
-	}
-};
+import { getProvider, getModel, type ProviderId } from '$lib/providers';
 
 export interface CostCalculation {
 	inputCost: number;
@@ -138,18 +19,13 @@ export function calculateCost(
 		return null;
 	}
 
-	const providerData = PRICING_DATA[provider.toLowerCase()];
-	if (!providerData) {
+	const modelConfig = getModel(provider, model);
+	if (!modelConfig) {
 		return null;
 	}
 
-	const modelData = providerData[model];
-	if (!modelData) {
-		return null;
-	}
-
-	const inputCost = (promptTokens / 1000) * modelData.inputCostPer1kTokens;
-	const outputCost = (completionTokens / 1000) * modelData.outputCostPer1kTokens;
+	const inputCost = (promptTokens / 1000) * modelConfig.inputCostPer1kTokens;
+	const outputCost = (completionTokens / 1000) * modelConfig.outputCostPer1kTokens;
 	const totalCost = inputCost + outputCost;
 
 	return {
@@ -177,69 +53,25 @@ export function formatCost(cost: number, currency: string = 'USD'): string {
 	}).format(cost);
 }
 
-export function getModelDisplayName(provider: string, model: string): string {
-	if (!provider || !model) {
-		return model || 'Unknown Model';
-	}
-
-	const displayNames: Record<string, Record<string, string>> = {
-		openai: {
-			'gpt-4o': 'GPT-4o',
-			'gpt-4o-mini': 'GPT-4o Mini',
-			'gpt-4-turbo': 'GPT-4 Turbo',
-			'gpt-4': 'GPT-4',
-			'gpt-3.5-turbo': 'GPT-3.5 Turbo'
-		},
-		anthropic: {
-			'claude-3-5-sonnet-20241022': 'Claude 3.5 Sonnet (Oct 2024)',
-			'claude-3-5-sonnet-20240620': 'Claude 3.5 Sonnet (Jun 2024)',
-			'claude-3-opus-20240229': 'Claude 3 Opus',
-			'claude-3-sonnet-20240229': 'Claude 3 Sonnet',
-			'claude-3-haiku-20240307': 'Claude 3 Haiku'
-		},
-		groq: {
-			'llama-3.3-70b-versatile': 'Llama 3.3 70B',
-			'llama-3.1-405b-reasoning': 'Llama 3.1 405B',
-			'llama-3.1-70b-versatile': 'Llama 3.1 70B',
-			'llama-3.1-8b-instant': 'Llama 3.1 8B',
-			'deepseek-r1-distill-llama-70b': 'DeepSeek R1 Distill 70B',
-			'meta-llama/llama-4-maverick-17b-128e-instruct': 'Llama 4 Maverick 17B',
-			'meta-llama/llama-4-scout-17b-16e-instruct': 'Llama 4 Scout 17B',
-			'llama3-groq-70b-8192-tool-use-preview': 'Llama 3 70B (Tool Use)',
-			'llama3-groq-8b-8192-tool-use-preview': 'Llama 3 8B (Tool Use)',
-			'mixtral-8x7b-32768': 'Mixtral 8x7B',
-			'gemma2-9b-it': 'Gemma 2 9B',
-			'gemma-7b-it': 'Gemma 7B'
-		},
-		google: {
-			'gemini-1.5-pro': 'Gemini 1.5 Pro',
-			'gemini-1.5-flash': 'Gemini 1.5 Flash',
-			'gemini-2.0-flash-exp': 'Gemini 2.0 Flash (Experimental)'
-		}
-	};
-
-	return displayNames[provider.toLowerCase()]?.[model] || model;
+export function getModelDisplayName(providerId: string, modelId: string): string {
+	const modelConfig = getModel(providerId, modelId);
+	return modelConfig?.displayName || modelId || 'Unknown Model';
 }
 
-export function isFreeProvider(provider: string): boolean {
-	return provider ? provider.toLowerCase() === 'groq' : false;
+export function isFreeProvider(providerId: string): boolean {
+	const provider = getProvider(providerId);
+	if (!provider) return false;
+	return provider.models.every(
+		(model) => model.inputCostPer1kTokens === 0 && model.outputCostPer1kTokens === 0
+	);
 }
 
-export function getSupportedModels(provider: string): string[] {
-	if (!provider) return [];
-	const providerData = PRICING_DATA[provider.toLowerCase()];
-	return providerData ? Object.keys(providerData) : [];
+export function getSupportedModels(providerId: string): string[] {
+	const provider = getProvider(providerId);
+	return provider?.models.map((model) => model.id) || [];
 }
 
-export function getProviderDisplayName(provider: string): string {
-	if (!provider) return 'Unknown Provider';
-
-	const displayNames: Record<string, string> = {
-		openai: 'OpenAI',
-		anthropic: 'Anthropic',
-		groq: 'Groq',
-		google: 'Google'
-	};
-
-	return displayNames[provider.toLowerCase()] || provider;
+export function getProviderDisplayName(providerId: string): string {
+	const provider = getProvider(providerId);
+	return provider?.displayName || providerId || 'Unknown Provider';
 }

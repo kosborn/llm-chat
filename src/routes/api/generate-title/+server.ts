@@ -1,63 +1,11 @@
-import { createGroq } from '@ai-sdk/groq';
-import { createAnthropic } from '@ai-sdk/anthropic';
-import { createOpenAI } from '@ai-sdk/openai';
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
 import {
-	GROQ_API_KEY,
-	ANTHROPIC_API_KEY,
-	OPENAI_API_KEY,
-	GOOGLE_API_KEY
-} from '$env/static/private';
-
-// Provider instances
-const groq = createGroq({ apiKey: GROQ_API_KEY });
-const anthropic = createAnthropic({ apiKey: ANTHROPIC_API_KEY });
-const openai = createOpenAI({ apiKey: OPENAI_API_KEY });
-const google = createGoogleGenerativeAI({ apiKey: GOOGLE_API_KEY });
-
-// Default models for each provider
-const DEFAULT_MODELS = {
-	groq: 'llama-3.3-70b-versatile',
-	anthropic: 'claude-3-5-sonnet-20241022',
-	openai: 'gpt-4o-mini',
-	google: 'gemini-1.5-pro'
-};
-
-// Available API keys check
-function getAvailableProviders(): string[] {
-	const providers: string[] = [];
-
-	if (GROQ_API_KEY && GROQ_API_KEY !== 'your_groq_api_key_here') {
-		providers.push('groq');
-	}
-	if (ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'your_anthropic_api_key_here') {
-		providers.push('anthropic');
-	}
-	if (OPENAI_API_KEY && OPENAI_API_KEY !== 'your_openai_api_key_here') {
-		providers.push('openai');
-	}
-	if (GOOGLE_API_KEY && GOOGLE_API_KEY !== 'your_google_api_key_here') {
-		providers.push('google');
-	}
-
-	return providers;
-}
-
-function getProviderInstance(provider: string) {
-	switch (provider) {
-		case 'groq':
-			return groq;
-		case 'anthropic':
-			return anthropic;
-		case 'openai':
-			return openai;
-		case 'google':
-			return google;
-		default:
-			throw new Error(`Unsupported provider: ${provider}`);
-	}
-}
+	getProviderInstance,
+	getAvailableProviders,
+	selectBestAvailableProvider,
+	getFallbackProvider
+} from '$lib/providers/server.js';
+import { getDefaultModelForProvider } from '$lib/providers/index.js';
 
 export async function POST({ request }: { request: Request }) {
 	try {
@@ -79,26 +27,14 @@ export async function POST({ request }: { request: Request }) {
 		}
 
 		// Determine provider and model to use
-		let selectedProvider = provider || 'groq'; // Default to Groq
-		let selectedModel = model;
-
-		// If requested provider is not available, fall back to available ones
-		if (!availableProviders.includes(selectedProvider)) {
-			// Prefer Groq first, then Google, then Anthropic, then OpenAI
-			if (availableProviders.includes('groq')) {
-				selectedProvider = 'groq';
-			} else if (availableProviders.includes('google')) {
-				selectedProvider = 'google';
-			} else if (availableProviders.includes('anthropic')) {
-				selectedProvider = 'anthropic';
-			} else {
-				selectedProvider = availableProviders[0];
-			}
+		const selectedProvider = selectBestAvailableProvider(provider);
+		if (!selectedProvider) {
+			throw new Error('No available providers');
 		}
 
-		// Set default model if not specified
+		let selectedModel = model;
 		if (!selectedModel) {
-			selectedModel = DEFAULT_MODELS[selectedProvider];
+			selectedModel = getDefaultModelForProvider(selectedProvider);
 		}
 
 		try {
@@ -131,17 +67,10 @@ export async function POST({ request }: { request: Request }) {
 			});
 		} catch (providerError) {
 			// Try fallback to next available provider
-			const remainingProviders = availableProviders.filter((p) => p !== selectedProvider);
+			const fallbackProvider = getFallbackProvider(selectedProvider);
 
-			if (remainingProviders.length > 0) {
-				const fallbackProvider = remainingProviders.includes('groq')
-					? 'groq'
-					: remainingProviders.includes('google')
-						? 'google'
-						: remainingProviders.includes('anthropic')
-							? 'anthropic'
-							: remainingProviders[0];
-				const fallbackModel = DEFAULT_MODELS[fallbackProvider];
+			if (fallbackProvider) {
+				const fallbackModel = getDefaultModelForProvider(fallbackProvider);
 
 				try {
 					const fallbackProviderInstance = getProviderInstance(fallbackProvider);

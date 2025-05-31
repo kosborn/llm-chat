@@ -1,14 +1,17 @@
 <script lang="ts">
 	import {
+		getAllProviders,
 		getSupportedModels,
-		getModelDisplayName,
-		getProviderDisplayName
-	} from '$lib/utils/cost-calculator.js';
+		getDefaultModelForProvider,
+		getModel,
+		type ProviderId
+	} from '$lib/providers';
+	import { getModelDisplayName, getProviderDisplayName } from '$lib/utils/cost-calculator.js';
 
 	interface Props {
-		provider: 'groq' | 'anthropic' | 'openai' | 'google';
+		provider: ProviderId;
 		model: string;
-		onProviderChange: (provider: 'groq' | 'anthropic' | 'openai' | 'google') => void;
+		onProviderChange: (provider: ProviderId) => void;
 		onModelChange: (model: string) => void;
 		disabled?: boolean;
 		compact?: boolean;
@@ -25,41 +28,24 @@
 		statusBar = false
 	}: Props = $props();
 
-	// Available providers in preferred order
-	const PROVIDERS: Array<{
-		value: 'groq' | 'anthropic' | 'openai' | 'google';
-		label: string;
-		description: string;
-	}> = [
-		{ value: 'groq', label: 'Groq', description: 'Fast, free tier available' },
-		{ value: 'google', label: 'Google', description: 'Gemini models' },
-		{ value: 'anthropic', label: 'Anthropic', description: 'Claude models' },
-		{ value: 'openai', label: 'OpenAI', description: 'GPT models' }
-	];
-
-	// Default models for each provider
-	const DEFAULT_MODELS = {
-		groq: 'llama-3.3-70b-versatile',
-		anthropic: 'claude-3-5-sonnet-20241022',
-		openai: 'gpt-4o-mini',
-		google: 'gemini-1.5-pro'
-	};
+	// Get providers sorted by priority
+	const providers = getAllProviders();
 
 	// Get supported models for current provider
-	const supportedModels = $derived(getSupportedModels(provider));
+	const supportedModels = $derived(getSupportedModels(provider).map((model) => model.id));
 
 	// Ensure model is valid for current provider
 	$effect(() => {
 		if (provider && supportedModels.length > 0 && !supportedModels.includes(model)) {
 			// Switch to default model for this provider
-			onModelChange(DEFAULT_MODELS[provider]);
+			onModelChange(getDefaultModelForProvider(provider));
 		}
 	});
 
-	function handleProviderChange(newProvider: 'groq' | 'anthropic' | 'openai' | 'google') {
+	function handleProviderChange(newProvider: ProviderId) {
 		onProviderChange(newProvider);
 		// Auto-select default model for new provider
-		onModelChange(DEFAULT_MODELS[newProvider]);
+		onModelChange(getDefaultModelForProvider(newProvider));
 	}
 </script>
 
@@ -68,17 +54,16 @@
 	<div class="flex items-center gap-2">
 		<select
 			bind:value={provider}
-			onchange={(e) =>
-				handleProviderChange(e.currentTarget.value as 'groq' | 'anthropic' | 'openai' | 'google')}
+			onchange={(e) => handleProviderChange(e.currentTarget.value as ProviderId)}
 			{disabled}
 			class="rounded border-0 bg-transparent px-1 py-0 text-xs font-medium text-gray-900
 				   focus:ring-1 focus:ring-blue-500 focus:outline-none
 				   disabled:text-gray-500
 				   dark:text-gray-100 dark:disabled:text-gray-400"
 		>
-			{#each PROVIDERS as providerOption (providerOption.value)}
-				<option value={providerOption.value}>
-					{providerOption.label}
+			{#each providers as providerOption (providerOption.id)}
+				<option value={providerOption.id}>
+					{providerOption.displayName}
 				</option>
 			{/each}
 		</select>
@@ -109,8 +94,7 @@
 			<select
 				id="provider-select"
 				bind:value={provider}
-				onchange={(e) =>
-					handleProviderChange(e.currentTarget.value as 'groq' | 'anthropic' | 'openai' | 'google')}
+				onchange={(e) => handleProviderChange(e.currentTarget.value as ProviderId)}
 				{disabled}
 				class="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-gray-900
 					   focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
@@ -119,9 +103,9 @@
 					   dark:disabled:bg-gray-800 dark:disabled:text-gray-400
 					   {compact ? 'text-xs' : 'text-sm'}"
 			>
-				{#each PROVIDERS as providerOption (providerOption.value)}
-					<option value={providerOption.value}>
-						{providerOption.label} - {providerOption.description}
+				{#each providers as providerOption (providerOption.id)}
+					<option value={providerOption.id}>
+						{providerOption.displayName} - {providerOption.description}
 					</option>
 				{/each}
 			</select>
@@ -159,15 +143,7 @@
 			>
 				<div class="flex items-center gap-1">
 					<span class="font-medium">{getProviderDisplayName(provider)}:</span>
-					{#if provider === 'groq'}
-						<span>Free tier available, fast inference</span>
-					{:else if provider === 'google'}
-						<span>Gemini models, multimodal capabilities</span>
-					{:else if provider === 'anthropic'}
-						<span>Claude models, excellent reasoning</span>
-					{:else if provider === 'openai'}
-						<span>GPT models, broad capabilities</span>
-					{/if}
+					<span>{providers.find((p) => p.id === provider)?.description || 'AI models'}</span>
 				</div>
 				<div class="mt-1">
 					Model: <span class="font-mono">{getModelDisplayName(provider, model)}</span>

@@ -1,16 +1,22 @@
 import { browser } from '$app/environment';
+import {
+	getProvider,
+	getAllProviders,
+	getDefaultProvider,
+	validateApiKey as validateProviderApiKey,
+	getDefaultModelForProvider,
+	getProviderIds,
+	type ProviderId
+} from '$lib/providers';
 
 interface ApiKeys {
-	groq?: string;
-	openai?: string;
-	anthropic?: string;
-	google?: string;
+	[key: string]: string | undefined;
 }
 
 class ApiKeyStore {
 	apiKeys = $state<ApiKeys>({});
 	isConfigured = $state(false);
-	provider = $state<'groq' | 'openai' | 'anthropic' | 'google'>('groq');
+	provider = $state<ProviderId>(getDefaultProvider().id as ProviderId);
 
 	constructor() {
 		if (browser) {
@@ -21,18 +27,14 @@ class ApiKeyStore {
 	private loadFromStorage(): void {
 		try {
 			const storedKeys = localStorage.getItem('ai-chat-api-keys');
-			const storedProvider = localStorage.getItem('ai-chat-provider') as
-				| 'groq'
-				| 'openai'
-				| 'anthropic'
-				| 'google';
+			const storedProvider = localStorage.getItem('ai-chat-provider') as ProviderId;
 
 			if (storedKeys) {
 				this.apiKeys = JSON.parse(storedKeys);
 				this.updateConfiguredState();
 			}
 
-			if (storedProvider) {
+			if (storedProvider && getProvider(storedProvider)) {
 				this.provider = storedProvider;
 			}
 		} catch (error) {
@@ -44,7 +46,7 @@ class ApiKeyStore {
 		this.isConfigured = Object.values(this.apiKeys).some((key) => !!key);
 	}
 
-	setApiKey(key: string, provider: 'groq' | 'openai' | 'anthropic' | 'google'): void {
+	setApiKey(key: string, provider: ProviderId): void {
 		if (!browser) return;
 
 		try {
@@ -62,7 +64,7 @@ class ApiKeyStore {
 		}
 	}
 
-	clearApiKey(provider?: 'groq' | 'openai' | 'anthropic' | 'google'): void {
+	clearApiKey(provider?: ProviderId): void {
 		if (provider) {
 			this.setApiKey('', provider);
 		} else {
@@ -74,73 +76,37 @@ class ApiKeyStore {
 		}
 	}
 
-	getApiKey(provider?: 'groq' | 'openai' | 'anthropic' | 'google'): string | null {
+	getApiKey(provider?: ProviderId): string | null {
 		const targetProvider = provider || this.provider;
 		return this.apiKeys[targetProvider] || null;
 	}
 
-	hasApiKey(provider: 'groq' | 'openai' | 'anthropic' | 'google'): boolean {
+	hasApiKey(provider: ProviderId): boolean {
 		return !!this.apiKeys[provider];
 	}
 
-	validateApiKey(key: string, provider?: 'groq' | 'openai' | 'anthropic' | 'google'): boolean {
+	validateApiKey(key: string, provider?: ProviderId): boolean {
 		if (!key || key.trim().length === 0) {
 			return false;
 		}
 
 		const targetProvider = provider || this.provider;
-
-		// Basic validation based on provider
-		switch (targetProvider) {
-			case 'groq':
-				return key.startsWith('gsk_');
-			case 'openai':
-				return key.startsWith('sk-');
-			case 'anthropic':
-				return key.startsWith('sk-ant-');
-			case 'google':
-				return key.startsWith('AIza');
-			default:
-				return key.length > 10; // Basic length check
-		}
+		return validateProviderApiKey(key, targetProvider);
 	}
 
-	getProviderName(provider?: 'groq' | 'openai' | 'anthropic' | 'google'): string {
+	getProviderName(provider?: ProviderId): string {
 		const targetProvider = provider || this.provider;
-		switch (targetProvider) {
-			case 'groq':
-				return 'Groq';
-			case 'openai':
-				return 'OpenAI';
-			case 'anthropic':
-				return 'Anthropic';
-			case 'google':
-				return 'Google';
-			default:
-				return 'Unknown';
-		}
+		const providerConfig = getProvider(targetProvider);
+		return providerConfig?.displayName || 'Unknown Provider';
 	}
 
-	getModelForProvider(provider?: 'groq' | 'openai' | 'anthropic' | 'google'): string {
+	getModelForProvider(provider?: ProviderId): string {
 		const targetProvider = provider || this.provider;
-		switch (targetProvider) {
-			case 'groq':
-				return 'llama-3.3-70b-versatile';
-			case 'openai':
-				return 'gpt-4o-mini';
-			case 'anthropic':
-				return 'claude-3-5-sonnet-20241022';
-			case 'google':
-				return 'gemini-1.5-pro';
-			default:
-				return 'llama-3.3-70b-versatile';
-		}
+		return getDefaultModelForProvider(targetProvider) || getDefaultProvider().defaultModel;
 	}
 
-	getAvailableProviders(): Array<'groq' | 'openai' | 'anthropic' | 'google'> {
-		return (Object.keys(this.apiKeys) as Array<'groq' | 'openai' | 'anthropic' | 'google'>).filter(
-			(provider) => !!this.apiKeys[provider]
-		);
+	getAvailableProviders(): ProviderId[] {
+		return getProviderIds().filter((provider) => !!this.apiKeys[provider]);
 	}
 
 	getConfiguredProviderCount(): number {

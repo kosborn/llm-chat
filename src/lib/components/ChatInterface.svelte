@@ -33,7 +33,7 @@
 	let titleInput = $state('');
 
 	// Per-chat provider and model selection
-	let currentProvider = $state<'groq' | 'anthropic' | 'openai'>('groq');
+	let currentProvider = $state<import('$lib/providers').ProviderId>('groq');
 	let currentModel = $state('llama-3.3-70b-versatile');
 
 	onMount(async () => {
@@ -212,7 +212,7 @@
 		event: CustomEvent<{ message: string; provider: string; model: string }>
 	) {
 		const messageText = event.detail.message;
-		const selectedProvider = event.detail.provider as 'groq' | 'anthropic' | 'openai';
+		const selectedProvider = event.detail.provider as import('$lib/providers').ProviderId;
 		const selectedModel = event.detail.model;
 
 		if (!chatStore.currentChatId) {

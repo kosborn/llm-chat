@@ -52,17 +52,13 @@
 		selectedToolInvocation = null;
 	}
 
+	import { getProvider } from '$lib/providers';
+
 	function getProviderIcon(provider?: string): string {
-		switch (provider) {
-			case 'groq':
-				return '🚀';
-			case 'anthropic':
-				return '🎭';
-			case 'openai':
-				return '🤖';
-			default:
-				return '🤖';
-		}
+		if (!provider) return '💬';
+
+		const providerConfig = getProvider(provider);
+		return providerConfig?.icon || '🤖';
 	}
 
 	function getProviderName(message: ChatMessage): string {

@@ -89,7 +89,7 @@ export interface Chat {
 	createdAt: number;
 	updatedAt: number;
 	archived?: boolean;
-	provider?: 'groq' | 'anthropic' | 'openai' | 'google';
+	provider?: import('$lib/providers').ProviderId;
 	model?: string;
 }
 

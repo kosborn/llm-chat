@@ -18,7 +18,7 @@
 	interface Props {
 		disabled?: boolean;
 		placeholder?: string;
-		provider?: 'groq' | 'anthropic' | 'openai';
+		provider?: import('$lib/providers').ProviderId;
 		model?: string;
 	}
 

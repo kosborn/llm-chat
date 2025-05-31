@@ -1,6 +1,7 @@
 import type { Chat, ChatMessage } from '../../app.d.ts';
 import { nanoid } from 'nanoid';
 import { serialize, cloneForState } from '../utils/serialization.js';
+import { getDefaultProvider } from '$lib/providers';
 
 const DB_NAME = 'ChatAppDB';
 const DB_VERSION = 1;
@@ -33,14 +34,15 @@ class ChatStorage {
 	async createChat(title?: string): Promise<Chat> {
 		if (!this.db) await this.init();
 
+		const defaultProvider = getDefaultProvider();
 		const chat: Chat = {
 			id: nanoid(),
 			title: title || 'New Chat',
 			messages: [],
 			createdAt: Date.now(),
 			updatedAt: Date.now(),
-			provider: 'groq',
-			model: 'llama-3.3-70b-versatile'
+			provider: defaultProvider.id,
+			model: defaultProvider.defaultModel
 		};
 
 		// Serialize to ensure it can be stored in IndexedDB
