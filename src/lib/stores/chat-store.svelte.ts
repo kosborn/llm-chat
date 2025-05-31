@@ -2,6 +2,7 @@ import type { Chat, ChatMessage } from '../../app.d.ts';
 import { chatStorage } from './chat-storage.js';
 import { notificationStore } from './notification-store.svelte.js';
 import { cloneForState, serialize } from '../utils/serialization.js';
+import { apiKeyStore } from './api-key-store.svelte.js';
 
 class ChatStore {
 	chats = $state<Chat[]>([]);
@@ -220,19 +221,22 @@ class ChatStore {
 		const chat = this.chats.find((c) => c.id === chatId);
 		if (!chat || chat.messages.length < 2) return;
 
-		// Check if this chat needs auto-renaming
-		const needsRename =
-			forceRegenerate ||
-			chat.title.startsWith('New Chat') ||
-			chat.title.toLowerCase().includes('here is') ||
-			chat.title.toLowerCase().includes("here's") ||
-			chat.title.toLowerCase().includes('descriptive title') ||
-			chat.title.toLowerCase().includes('chat...') ||
-			chat.title.length > 60; // Suspiciously long titles
+		// If forced regeneration, always proceed
+		if (forceRegenerate) {
+			// Continue to generate title
+		} else {
+			// Check if this chat needs auto-renaming (only for automatic renaming)
+			const needsRename =
+				chat.title.startsWith('New Chat') ||
+				chat.title.toLowerCase().includes('here is') ||
+				chat.title.toLowerCase().includes("here's") ||
+				chat.title.toLowerCase().includes('descriptive title') ||
+				chat.title.toLowerCase().includes('chat...') ||
+				chat.title.length > 60; // Suspiciously long titles
 
-		// Only auto-rename if conditions are met and we have exactly 2 messages (first exchange)
-		// OR if it's a forced regeneration
-		if (!needsRename && chat.messages.length !== 2) return;
+			// Only auto-rename if conditions are met and we have exactly 2 messages (first exchange)
+			if (!needsRename || chat.messages.length !== 2) return;
+		}
 
 		const userMessage = chat.messages.find((m) => m.role === 'user');
 		const assistantMessage = chat.messages.find((m) => m.role === 'assistant');
@@ -240,13 +244,18 @@ class ChatStore {
 		if (!userMessage || !assistantMessage || !userMessage.content || !assistantMessage.content)
 			return;
 
+		const apiKey = apiKeyStore.getApiKey();
+		if (!apiKey) return;
+
 		try {
 			const response = await fetch('/api/chat/generate-title', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/json' },
 				body: JSON.stringify({
 					userMessage: userMessage.content,
-					assistantMessage: assistantMessage.content
+					assistantMessage: assistantMessage.content,
+					apiKey: apiKey,
+					provider: apiKeyStore.provider
 				})
 			});
 

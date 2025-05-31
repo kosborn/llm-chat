@@ -1,19 +1,23 @@
 import { createGroq } from '@ai-sdk/groq';
 import { generateText } from 'ai';
-import { GROQ_API_KEY } from '$env/static/private';
 import { json } from '@sveltejs/kit';
-
-const groq = createGroq({
-	apiKey: GROQ_API_KEY
-});
 
 export async function POST({ request }) {
 	try {
-		const { userMessage, assistantMessage } = await request.json();
+		const { userMessage, assistantMessage, apiKey, provider = 'groq' } = await request.json();
 
 		if (!userMessage || !assistantMessage) {
 			return json({ error: 'Both userMessage and assistantMessage are required' }, { status: 400 });
 		}
+
+		if (!apiKey) {
+			return json({ error: 'API key is required' }, { status: 400 });
+		}
+
+		// Create provider instance with client-provided API key
+		const groq = createGroq({
+			apiKey: apiKey
+		});
 
 		const result = await generateText({
 			model: groq('meta-llama/llama-4-scout-17b-16e-instruct'),
