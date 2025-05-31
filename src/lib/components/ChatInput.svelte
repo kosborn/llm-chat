@@ -11,7 +11,6 @@
 	} from '$lib/utils/simple-token-counter';
 	import ToolSelector from './ToolSelector.svelte';
 	import FormattedTextInput from './FormattedTextInput.svelte';
-	import ModelSelector from './ModelSelector.svelte';
 	import { defaultFormatRules } from '$lib/utils/text-formatter';
 
 	import type { ToolMetadata } from '$lib/tools/types.js';
@@ -21,17 +20,13 @@
 		placeholder?: string;
 		provider?: 'groq' | 'anthropic' | 'openai';
 		model?: string;
-		onProviderChange?: (provider: 'groq' | 'anthropic' | 'openai') => void;
-		onModelChange?: (model: string) => void;
 	}
 
 	let {
 		disabled = false,
 		placeholder = 'Type a message...',
 		provider = 'groq',
-		model = 'llama-3.3-70b-versatile',
-		onProviderChange,
-		onModelChange
+		model = 'llama-3.3-70b-versatile'
 	}: Props = $props();
 
 	const dispatch = createEventDispatcher<{
@@ -232,20 +227,6 @@
 </script>
 
 <div class="border-t border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-	<!-- Model Selector -->
-	<div class="mb-3 flex justify-end">
-		<div class="w-64">
-			<ModelSelector
-				{provider}
-				{model}
-				onProviderChange={(newProvider) => onProviderChange?.(newProvider)}
-				onModelChange={(newModel) => onModelChange?.(newModel)}
-				{disabled}
-				compact={true}
-			/>
-		</div>
-	</div>
-
 	<form onsubmit={handleSubmit} class="flex items-end gap-3">
 		<div class="flex-1">
 			<FormattedTextInput

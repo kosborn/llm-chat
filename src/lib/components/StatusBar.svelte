@@ -6,6 +6,23 @@
 		getModelDisplayName,
 		getProviderDisplayName
 	} from '$lib/utils/cost-calculator.js';
+	import ModelSelector from './ModelSelector.svelte';
+
+	interface Props {
+		provider?: 'groq' | 'anthropic' | 'openai';
+		model?: string;
+		onProviderChange?: (provider: 'groq' | 'anthropic' | 'openai') => void;
+		onModelChange?: (model: string) => void;
+		disabled?: boolean;
+	}
+
+	let {
+		provider = 'groq',
+		model = 'llama-3.3-70b-versatile',
+		onProviderChange,
+		onModelChange,
+		disabled = false
+	}: Props = $props();
 
 	let showDetails = $state(false);
 
@@ -56,19 +73,20 @@
 
 <div class="border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-900">
 	<div class="flex items-center justify-between">
-		<!-- Left side: Model and Provider info -->
-		<div class="flex items-center gap-3">
+		<!-- Left side: Model Selector and Status -->
+		<div class="flex items-center gap-4">
 			<div class="flex items-center gap-2">
 				<div class="h-2 w-2 rounded-full {status().canSend ? 'bg-green-500' : 'bg-red-500'}"></div>
-				<span class="text-sm font-medium text-gray-900 dark:text-gray-100">
-					{getModelDisplayName(
-						status().provider || 'groq',
-						status().model || 'meta-llama/llama-4-scout-17b-16e-instruct'
-					)}
-				</span>
-				<span class="text-xs text-gray-500 dark:text-gray-400">
-					via {getProviderDisplayName(status().provider || 'groq')}
-				</span>
+				<div>
+					<ModelSelector
+						{provider}
+						{model}
+						onProviderChange={(newProvider) => onProviderChange?.(newProvider)}
+						onModelChange={(newModel) => onModelChange?.(newModel)}
+						{disabled}
+						statusBar={true}
+					/>
+				</div>
 			</div>
 
 			{#if !status().canSend}
