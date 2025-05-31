@@ -137,29 +137,9 @@
 			console.log('Message types found:', [...new Set(allMessages.map(m => m.type))]);
 		}
 		
-		// Simple filtering - no complex logic
-		let messages = allMessages;
-		
-		// Only filter out message_update if verbose is off
-		if (!showVerbose) {
-			messages = messages.filter((msg) => msg.type !== 'message_update');
-		}
-		
-		// Filter by type if not 'all'
-		if (selectedType && selectedType !== 'all') {
-			messages = messages.filter((msg) => msg.type === selectedType);
-		}
-		
-		// Search filter
-		if (searchTerm && searchTerm.trim()) {
-			messages = messages.filter((msg) => {
-				const content = JSON.stringify(msg.data || '').toLowerCase();
-				return content.includes(searchTerm.toLowerCase());
-			});
-		}
-		
-		console.log(`Filtered: ${messages.length} of ${allMessages.length} messages`);
-		return messages;
+		// TEMPORARILY BYPASS ALL FILTERING - just return all messages
+		console.log(`Showing ALL ${allMessages.length} messages (no filtering)`);
+		return allMessages;
 	});
 
 	const metrics = $derived(() => {
