@@ -5,6 +5,7 @@
 	import ToolRenderer from './ToolRenderer.svelte';
 	import MetadataDisplay from './MetadataDisplay.svelte';
 	import EnhancedText from './EnhancedText.svelte';
+	import TechnicalModal from './TechnicalModal.svelte';
 	import {
 		countTokens,
 		formatTokenCount,
@@ -20,6 +21,8 @@
 
 	let messageElement: HTMLDivElement;
 	let showMetadata = $state(false);
+	let showTechnicalModal = $state(false);
+	let selectedToolInvocation = $state<ToolInvocation | null>(null);
 
 	// Token counting
 	const tokenCount = $derived(() => (message.content ? countTokens(message.content) : 0));
@@ -36,6 +39,16 @@
 			hour: '2-digit',
 			minute: '2-digit'
 		});
+	}
+
+	function openTechnicalModal(toolInvocation: ToolInvocation) {
+		selectedToolInvocation = toolInvocation;
+		showTechnicalModal = true;
+	}
+
+	function closeTechnicalModal() {
+		showTechnicalModal = false;
+		selectedToolInvocation = null;
 	}
 </script>
 
@@ -104,7 +117,27 @@
 		{#if message.toolInvocations && message.toolInvocations.length > 0}
 			<div class="mt-3 space-y-2">
 				{#each message.toolInvocations as toolInvocation (toolInvocation.toolCallId)}
-					<div class="tool-result">
+					<div class="tool-result relative">
+						<div class="mb-2 flex items-center justify-between">
+							<span class="text-xs font-medium text-gray-600 dark:text-gray-400">
+								Tool: {toolInvocation.toolName}
+							</span>
+							<button
+								onclick={() => openTechnicalModal(toolInvocation)}
+								class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+								title="View technical details"
+								aria-label="View technical details for {toolInvocation.toolName}"
+							>
+								<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
+									/>
+								</svg>
+							</button>
+						</div>
 						<ToolRenderer {toolInvocation} />
 					</div>
 				{/each}
@@ -119,6 +152,15 @@
 		{/if}
 	</div>
 </div>
+
+<!-- Technical Modal -->
+{#if selectedToolInvocation}
+	<TechnicalModal
+		toolInvocation={selectedToolInvocation}
+		isOpen={showTechnicalModal}
+		onClose={closeTechnicalModal}
+	/>
+{/if}
 
 <style>
 	:global(.prose p:last-child) {
