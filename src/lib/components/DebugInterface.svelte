@@ -10,6 +10,7 @@
 	let debugEnabled = $state(false);
 	let showMetrics = $state(false);
 	let showFilters = $state(false);
+	let showVerbose = $state(false);
 
 	// Keyboard shortcuts
 	onMount(() => {
@@ -122,6 +123,12 @@
 
 	const filteredMessages = () => {
 		let messages = debugStore.messages;
+		
+		// Hide message_update by default unless verbose mode is on
+		if (!showVerbose) {
+			messages = messages.filter((msg) => msg.type !== 'message_update');
+		}
+		
 		if (selectedType !== 'all') {
 			messages = messages.filter((msg) => msg.type === selectedType);
 		}
@@ -214,16 +221,16 @@
 					{/if}
 				</div>
 				<div class="flex items-center gap-2">
-					<span class="text-sm text-gray-500 dark:text-gray-400">{metrics.total}</span>
+					<span class="text-sm text-gray-500 dark:text-gray-400">{filteredMessages().length}/{metrics.total}</span>
 					{#if debugStore.newMessageCount > 0}
 						<span class="rounded-full bg-red-500 px-2 py-1 text-xs text-white">{debugStore.newMessageCount} new</span>
 					{/if}
 					<button
 						onclick={() => debugStore.clear()}
 						class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-						title="Clear messages"
+						title="Clear all messages"
 					>
-						Clear
+						🗑️
 					</button>
 					<button
 						onclick={() => (isOpen = false)}
@@ -235,27 +242,37 @@
 				</div>
 			</div>
 
-			<!-- Compact Controls -->
-			<div class="mt-2 flex items-center gap-2">
+			<!-- Controls -->
+			<div class="mt-2 flex flex-wrap items-center gap-2">
 				<button
 					onclick={() => (showFilters = !showFilters)}
-					class="rounded bg-gray-200 px-2 py-1 text-xs hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+					class="flex items-center gap-1 rounded {showFilters ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'} px-2 py-1 text-xs"
+					title="Toggle message type filters and search"
 				>
-					Filters {showFilters ? '−' : '+'}
+					🔍 Filter {showFilters ? '−' : '+'}
 				</button>
 				<button
 					onclick={() => (showMetrics = !showMetrics)}
-					class="rounded bg-gray-200 px-2 py-1 text-xs hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+					class="flex items-center gap-1 rounded {showMetrics ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'} px-2 py-1 text-xs"
+					title="Show/hide performance statistics"
 				>
-					Stats {showMetrics ? '−' : '+'}
+					📊 Stats {showMetrics ? '−' : '+'}
+				</button>
+				<button
+					onclick={() => (showVerbose = !showVerbose)}
+					class="flex items-center gap-1 rounded {showVerbose ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'} px-2 py-1 text-xs"
+					title="Show/hide verbose message updates"
+				>
+					🔬 Verbose
 				</button>
 				<button
 					onclick={exportDebugLog}
-					class="rounded bg-gray-200 px-2 py-1 text-xs hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600"
+					class="rounded bg-green-100 px-2 py-1 text-xs text-green-700 hover:bg-green-200 dark:bg-green-900 dark:text-green-300"
+					title="Export debug log to file"
 				>
-					Export
+					💾 Export
 				</button>
-				<label class="ml-auto flex items-center gap-1 text-xs">
+				<label class="ml-auto flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
 					<input type="checkbox" bind:checked={autoScroll} class="rounded" />
 					Auto-scroll
 				</label>
@@ -320,19 +337,22 @@
 			{:else}
 				<div class="space-y-1">
 					{#each filteredMessages() as message, index (message.id)}
-						<div class="rounded border border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800">
+						<div class="rounded border-l-4 border-r border-t border-b bg-gray-50 p-2 dark:bg-gray-800" 
+							style="border-left-color: {getTypeColor(message.type).replace('bg-', '#').replace('500', '')}; border-left-color: {message.type === 'error' ? '#ef4444' : message.type === 'tool_call' ? '#a855f7' : message.type === 'tool_result' ? '#f97316' : message.type === 'api_request' ? '#6366f1' : message.type === 'api_response' ? '#14b8a6' : message.type === 'raw_stream' ? '#3b82f6' : message.type === 'parsed_data' ? '#22c55e' : message.type === 'api_metadata' ? '#06b6d4' : message.type === 'message_update' ? '#eab308' : '#6b7280'}">
 							<div class="mb-1 flex items-center justify-between">
 								<div class="flex items-center gap-2">
-									<span class="inline-flex h-2 w-2 rounded-full {getTypeColor(message.type)}"></span>
-									<span class="font-mono text-xs text-gray-600 dark:text-gray-400">{message.type}</span>
+									<span class="rounded px-2 py-0.5 text-xs font-mono text-white" 
+										style="background-color: {message.type === 'error' ? '#ef4444' : message.type === 'tool_call' ? '#a855f7' : message.type === 'tool_result' ? '#f97316' : message.type === 'api_request' ? '#6366f1' : message.type === 'api_response' ? '#14b8a6' : message.type === 'raw_stream' ? '#3b82f6' : message.type === 'parsed_data' ? '#22c55e' : message.type === 'api_metadata' ? '#06b6d4' : message.type === 'message_update' ? '#eab308' : '#6b7280'}">
+										{message.type}
+									</span>
 									<span class="text-xs text-gray-500 dark:text-gray-400">{formatTimestamp(message.timestamp)}</span>
 									{#if index < debugStore.newMessageCount}
-										<span class="rounded bg-red-500 px-1 py-0.5 text-xs text-white">new</span>
+										<span class="animate-pulse rounded bg-red-500 px-1 py-0.5 text-xs text-white">new</span>
 									{/if}
 								</div>
 								<button
 									onclick={() => copyToClipboard(formatData(message.data))}
-									class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+									class="rounded p-1 text-xs text-gray-400 hover:bg-gray-200 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-200"
 									title="Copy to clipboard"
 								>
 									📋
@@ -340,8 +360,9 @@
 							</div>
 							{#if message.metadata}
 								<div class="mb-1 text-xs text-gray-500 dark:text-gray-400">
-									{#if message.metadata.chatId}<span class="mr-2">Chat: {message.metadata.chatId}</span>{/if}
-									{#if message.metadata.toolName}<span class="mr-2">Tool: {message.metadata.toolName}</span>{/if}
+									{#if message.metadata.chatId}<span class="mr-2">💬 Chat: {message.metadata.chatId}</span>{/if}
+									{#if message.metadata.toolName}<span class="mr-2">🔧 Tool: {message.metadata.toolName}</span>{/if}
+									{#if message.metadata.model}<span class="mr-2">🤖 Model: {message.metadata.model}</span>{/if}
 								</div>
 							{/if}
 							<pre class="overflow-x-auto whitespace-pre-wrap text-xs text-gray-700 dark:text-gray-300"><code>{formatData(message.data)}</code></pre>
