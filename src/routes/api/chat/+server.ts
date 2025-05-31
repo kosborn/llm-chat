@@ -1,7 +1,15 @@
 import { createGroq } from '@ai-sdk/groq';
+import { createOpenAI } from '@ai-sdk/openai';
+import { createAnthropic } from '@ai-sdk/anthropic';
 import { streamText } from 'ai';
 import { toolsRegistry } from '$lib/tools/index.js';
-import { GROQ_API_KEY } from '$env/static/private';
+import {
+	GROQ_API_KEY,
+	OPENAI_API_KEY,
+	ANTHROPIC_API_KEY,
+	AI_PROVIDER,
+	AI_MODEL
+} from '$env/static/private';
 
 // Debug logging utility for server-side debugging
 const DEBUG_MODE = process.env.NODE_ENV === 'development';
@@ -15,33 +23,102 @@ function debugLog(message: string, data?: any) {
 	}
 }
 
-const groq = createGroq({
-	apiKey: GROQ_API_KEY
-});
+// Provider configuration with fallback defaults
+const CONFIG = {
+	provider: (AI_PROVIDER || 'groq').toLowerCase() as 'groq' | 'openai' | 'anthropic',
+	model: AI_MODEL || getDefaultModel((AI_PROVIDER || 'groq').toLowerCase())
+};
+
+function getDefaultModel(provider: string): string {
+	switch (provider) {
+		case 'groq':
+			return 'llama-3.1-70b-versatile';
+		case 'openai':
+			return 'gpt-4o-mini';
+		case 'anthropic':
+			return 'claude-3-5-sonnet-20241022';
+		default:
+			return 'llama-3.1-70b-versatile';
+	}
+}
+
+function createProvider() {
+	switch (CONFIG.provider) {
+		case 'groq':
+			if (!GROQ_API_KEY || GROQ_API_KEY === 'your_groq_api_key_here') {
+				throw new Error('Groq API key not configured');
+			}
+			return createGroq({ apiKey: GROQ_API_KEY });
+
+		case 'openai':
+			if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your_openai_api_key_here') {
+				throw new Error('OpenAI API key not configured');
+			}
+			return createOpenAI({ apiKey: OPENAI_API_KEY });
+
+		case 'anthropic':
+			if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === 'your_anthropic_api_key_here') {
+				throw new Error('Anthropic API key not configured');
+			}
+			return createAnthropic({ apiKey: ANTHROPIC_API_KEY });
+
+		default:
+			throw new Error(`Unsupported provider: ${CONFIG.provider}`);
+	}
+}
+
+function getProviderStatus() {
+	const status = {
+		provider: CONFIG.provider,
+		model: CONFIG.model,
+		available: false,
+		error: null as string | null
+	};
+
+	try {
+		createProvider();
+		status.available = true;
+	} catch (error) {
+		status.error = error instanceof Error ? error.message : 'Unknown error';
+	}
+
+	return status;
+}
 
 export async function POST({ request }: { request: Request }) {
 	const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
 	try {
-		debugLog(`[${requestId}] Incoming chat request`);
+		debugLog(`[${requestId}] Incoming chat request`, {
+			provider: CONFIG.provider,
+			model: CONFIG.model
+		});
 
-		const { messages } = await request.json();
+		const { messages, model: requestModel } = await request.json();
+
+		// Allow model override from request
+		const selectedModel = requestModel || CONFIG.model;
 
 		debugLog(`[${requestId}] Parsed request body`, {
 			messageCount: messages.length,
+			selectedModel,
 			lastMessage: messages[messages.length - 1]
 		});
 
 		// Handle health check requests
 		if (messages.length === 1 && messages[0].content === 'health-check') {
-			debugLog(`[${requestId}] Health check request - checking API key availability`);
+			debugLog(`[${requestId}] Health check request - checking provider availability`);
 
-			if (!GROQ_API_KEY || GROQ_API_KEY === 'your_groq_api_key_here') {
-				debugLog(`[${requestId}] No valid API key configured`);
+			const status = getProviderStatus();
+
+			if (!status.available) {
+				debugLog(`[${requestId}] Provider not available: ${status.error}`);
 				return new Response(
 					JSON.stringify({
-						error: 'Server API key not configured',
-						available: false
+						error: status.error,
+						available: false,
+						provider: status.provider,
+						model: status.model
 					}),
 					{
 						status: 503,
@@ -50,11 +127,12 @@ export async function POST({ request }: { request: Request }) {
 				);
 			}
 
-			// Return a simple success response for health checks
 			return new Response(
 				JSON.stringify({
 					status: 'ok',
-					available: true
+					available: true,
+					provider: status.provider,
+					model: status.model
 				}),
 				{
 					status: 200,
@@ -63,12 +141,19 @@ export async function POST({ request }: { request: Request }) {
 			);
 		}
 
-		// Check if API key is available for actual chat requests
-		if (!GROQ_API_KEY || GROQ_API_KEY === 'your_groq_api_key_here') {
-			debugLog(`[${requestId}] No valid API key configured for chat request`);
+		// Create provider instance
+		let provider;
+		try {
+			provider = createProvider();
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : 'Provider configuration error';
+			debugLog(`[${requestId}] Provider creation failed: ${errorMessage}`);
+
 			return new Response(
 				JSON.stringify({
-					error: 'Server API key not configured. Please configure your own API key.'
+					error: `Server AI provider not configured: ${errorMessage}. Please configure your own API key.`,
+					provider: CONFIG.provider,
+					model: selectedModel
 				}),
 				{
 					status: 503,
@@ -80,7 +165,7 @@ export async function POST({ request }: { request: Request }) {
 		debugLog(`[${requestId}] Available tools`, Object.keys(toolsRegistry));
 
 		const result = streamText({
-			model: groq('meta-llama/llama-4-scout-17b-16e-instruct'),
+			model: provider(selectedModel),
 			messages,
 			tools: toolsRegistry as any,
 			maxSteps: 5,
@@ -103,7 +188,9 @@ export async function POST({ request }: { request: Request }) {
 				debugLog(`[${requestId}] Generation finished`, {
 					finishReason: result.finishReason,
 					usage: result.usage,
-					steps: result.steps?.length
+					steps: result.steps?.length,
+					provider: CONFIG.provider,
+					model: selectedModel
 				});
 			}
 		});
@@ -114,13 +201,22 @@ export async function POST({ request }: { request: Request }) {
 	} catch (error) {
 		debugLog(`[${requestId}] Error occurred`, {
 			error: error instanceof Error ? error.message : String(error),
-			stack: error instanceof Error ? error.stack : undefined
+			stack: error instanceof Error ? error.stack : undefined,
+			provider: CONFIG.provider,
+			model: CONFIG.model
 		});
 
 		console.error('Chat API error:', error);
-		return new Response(JSON.stringify({ error: 'Internal server error' }), {
-			status: 500,
-			headers: { 'Content-Type': 'application/json' }
-		});
+		return new Response(
+			JSON.stringify({
+				error: 'Internal server error',
+				provider: CONFIG.provider,
+				model: CONFIG.model
+			}),
+			{
+				status: 500,
+				headers: { 'Content-Type': 'application/json' }
+			}
+		);
 	}
 }
