@@ -82,7 +82,7 @@
 <!-- Modal Backdrop -->
 <div
 	bind:this={modal}
-	class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black p-4"
+	class="bg-opacity-80 fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black p-4"
 	onclick={handleBackdropClick}
 	onkeydown={(e) => e.key === 'Escape' && onClose()}
 	tabindex="-1"

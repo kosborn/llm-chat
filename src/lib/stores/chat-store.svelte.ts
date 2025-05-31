@@ -5,6 +5,7 @@ import { cloneForState, serialize } from '../utils/serialization.js';
 
 class ChatStore {
 	chats = $state<Chat[]>([]);
+	archivedChats = $state<Chat[]>([]);
 	currentChatId = $state<string | null>(null);
 	isLoading = $state(false);
 	error = $state<string | null>(null);
@@ -19,7 +20,9 @@ class ChatStore {
 			this.error = null;
 			await chatStorage.init();
 			const chats = await chatStorage.getChats();
+			const archivedChats = await chatStorage.getArchivedChats();
 			this.chats = cloneForState(chats);
+			this.archivedChats = cloneForState(archivedChats);
 
 			// Set current chat to the most recent one if no chat is selected
 			if (!this.currentChatId && chats.length > 0) {
@@ -134,11 +137,52 @@ class ChatStore {
 		}
 	}
 
+	async archiveChat(chatId: string): Promise<void> {
+		try {
+			this.error = null;
+			await chatStorage.archiveChat(chatId);
+
+			// Move chat from chats to archivedChats
+			const chatToArchive = this.chats.find((c) => c.id === chatId);
+			if (chatToArchive) {
+				const archivedChat = { ...chatToArchive, archived: true };
+				this.chats = this.chats.filter((c) => c.id !== chatId);
+				this.archivedChats = [archivedChat, ...this.archivedChats];
+			}
+
+			if (this.currentChatId === chatId) {
+				this.currentChatId = this.chats.length > 0 ? this.chats[0].id : null;
+			}
+		} catch (err) {
+			this.error = err instanceof Error ? err.message : 'Failed to archive chat';
+			throw err;
+		}
+	}
+
+	async unarchiveChat(chatId: string): Promise<void> {
+		try {
+			this.error = null;
+			await chatStorage.unarchiveChat(chatId);
+
+			// Move chat from archivedChats to chats
+			const chatToUnarchive = this.archivedChats.find((c) => c.id === chatId);
+			if (chatToUnarchive) {
+				const unarchivedChat = { ...chatToUnarchive, archived: false };
+				this.archivedChats = this.archivedChats.filter((c) => c.id !== chatId);
+				this.chats = [unarchivedChat, ...this.chats];
+			}
+		} catch (err) {
+			this.error = err instanceof Error ? err.message : 'Failed to unarchive chat';
+			throw err;
+		}
+	}
+
 	async deleteChat(chatId: string): Promise<void> {
 		try {
 			this.error = null;
 			await chatStorage.deleteChat(chatId);
 			this.chats = this.chats.filter((c) => c.id !== chatId);
+			this.archivedChats = this.archivedChats.filter((c) => c.id !== chatId);
 
 			if (this.currentChatId === chatId) {
 				this.currentChatId = this.chats.length > 0 ? this.chats[0].id : null;

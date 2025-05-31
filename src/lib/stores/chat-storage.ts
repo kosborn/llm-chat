@@ -66,6 +66,27 @@ class ChatStorage {
 			request.onsuccess = () => {
 				const chats = request.result
 					.map((chat: Chat) => cloneForState(chat))
+					.filter((chat: Chat) => !chat.archived)
+					.sort((a, b) => b.updatedAt - a.updatedAt);
+				resolve(chats);
+			};
+			request.onerror = () => reject(request.error);
+		});
+	}
+
+	async getArchivedChats(): Promise<Chat[]> {
+		if (!this.db) await this.init();
+
+		return new Promise((resolve, reject) => {
+			const transaction = this.db!.transaction([CHATS_STORE], 'readonly');
+			const store = transaction.objectStore(CHATS_STORE);
+			const index = store.index('updatedAt');
+			const request = index.getAll();
+
+			request.onsuccess = () => {
+				const chats = request.result
+					.map((chat: Chat) => cloneForState(chat))
+					.filter((chat: Chat) => chat.archived === true)
 					.sort((a, b) => b.updatedAt - a.updatedAt);
 				resolve(chats);
 			};
@@ -84,6 +105,25 @@ class ChatStorage {
 			request.onsuccess = () => {
 				const result = request.result;
 				resolve(result ? cloneForState(result) : null);
+			};
+			request.onerror = () => reject(request.error);
+		});
+	}
+
+	async getAllChats(): Promise<Chat[]> {
+		if (!this.db) await this.init();
+
+		return new Promise((resolve, reject) => {
+			const transaction = this.db!.transaction([CHATS_STORE], 'readonly');
+			const store = transaction.objectStore(CHATS_STORE);
+			const index = store.index('updatedAt');
+			const request = index.getAll();
+
+			request.onsuccess = () => {
+				const chats = request.result
+					.map((chat: Chat) => cloneForState(chat))
+					.sort((a, b) => b.updatedAt - a.updatedAt);
+				resolve(chats);
 			};
 			request.onerror = () => reject(request.error);
 		});
@@ -116,6 +156,46 @@ class ChatStorage {
 		const serializedMessage = serialize(message);
 		chat.messages.push(serializedMessage);
 		await this.updateChat(chat);
+	}
+
+	async archiveChat(id: string): Promise<void> {
+		const chat = await this.getChat(id);
+		if (!chat) throw new Error('Chat not found');
+
+		const archivedChat = serialize({
+			...chat,
+			archived: true,
+			updatedAt: Date.now()
+		});
+
+		return new Promise((resolve, reject) => {
+			const transaction = this.db!.transaction([CHATS_STORE], 'readwrite');
+			const store = transaction.objectStore(CHATS_STORE);
+			const request = store.put(archivedChat);
+
+			request.onsuccess = () => resolve();
+			request.onerror = () => reject(request.error);
+		});
+	}
+
+	async unarchiveChat(id: string): Promise<void> {
+		const chat = await this.getChat(id);
+		if (!chat) throw new Error('Chat not found');
+
+		const unarchivedChat = serialize({
+			...chat,
+			archived: false,
+			updatedAt: Date.now()
+		});
+
+		return new Promise((resolve, reject) => {
+			const transaction = this.db!.transaction([CHATS_STORE], 'readwrite');
+			const store = transaction.objectStore(CHATS_STORE);
+			const request = store.put(unarchivedChat);
+
+			request.onsuccess = () => resolve();
+			request.onerror = () => reject(request.error);
+		});
 	}
 
 	async deleteChat(id: string): Promise<void> {

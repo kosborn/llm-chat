@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { apiKeyStore } from '$lib/stores/api-key-store.svelte.js';
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
+	import { onMount } from 'svelte';
 
 	interface Props {
 		isOpen: boolean;
@@ -174,10 +175,35 @@
 			return () => clearTimeout(timeoutId);
 		}
 	});
+
+	// Handle escape key and focus management
+	onMount(() => {
+		function handleKeydown(event: KeyboardEvent) {
+			if (event.key === 'Escape' && isOpen) {
+				handleCancel();
+			}
+		}
+
+		document.addEventListener('keydown', handleKeydown);
+		return () => {
+			document.removeEventListener('keydown', handleKeydown);
+		};
+	});
+
+	function handleBackdropClick(event: MouseEvent) {
+		if (event.target === event.currentTarget) {
+			handleCancel();
+		}
+	}
 </script>
 
 {#if isOpen}
-	<div class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black">
+	<div
+		class="bg-opacity-80 fixed inset-0 z-50 flex items-center justify-center bg-black"
+		onclick={handleBackdropClick}
+		role="dialog"
+		aria-modal="true"
+	>
 		<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
 			<div class="mb-4 flex items-center justify-between">
 				<h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">API Configuration</h2>

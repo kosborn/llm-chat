@@ -14,8 +14,8 @@
 
 	const dispatch = createEventDispatcher<{
 		selectChat: { chatId: string };
-		newChat: {};
-		deleteChat: { chatId: string };
+		newChat: Record<string, never>;
+		archiveChat: { chatId: string };
 		renameChat: { chatId: string; title: string };
 		regenerateTitle: { chatId: string };
 	}>();
@@ -32,11 +32,9 @@
 		dispatch('selectChat', { chatId });
 	}
 
-	function handleDeleteChat(chatId: string, event: Event) {
+	function handleArchiveChat(chatId: string, event: Event) {
 		event.stopPropagation();
-		if (confirm('Are you sure you want to delete this chat?')) {
-			dispatch('deleteChat', { chatId });
-		}
+		dispatch('archiveChat', { chatId });
 	}
 
 	function handleRegenerateTitle(chatId: string, event: Event) {
@@ -100,9 +98,7 @@
 	}
 </script>
 
-<div
-	class="flex h-full w-80 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
->
+<div class="flex h-full flex-col">
 	<!-- Header -->
 	<div class="border-b border-gray-200 p-4 dark:border-gray-700">
 		<button
@@ -272,10 +268,10 @@
 
 								{#if autoRenamingChatId !== chat.id}
 									<button
-										onclick={(e) => handleDeleteChat(chat.id, e)}
-										class="rounded p-1 text-gray-400 transition-colors hover:text-red-500 dark:hover:text-red-400"
-										title="Delete chat"
-										aria-label="Delete chat"
+										onclick={(e) => handleArchiveChat(chat.id, e)}
+										class="rounded p-1 text-gray-400 transition-colors hover:text-amber-500 dark:hover:text-amber-400"
+										title="Archive chat"
+										aria-label="Archive chat"
 									>
 										<svg
 											width="14"
@@ -285,14 +281,7 @@
 											xmlns="http://www.w3.org/2000/svg"
 										>
 											<path
-												d="M3 6H5H21"
-												stroke="currentColor"
-												stroke-width="2"
-												stroke-linecap="round"
-												stroke-linejoin="round"
-											/>
-											<path
-												d="M8 6V4C8 3.46957 8.21071 2.96086 8.58579 2.58579C8.96086 2.21071 9.46957 2 10 2H14C14.5304 2 15.0391 2.21071 15.4142 2.58579C15.7893 2.96086 16 3.46957 16 4V6M19 6V20C19 20.5304 18.7893 21.0391 18.4142 21.4142C18.0391 21.7893 17.5304 22 17 22H7C6.46957 22 5.96086 21.7893 5.58579 21.4142C5.21071 21.0391 5 20.5304 5 20V6H19Z"
+												d="M20.54 5.23L19.15 3.55C18.88 3.21 18.47 3 18 3H6C5.53 3 5.12 3.21 4.85 3.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V6.5C21 6.02 20.83 5.57 20.54 5.23ZM12 17.5L6.5 12H10V10H14V12H17.5L12 17.5ZM5.12 5L6 4H18L18.88 5H5.12Z"
 												stroke="currentColor"
 												stroke-width="2"
 												stroke-linecap="round"
@@ -322,10 +311,5 @@
 				{/each}
 			</div>
 		{/if}
-	</div>
-
-	<!-- Footer -->
-	<div class="border-t border-gray-200 p-4 text-center dark:border-gray-700">
-		<p class="text-xs text-gray-500 dark:text-gray-400">AI Tool Chat v1.0</p>
 	</div>
 </div>

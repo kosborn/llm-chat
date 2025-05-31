@@ -10,13 +10,18 @@
 	import { offlineQueueStore } from '$lib/stores/offline-queue-store.svelte.js';
 	import { clientChatService } from '$lib/services/client-chat.js';
 	import ChatSidebar from './ChatSidebar.svelte';
+	import ArchivedChats from './ArchivedChats.svelte';
 	import ChatMessageComponent from './ChatMessage.svelte';
 	import ChatInput from './ChatInput.svelte';
 	import DebugInterface from './DebugInterface.svelte';
 	import ApiKeyConfig from './ApiKeyConfig.svelte';
-	import PWAStatus from './PWAStatus.svelte';
+
 	import PWAInstallPrompt from './PWAInstallPrompt.svelte';
-	import StatusBar from './StatusBar.svelte';
+	import {
+		formatCost,
+		getModelDisplayName,
+		getProviderDisplayName
+	} from '$lib/utils/cost-calculator.js';
 
 	let isStreaming = $state(false);
 	let streamingMessageId = $state<string | null>(null);
@@ -24,7 +29,54 @@
 	let messagesContainer: HTMLDivElement | undefined = $state();
 	let showApiConfig = $state(false);
 	let showPwaPrompt = $state(false);
-	let serverAvailable = $state<boolean | null>(null);
+	let sidebarMode = $state<'chats' | 'archived'>('chats');
+	let showStatusDetails = $state(false);
+
+	const status = $derived(() => {
+		try {
+			return clientChatService.getDetailedStatus();
+		} catch (error) {
+			console.warn('Failed to get detailed status:', error);
+			return {
+				canSend: false,
+				hasApiKey: false,
+				isOnline: false,
+				isValidApiKey: false,
+				provider: 'groq',
+				model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+				queuedCount: 0
+			};
+		}
+	});
+
+	const apiMetrics = $derived(() => {
+		try {
+			const metrics = debugStore.getApiMetrics();
+			return (
+				metrics || {
+					totalRequests: 0,
+					totalTokens: 0,
+					totalCost: 0,
+					averageResponseTime: 0,
+					modelUsage: {},
+					providerUsage: {}
+				}
+			);
+		} catch (error) {
+			console.warn('Failed to get API metrics:', error);
+			return {
+				totalRequests: 0,
+				totalTokens: 0,
+				totalCost: 0,
+				averageResponseTime: 0,
+				modelUsage: {},
+				providerUsage: {}
+			};
+		}
+	});
+
+	const sessionCost = $derived(() => apiMetrics()?.totalCost || 0);
+	const sessionTokens = $derived(() => apiMetrics()?.totalTokens || 0);
 
 	onMount(async () => {
 		await chatStore.init();
@@ -37,16 +89,6 @@
 			} catch (error) {
 				console.error('Service Worker registration failed:', error);
 			}
-		}
-
-		// Check server availability
-		try {
-			const response = await fetch('/api/chat', {
-				method: 'HEAD'
-			});
-			serverAvailable = response.ok;
-		} catch {
-			serverAvailable = false;
 		}
 
 		// Don't automatically show API config modal - let user click the button when needed
@@ -71,11 +113,42 @@
 		await chatStore.selectChat(event.detail.chatId);
 	}
 
+	async function handleArchiveChat(event: CustomEvent<{ chatId: string }>) {
+		try {
+			await chatStore.archiveChat(event.detail.chatId);
+		} catch (error) {
+			console.error('Failed to archive chat:', error);
+		}
+	}
+
+	async function handleUnarchiveChat(event: CustomEvent<{ chatId: string }>) {
+		try {
+			await chatStore.unarchiveChat(event.detail.chatId);
+			// Switch back to main chats view after unarchiving
+			sidebarMode = 'chats';
+		} catch (error) {
+			console.error('Failed to unarchive chat:', error);
+		}
+	}
+
 	async function handleDeleteChat(event: CustomEvent<{ chatId: string }>) {
 		try {
 			await chatStore.deleteChat(event.detail.chatId);
 		} catch (error) {
 			console.error('Failed to delete chat:', error);
+		}
+	}
+
+	async function handleSelectArchivedChat(event: CustomEvent<{ chatId: string }>) {
+		try {
+			// First unarchive the chat
+			await chatStore.unarchiveChat(event.detail.chatId);
+			// Then select it
+			await chatStore.selectChat(event.detail.chatId);
+			// Switch to main chats view
+			sidebarMode = 'chats';
+		} catch (error) {
+			console.error('Failed to select archived chat:', error);
 		}
 	}
 
@@ -461,27 +534,65 @@
 
 <div class="flex h-full bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
 	<!-- Sidebar -->
-	<ChatSidebar
-		chats={chatStore.chats}
-		currentChatId={chatStore.currentChatId}
-		isLoading={chatStore.isLoading}
-		{autoRenamingChatId}
-		on:newChat={handleNewChat}
-		on:selectChat={handleSelectChat}
-		on:deleteChat={handleDeleteChat}
-		on:renameChat={handleRenameChat}
-		on:regenerateTitle={handleRegenerateTitle}
-	/>
-
-	<!-- Main Chat Area -->
-	<div class="flex flex-1 flex-col">
-		<!-- Status Bar -->
-		<StatusBar />
-
-		<!-- PWA Status bar -->
-		<div class="border-b border-gray-200 bg-gray-50 p-2 dark:border-gray-700 dark:bg-gray-800">
-			<PWAStatus onConfigureApi={() => (showApiConfig = true)} />
+	<div
+		class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
+	>
+		<!-- Sidebar Navigation -->
+		<div class="border-b border-gray-200 p-2 dark:border-gray-700">
+			<div class="flex rounded-lg bg-gray-200 p-1 dark:bg-gray-800">
+				<button
+					onclick={() => (sidebarMode = 'chats')}
+					class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {sidebarMode ===
+					'chats'
+						? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
+						: 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'}"
+				>
+					Chats ({chatStore.chats.length})
+				</button>
+				<button
+					onclick={() => (sidebarMode = 'archived')}
+					class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {sidebarMode ===
+					'archived'
+						? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
+						: 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'}"
+				>
+					Archived ({chatStore.archivedChats.length})
+				</button>
+			</div>
 		</div>
+
+		<!-- Sidebar Content -->
+		<div class="flex-1 overflow-hidden">
+			{#if sidebarMode === 'chats'}
+				<ChatSidebar
+					chats={chatStore.chats}
+					currentChatId={chatStore.currentChatId}
+					isLoading={chatStore.isLoading}
+					{autoRenamingChatId}
+					on:newChat={handleNewChat}
+					on:selectChat={handleSelectChat}
+					on:archiveChat={handleArchiveChat}
+					on:renameChat={handleRenameChat}
+					on:regenerateTitle={handleRegenerateTitle}
+				/>
+			{:else}
+				<ArchivedChats
+					archivedChats={chatStore.archivedChats}
+					isLoading={chatStore.isLoading}
+					on:unarchiveChat={handleUnarchiveChat}
+					on:deleteChat={handleDeleteChat}
+					on:selectChat={handleSelectArchivedChat}
+				/>
+			{/if}
+		</div>
+
+		<!-- Footer -->
+		<div class="border-t border-gray-200 p-4 text-center dark:border-gray-700">
+			<p class="text-xs text-gray-500 dark:text-gray-400">AI Tool Chat v1.0</p>
+		</div>
+	</div>
+
+	<div class="flex flex-1 flex-col">
 		{#if chatStore.error}
 			<div
 				class="m-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-700 dark:bg-red-900/30"
@@ -565,66 +676,180 @@
 						>
 							Start Your First Chat
 						</button>
-
-						{#if serverAvailable === null}
-							<div
-								class="rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-700 dark:bg-blue-900/30"
-							>
-								<div class="flex items-center gap-2">
-									<div
-										class="h-4 w-4 animate-spin rounded-full border-2 border-blue-600 border-t-transparent"
-									></div>
-									<span class="text-sm text-blue-800 dark:text-blue-200">
-										Checking server availability...
-									</span>
-								</div>
-							</div>
-						{:else if serverAvailable}
-							<div
-								class="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-700 dark:bg-green-900/30"
-							>
-								<div class="mb-2 flex items-center gap-2">
-									<span class="text-green-600 dark:text-green-400">🚀</span>
-									<span class="font-medium text-green-800 dark:text-green-200"
-										>Server AI Available</span
-									>
-								</div>
-								<p class="text-sm text-green-700 dark:text-green-300">
-									You can start chatting immediately! The server has AI capabilities built-in.
-								</p>
-							</div>
-						{:else if !apiKeyStore.isConfigured && serverAvailable === false}
-							<div
-								class="rounded-lg border border-yellow-200 bg-yellow-50 p-4 dark:border-yellow-700 dark:bg-yellow-900/30"
-							>
-								<div class="mb-2 flex items-center gap-2">
-									<span class="text-yellow-600 dark:text-yellow-400">⚠️</span>
-									<span class="font-medium text-yellow-800 dark:text-yellow-200"
-										>API Key Required</span
-									>
-								</div>
-								<p class="mb-3 text-sm text-yellow-700 dark:text-yellow-300">
-									Server AI is unavailable. Configure your own API key to chat with AI. Your key is
-									stored locally and never sent to our servers.
-								</p>
-								<button
-									onclick={() => (showApiConfig = true)}
-									class="rounded bg-yellow-600 px-4 py-2 text-sm text-white hover:bg-yellow-700"
-								>
-									Configure API Key
-								</button>
-							</div>
-						{/if}
 					</div>
 				</div>
 			</div>
 		{:else}
-			<!-- Chat Header -->
+			<!-- Chat Header with Status -->
 			<div class="border-b border-gray-200 p-4 dark:border-gray-700">
-				<h2 class="truncate text-lg font-semibold">{chatStore.currentChat.title}</h2>
-				<p class="text-sm text-gray-500 dark:text-gray-400">
-					{chatStore.currentChat.messages.length} messages
-				</p>
+				<div class="flex items-center justify-between">
+					<div>
+						<h2 class="truncate text-lg font-semibold">{chatStore.currentChat.title}</h2>
+						<p class="text-sm text-gray-500 dark:text-gray-400">
+							{chatStore.currentChat.messages.length} messages
+						</p>
+					</div>
+
+					<!-- Status Information -->
+					<div class="flex items-center gap-4">
+						<!-- Model and Provider info -->
+						<div class="flex items-center gap-2">
+							<div
+								class="h-2 w-2 rounded-full {status().canSend ? 'bg-green-500' : 'bg-red-500'}"
+							></div>
+							<span class="text-sm font-medium text-gray-900 dark:text-gray-100">
+								{getModelDisplayName(
+									status().provider || 'groq',
+									status().model || 'meta-llama/llama-4-scout-17b-16e-instruct'
+								)}
+							</span>
+							<span class="text-xs text-gray-500 dark:text-gray-400">
+								via {getProviderDisplayName(status().provider || 'groq')}
+							</span>
+						</div>
+
+						{#if !status().canSend}
+							<span class="text-xs text-red-600 dark:text-red-400">
+								{#if !status().isOnline}
+									Offline
+								{:else if !status().hasApiKey}
+									No API Key
+								{:else if !status().isValidApiKey}
+									Invalid API Key
+								{:else}
+									Can't Send
+								{/if}
+							</span>
+						{/if}
+
+						<!-- Session stats -->
+						{#if apiMetrics().totalRequests > 0}
+							<div class="flex items-center gap-3 text-xs">
+								<div class="flex items-center gap-1">
+									<span class="text-gray-500 dark:text-gray-400">Requests:</span>
+									<span class="font-mono font-medium">{apiMetrics().totalRequests}</span>
+								</div>
+
+								{#if sessionTokens() > 0}
+									<div class="flex items-center gap-1">
+										<span class="text-gray-500 dark:text-gray-400">Tokens:</span>
+										<span class="font-mono font-medium">{sessionTokens().toLocaleString()}</span>
+									</div>
+								{/if}
+
+								{#if sessionCost() > 0}
+									<div class="flex items-center gap-1">
+										<span class="text-gray-500 dark:text-gray-400">Cost:</span>
+										<span class="font-mono font-medium text-green-600 dark:text-green-400">
+											{formatCost(sessionCost())}
+										</span>
+									</div>
+								{/if}
+
+								{#if apiMetrics().averageResponseTime > 0}
+									<div class="flex items-center gap-1">
+										<span class="text-gray-500 dark:text-gray-400">Avg:</span>
+										<span class="font-mono font-medium text-blue-600 dark:text-blue-400">
+											{Math.round(apiMetrics().averageResponseTime)}ms
+										</span>
+									</div>
+								{/if}
+							</div>
+						{/if}
+
+						<!-- Toggle details button -->
+						<button
+							onclick={() => (showStatusDetails = !showStatusDetails)}
+							class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+							title="Toggle details"
+							aria-label="Toggle status details"
+						>
+							<svg
+								class="h-4 w-4 transform transition-transform"
+								class:rotate-180={showStatusDetails}
+								fill="none"
+								stroke="currentColor"
+								viewBox="0 0 24 24"
+							>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M19 9l-7 7-7-7"
+								/>
+							</svg>
+						</button>
+					</div>
+				</div>
+
+				<!-- Expandable details -->
+				{#if showStatusDetails}
+					<div class="mt-3 border-t border-gray-100 pt-3 dark:border-gray-600">
+						<div class="grid grid-cols-1 gap-2 text-xs md:grid-cols-2 lg:grid-cols-4">
+							<div>
+								<span class="text-gray-500 dark:text-gray-400">Status:</span>
+								<span class="ml-1 font-mono {status().canSend ? 'text-green-600' : 'text-red-600'}">
+									{status().canSend ? 'Ready' : 'Not Ready'}
+								</span>
+							</div>
+
+							<div>
+								<span class="text-gray-500 dark:text-gray-400">Network:</span>
+								<span
+									class="ml-1 font-mono {status().isOnline ? 'text-green-600' : 'text-red-600'}"
+								>
+									{status().isOnline ? 'Online' : 'Offline'}
+								</span>
+							</div>
+
+							<div>
+								<span class="text-gray-500 dark:text-gray-400">API Key:</span>
+								<span
+									class="ml-1 font-mono {status().isValidApiKey
+										? 'text-green-600'
+										: status().hasApiKey
+											? 'text-yellow-600'
+											: 'text-red-600'}"
+								>
+									{status().isValidApiKey ? 'Valid' : status().hasApiKey ? 'Invalid' : 'None'}
+								</span>
+							</div>
+
+							{#if status().queuedCount > 0}
+								<div>
+									<span class="text-gray-500 dark:text-gray-400">Queued:</span>
+									<span class="ml-1 font-mono text-yellow-600">{status().queuedCount}</span>
+								</div>
+							{/if}
+						</div>
+
+						{#if apiMetrics()?.modelUsage && Object.keys(apiMetrics()?.modelUsage || {}).length > 1}
+							<div class="mt-2">
+								<span class="text-gray-500 dark:text-gray-400">Models used this session:</span>
+								<div class="mt-1 flex flex-wrap gap-1">
+									{#each Object.entries(apiMetrics()?.modelUsage || {}) as [model, count] (model)}
+										<span class="rounded bg-blue-100 px-2 py-0.5 text-xs dark:bg-blue-900">
+											{getModelDisplayName(status().provider || 'groq', model)}: {count}
+										</span>
+									{/each}
+								</div>
+							</div>
+						{/if}
+
+						{#if apiMetrics()?.providerUsage && Object.keys(apiMetrics()?.providerUsage || {}).length > 1}
+							<div class="mt-2">
+								<span class="text-gray-500 dark:text-gray-400">Providers used this session:</span>
+								<div class="mt-1 flex flex-wrap gap-1">
+									{#each Object.entries(apiMetrics()?.providerUsage || {}) as [provider, count] (provider)}
+										<span class="rounded bg-purple-100 px-2 py-0.5 text-xs dark:bg-purple-900">
+											{getProviderDisplayName(provider)}: {count}
+										</span>
+									{/each}
+								</div>
+							</div>
+						{/if}
+					</div>
+				{/if}
 			</div>
 
 			<!-- Messages -->

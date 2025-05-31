@@ -88,6 +88,7 @@ export interface Chat {
 	messages: ChatMessage[];
 	createdAt: number;
 	updatedAt: number;
+	archived?: boolean;
 }
 
 export interface CustomTool {
@@ -99,5 +100,6 @@ export interface CustomTool {
 
 export interface ChatStore {
 	chats: Chat[];
+	archivedChats: Chat[];
 	currentChatId: string | null;
 }

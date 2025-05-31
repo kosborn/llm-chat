@@ -108,7 +108,9 @@ src/
 4. **Manage Chats**:
    - Switch between chats in the sidebar
    - Rename chats by clicking the edit icon
-   - Delete chats with the trash icon
+   - Archive chats with the archive icon
+   - View archived chats in the "Archived" tab
+   - Restore archived chats or permanently delete them from the archived section
 
 ## Customizing Tools
 
