@@ -27,6 +27,7 @@
 	let streamingMessageId = $state<string | null>(null);
 	let autoRenamingChatId = $state<string | null>(null);
 	let messagesContainer: HTMLDivElement | undefined = $state();
+	let chatInputComponent: ChatInput | undefined = $state();
 	let showApiConfig = $state(false);
 	let showPwaPrompt = $state(false);
 	let sidebarMode = $state<'chats' | 'archived'>('chats');
@@ -103,7 +104,19 @@
 
 	async function handleNewChat() {
 		try {
+			// Check if the current chat is empty (no messages)
+			const currentChat = chatStore.currentChat;
+			if (currentChat && currentChat.messages.length === 0) {
+				// If current chat is empty, just focus the input instead of creating a new chat
+				chatInputComponent?.focus();
+				return;
+			}
+
 			await chatStore.createChat();
+			// Focus the input after creating a new chat
+			setTimeout(() => {
+				chatInputComponent?.focus();
+			}, 100);
 		} catch (error) {
 			console.error('Failed to create new chat:', error);
 		}
@@ -884,6 +897,7 @@
 
 			<!-- Input -->
 			<ChatInput
+				bind:this={chatInputComponent}
 				disabled={isStreaming}
 				placeholder={isStreaming ? 'AI is thinking...' : 'Type a message...'}
 				on:submit={handleSubmitMessage}

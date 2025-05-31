@@ -190,7 +190,7 @@
 		}
 	}
 
-	function handleTabComplete() {
+	export function handleTabComplete() {
 		try {
 			const filteredTools = toolSelectorComponent?.getFilteredTools() || [];
 			if (filteredTools.length > 0) {
@@ -201,6 +201,10 @@
 		} catch (error) {
 			console.error('Error in tab completion:', error);
 		}
+	}
+
+	export function focus() {
+		formattedTextInput?.focus();
 	}
 
 	$effect(() => {
