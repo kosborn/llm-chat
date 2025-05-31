@@ -17,7 +17,6 @@
 		newChat: Record<string, never>;
 		archiveChat: { chatId: string };
 		renameChat: { chatId: string; title: string };
-		regenerateTitle: { chatId: string };
 	}>();
 
 	let editingChatId = $state<string | null>(null);
@@ -37,10 +36,7 @@
 		dispatch('archiveChat', { chatId });
 	}
 
-	function handleRegenerateTitle(chatId: string, event: Event) {
-		event.stopPropagation();
-		dispatch('regenerateTitle', { chatId });
-	}
+
 
 	function startEditingTitle(chat: Chat, event: Event) {
 		event.stopPropagation();
@@ -226,44 +222,7 @@
 										</svg>
 									</button>
 
-									{#if chat.messages.length >= 2}
-										<button
-											onclick={(e) => handleRegenerateTitle(chat.id, e)}
-											class="rounded p-1 text-gray-400 transition-colors hover:text-blue-500 dark:hover:text-blue-400"
-											title="Regenerate title with AI"
-											aria-label="Regenerate title with AI"
-										>
-											<svg
-												width="14"
-												height="14"
-												viewBox="0 0 24 24"
-												fill="none"
-												xmlns="http://www.w3.org/2000/svg"
-											>
-												<path
-													d="M1 4V10H7"
-													stroke="currentColor"
-													stroke-width="2"
-													stroke-linecap="round"
-													stroke-linejoin="round"
-												/>
-												<path
-													d="M23 20V14H17"
-													stroke="currentColor"
-													stroke-width="2"
-													stroke-linecap="round"
-													stroke-linejoin="round"
-												/>
-												<path
-													d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14L18.36 18.36A9 9 0 0 1 3.51 15"
-													stroke="currentColor"
-													stroke-width="2"
-													stroke-linecap="round"
-													stroke-linejoin="round"
-												/>
-											</svg>
-										</button>
-									{/if}
+
 								{/if}
 
 								{#if autoRenamingChatId !== chat.id}

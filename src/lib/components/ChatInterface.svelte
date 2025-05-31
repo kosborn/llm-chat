@@ -32,6 +32,8 @@
 	let showPwaPrompt = $state(false);
 	let sidebarMode = $state<'chats' | 'archived'>('chats');
 	let showStatusDetails = $state(false);
+	let editingTitle = $state(false);
+	let titleInput = $state('');
 
 	const status = $derived(() => {
 		try {
@@ -173,16 +175,55 @@
 		}
 	}
 
-	async function handleRegenerateTitle(event: CustomEvent<{ chatId: string }>) {
+	function startEditingTitle() {
+		if (!chatStore.currentChat) return;
+		editingTitle = true;
+		titleInput = chatStore.currentChat.title;
+	}
+
+	async function saveTitle() {
+		if (!chatStore.currentChat || !titleInput.trim()) {
+			cancelTitleEdit();
+			return;
+		}
+
 		try {
-			autoRenamingChatId = event.detail.chatId;
-			await chatStore.autoRenameChat(event.detail.chatId, true);
+			await chatStore.updateChatTitle(chatStore.currentChat.id, titleInput.trim());
+			editingTitle = false;
+		} catch (error) {
+			console.error('Failed to save title:', error);
+		}
+	}
+
+	function cancelTitleEdit() {
+		editingTitle = false;
+		titleInput = '';
+	}
+
+	function handleTitleKeydown(event: KeyboardEvent) {
+		if (event.key === 'Enter') {
+			event.preventDefault();
+			saveTitle();
+		} else if (event.key === 'Escape') {
+			event.preventDefault();
+			cancelTitleEdit();
+		}
+	}
+
+	async function handleRegenerateTitleFromHeader() {
+		if (!chatStore.currentChat) return;
+		
+		try {
+			autoRenamingChatId = chatStore.currentChat.id;
+			await chatStore.autoRenameChat(chatStore.currentChat.id, true);
 		} catch (error) {
 			console.error('Failed to regenerate title:', error);
 		} finally {
 			autoRenamingChatId = null;
 		}
 	}
+
+
 
 	async function handleSubmitMessage(event: CustomEvent<{ message: string }>) {
 		const messageText = event.detail.message;
@@ -596,7 +637,6 @@
 					on:selectChat={handleSelectChat}
 					on:archiveChat={handleArchiveChat}
 					on:renameChat={handleRenameChat}
-					on:regenerateTitle={handleRegenerateTitle}
 				/>
 			{:else}
 				<ArchivedChats
@@ -706,8 +746,116 @@
 			<!-- Chat Header with Status -->
 			<div class="border-b border-gray-200 p-4 dark:border-gray-700">
 				<div class="flex items-center justify-between">
-					<div>
-						<h2 class="truncate text-lg font-semibold">{chatStore.currentChat.title}</h2>
+					<div class="flex-1 min-w-0">
+						{#if editingTitle}
+							<input
+								bind:value={titleInput}
+								onkeydown={handleTitleKeydown}
+								onblur={saveTitle}
+								class="w-full max-w-md rounded border border-gray-300 bg-white px-2 py-1
+									   text-lg font-semibold focus:border-transparent focus:ring-2
+									   focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+								placeholder="Chat title"
+							/>
+						{:else}
+							<div class="flex items-center gap-2">
+								<h2 class="truncate text-lg font-semibold">{chatStore.currentChat.title}</h2>
+								{#if autoRenamingChatId === chatStore.currentChat.id}
+									<div
+										class="flex items-center gap-1 text-xs text-blue-500 dark:text-blue-400"
+										title="Auto-generating title..."
+									>
+										<svg class="h-3 w-3 animate-spin" viewBox="0 0 24 24" fill="none">
+											<circle
+												cx="12"
+												cy="12"
+												r="10"
+												stroke="currentColor"
+												stroke-width="4"
+												class="opacity-25"
+											></circle>
+											<path
+												class="opacity-75"
+												fill="currentColor"
+												d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+											></path>
+										</svg>
+										<span>Renaming...</span>
+									</div>
+								{:else}
+									<div class="flex items-center gap-1">
+										<button
+											onclick={startEditingTitle}
+											class="rounded p-1 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+											title="Edit title"
+											aria-label="Edit title"
+										>
+											<svg
+												width="14"
+												height="14"
+												viewBox="0 0 24 24"
+												fill="none"
+												xmlns="http://www.w3.org/2000/svg"
+											>
+												<path
+													d="M11 4H4C3.46957 4 2.96086 4.21071 2.58579 4.58579C2.21071 4.96086 2 5.46957 2 6V20C2 20.5304 2.21071 21.0391 2.58579 21.4142C2.96086 21.7893 3.46957 22 4 22H18C18.5304 22 19.0391 21.7893 19.4142 21.4142C19.7893 21.0391 20 20.5304 20 20V13"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												/>
+												<path
+													d="M18.5 2.50023C18.8978 2.1024 19.4374 1.87868 20 1.87868C20.5626 1.87868 21.1022 2.1024 21.5 2.50023C21.8978 2.89805 22.1215 3.43762 22.1215 4.00023C22.1215 4.56284 21.8978 5.1024 21.5 5.50023L12 15.0002L8 16.0002L9 12.0002L18.5 2.50023Z"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												/>
+											</svg>
+										</button>
+
+										{#if chatStore.currentChat.messages.length >= 2}
+											<button
+												onclick={handleRegenerateTitleFromHeader}
+												class="rounded p-1 text-gray-400 transition-colors hover:text-blue-500 dark:hover:text-blue-400"
+												title="Regenerate title with AI"
+												aria-label="Regenerate title with AI"
+											>
+												<svg
+													width="14"
+													height="14"
+													viewBox="0 0 24 24"
+													fill="none"
+													xmlns="http://www.w3.org/2000/svg"
+												>
+													<path
+														d="M1 4V10H7"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+													/>
+													<path
+														d="M23 20V14H17"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+													/>
+													<path
+														d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14L18.36 18.36A9 9 0 0 1 3.51 15"
+														stroke="currentColor"
+														stroke-width="2"
+														stroke-linecap="round"
+														stroke-linejoin="round"
+													/>
+												</svg>
+											</button>
+										{/if}
+									</div>
+								{/if}
+							</div>
+						{/if}
 						<p class="text-sm text-gray-500 dark:text-gray-400">
 							{chatStore.currentChat.messages.length} messages
 						</p>
