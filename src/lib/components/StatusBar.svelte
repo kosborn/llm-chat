@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { clientChatService } from '$lib/services/client-chat.js';
 	import { debugStore } from '$lib/stores/debug-store.svelte.js';
+	import { networkStore } from '$lib/stores/network-store.svelte.js';
+	import { apiKeyStore } from '$lib/stores/api-key-store.svelte.js';
 	import {
 		formatCost,
 		getModelDisplayName,
@@ -26,9 +27,37 @@
 
 	let showDetails = $state(false);
 
+	// Status based on currently selected provider and model
 	const status = $derived(() => {
 		try {
-			return clientChatService.getDetailedStatus();
+			// Check if we can send messages with the current provider
+			const isOnline = networkStore.isOnline;
+			const apiKey = apiKeyStore.getApiKey(provider);
+			const hasApiKey = !!apiKey;
+			const isValidApiKey = hasApiKey && apiKeyStore.validateApiKey(apiKey);
+			
+			// Determine canSend status based on current provider:
+			// - If offline and no valid API key for this provider: definitely can't send
+			// - If online: can try server-side first, then client-side with API key
+			// - If offline but have valid API key: can send client-side only
+			let canSend = false;
+			if (isOnline) {
+				// Online: can always try (server-side first, then client-side fallback)
+				canSend = true;
+			} else if (isValidApiKey) {
+				// Offline but have valid API key for this provider: can send client-side
+				canSend = true;
+			}
+			
+			return {
+				canSend,
+				hasApiKey,
+				isOnline,
+				isValidApiKey,
+				provider,
+				model,
+				queuedCount: 0
+			};
 		} catch (error) {
 			console.warn('Failed to get detailed status:', error);
 			return {
@@ -36,12 +65,13 @@
 				hasApiKey: false,
 				isOnline: false,
 				isValidApiKey: false,
-				provider: 'groq',
-				model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+				provider,
+				model,
 				queuedCount: 0
 			};
 		}
 	});
+
 	const apiMetrics = $derived(() => {
 		try {
 			const metrics = debugStore.getApiMetrics();
@@ -94,9 +124,9 @@
 					{#if !status().isOnline}
 						Offline
 					{:else if !status().hasApiKey}
-						No API Key
+						No {getProviderDisplayName(provider)} API Key
 					{:else if !status().isValidApiKey}
-						Invalid API Key
+						Invalid {getProviderDisplayName(provider)} API Key
 					{:else}
 						Can't Send
 					{/if}
