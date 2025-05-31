@@ -128,33 +128,37 @@
 	}
 
 	const filteredMessages = $derived(() => {
-		// Access messages directly from debugStore
-		const allMessages = debugStore?.messages || [];
+		// Get messages directly from store
+		const allMessages = debugStore.messages || [];
 		
-		// Start with all messages
-		let messages = [...allMessages];
+		// Debug log first few messages to see structure
+		if (allMessages.length > 0) {
+			console.log('Sample message structure:', allMessages[0]);
+			console.log('Message types found:', [...new Set(allMessages.map(m => m.type))]);
+		}
 		
-		// Hide message_update by default unless verbose mode is on
+		// Simple filtering - no complex logic
+		let messages = allMessages;
+		
+		// Only filter out message_update if verbose is off
 		if (!showVerbose) {
-			messages = messages.filter((msg) => msg?.type !== 'message_update');
+			messages = messages.filter((msg) => msg.type !== 'message_update');
 		}
 		
-		// Filter by selected type
-		if (selectedType !== 'all') {
-			messages = messages.filter((msg) => msg?.type === selectedType);
+		// Filter by type if not 'all'
+		if (selectedType && selectedType !== 'all') {
+			messages = messages.filter((msg) => msg.type === selectedType);
 		}
 		
-		// Filter by search term
-		if (searchTerm) {
+		// Search filter
+		if (searchTerm && searchTerm.trim()) {
 			messages = messages.filter((msg) => {
-				try {
-					return formatData(msg?.data || '').toLowerCase().includes(searchTerm.toLowerCase());
-				} catch {
-					return false;
-				}
+				const content = JSON.stringify(msg.data || '').toLowerCase();
+				return content.includes(searchTerm.toLowerCase());
 			});
 		}
 		
+		console.log(`Filtered: ${messages.length} of ${allMessages.length} messages`);
 		return messages;
 	});
 
@@ -402,6 +406,12 @@
 							Filter: {selectedType},
 							Total messages: {debugStore.messages.length}
 						</div>
+						{#if debugStore.messages.length > 0}
+							<div class="mt-2 text-xs bg-gray-100 p-2 rounded dark:bg-gray-800">
+								<div>Raw message sample:</div>
+								<pre class="text-xs overflow-x-auto">{JSON.stringify(debugStore.messages[0], null, 2)}</pre>
+							</div>
+						{/if}
 					</div>
 				</div>
 			{:else}
