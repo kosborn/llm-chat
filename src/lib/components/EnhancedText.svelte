@@ -33,9 +33,9 @@
 <div class="whitespace-pre-wrap break-words {className}">
 	{#if enableMarkdown}
 		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-		{@html processedText}
+		{@html processedText()}
 	{:else}
 		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-		{@html processedText}
+		{@html processedText()}
 	{/if}
 </div>
