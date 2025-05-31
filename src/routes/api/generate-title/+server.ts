@@ -1,5 +1,5 @@
 import { createGroq } from '@ai-sdk/groq';
-import { streamText } from 'ai';
+import { generateText } from 'ai';
 import { GROQ_API_KEY } from '$env/static/private';
 
 const groq = createGroq({
@@ -23,7 +23,7 @@ export async function POST({ request }: { request: Request }) {
 			);
 		}
 
-		const result = await streamText({
+		const result = await generateText({
 			model: groq('meta-llama/llama-4-scout-17b-16e-instruct'),
 			messages: [
 				{
@@ -40,9 +40,8 @@ export async function POST({ request }: { request: Request }) {
 			maxTokens: 50
 		});
 
-		// Get the full text from the result
-		const fullText = await result.text();
-		const title = fullText.trim();
+		// Get the text from the result
+		const title = result.text.trim();
 
 		return new Response(JSON.stringify({ title }), {
 			status: 200,
