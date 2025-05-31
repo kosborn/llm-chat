@@ -144,6 +144,32 @@
 		return config.providerStatus[provider].configured ? 'Configured' : 'Not Configured';
 	}
 
+	function getCustomModelPlaceholder(provider: string): string {
+		switch (provider) {
+			case 'groq':
+				return 'Enter Groq model (e.g., llama-3.1-405b-reasoning, gemma2-9b-it)';
+			case 'openai':
+				return 'Enter OpenAI model (e.g., gpt-4-turbo-preview, gpt-4o-2024-05-13)';
+			case 'anthropic':
+				return 'Enter Anthropic model (e.g., claude-3-5-sonnet-20241022)';
+			default:
+				return 'Enter custom model name';
+		}
+	}
+
+	function getCustomModelGuidance(provider: string): string {
+		switch (provider) {
+			case 'groq':
+				return 'Make sure the model is available on Groq. Check their documentation for the latest available models including new Llama, Mixtral, and Gemma variants.';
+			case 'openai':
+				return "Ensure the model exists in OpenAI's API. This includes GPT-4 variants, fine-tuned models, and newer releases not yet in our preset list.";
+			case 'anthropic':
+				return "Verify the model is available through Anthropic's API. This includes newer Claude versions and any custom models you have access to.";
+			default:
+				return "The provider will validate the model when you make a chat request. If the model is not supported, you'll receive an error message.";
+		}
+	}
+
 	onMount(() => {
 		if (isOpen) {
 			loadConfig();
@@ -272,11 +298,30 @@
 							<input
 								type="text"
 								bind:value={customModel}
-								placeholder="Enter custom model name (e.g., gpt-4-turbo-preview)"
+								placeholder={getCustomModelPlaceholder(selectedProvider)}
 								class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900
 									   focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
 									   dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
 							/>
+							<div class="mt-2 rounded-md bg-yellow-50 p-3 dark:bg-yellow-900/30">
+								<div class="flex items-start gap-2">
+									<svg
+										class="mt-0.5 h-4 w-4 text-yellow-600 dark:text-yellow-400"
+										fill="currentColor"
+										viewBox="0 0 20 20"
+									>
+										<path
+											fill-rule="evenodd"
+											d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+											clip-rule="evenodd"
+										/>
+									</svg>
+									<div class="text-sm text-yellow-800 dark:text-yellow-200">
+										<p class="font-medium">Custom Model</p>
+										<p class="mt-1">{getCustomModelGuidance(selectedProvider)}</p>
+									</div>
+								</div>
+							</div>
 						{:else}
 							<select
 								id="model-select"

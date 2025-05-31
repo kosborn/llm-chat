@@ -164,36 +164,72 @@ export async function POST({ request }: { request: Request }) {
 
 		debugLog(`[${requestId}] Available tools`, Object.keys(toolsRegistry));
 
-		const result = streamText({
-			model: provider(selectedModel),
-			messages,
-			tools: toolsRegistry as any,
-			maxSteps: 5,
-			temperature: 0.7,
-			onStepFinish: (step) => {
-				debugLog(`[${requestId}] Step finished`, {
-					stepType: step.stepType,
-					text: step.text?.slice(0, 100) + (step.text && step.text.length > 100 ? '...' : ''),
-					toolCalls: step.toolCalls?.map((tc) => ({
-						toolName: tc.toolName,
-						args: tc.args
-					})),
-					toolResults: step.toolResults?.map((tr) => ({
-						toolCallId: tr.toolCallId,
-						result: typeof tr.result === 'string' ? tr.result.slice(0, 100) + '...' : tr.result
-					}))
-				});
-			},
-			onFinish: (result) => {
-				debugLog(`[${requestId}] Generation finished`, {
-					finishReason: result.finishReason,
-					usage: result.usage,
-					steps: result.steps?.length,
-					provider: CONFIG.provider,
-					model: selectedModel
-				});
+		// Attempt to create the AI model and handle potential model validation errors
+		let result;
+		try {
+			result = streamText({
+				model: provider(selectedModel),
+				messages,
+				tools: toolsRegistry as any,
+				maxSteps: 5,
+				temperature: 0.7,
+				onStepFinish: (step) => {
+					debugLog(`[${requestId}] Step finished`, {
+						stepType: step.stepType,
+						text: step.text?.slice(0, 100) + (step.text && step.text.length > 100 ? '...' : ''),
+						toolCalls: step.toolCalls?.map((tc) => ({
+							toolName: tc.toolName,
+							args: tc.args
+						})),
+						toolResults: step.toolResults?.map((tr) => ({
+							toolCallId: tr.toolCallId,
+							result: typeof tr.result === 'string' ? tr.result.slice(0, 100) + '...' : tr.result
+						}))
+					});
+				},
+				onFinish: (result) => {
+					debugLog(`[${requestId}] Generation finished`, {
+						finishReason: result.finishReason,
+						usage: result.usage,
+						steps: result.steps?.length,
+						provider: CONFIG.provider,
+						model: selectedModel
+					});
+				}
+			});
+		} catch (modelError) {
+			const errorMessage = modelError instanceof Error ? modelError.message : String(modelError);
+			debugLog(`[${requestId}] Model creation/validation failed`, {
+				error: errorMessage,
+				provider: CONFIG.provider,
+				model: selectedModel
+			});
+
+			// Check if it's a model-related error and provide helpful feedback
+			if (
+				errorMessage.toLowerCase().includes('model') ||
+				errorMessage.toLowerCase().includes('not found') ||
+				errorMessage.toLowerCase().includes('invalid') ||
+				errorMessage.toLowerCase().includes('unsupported')
+			) {
+				return new Response(
+					JSON.stringify({
+						error: `Model "${selectedModel}" is not supported by ${CONFIG.provider}. Please check the model name or try a different model.`,
+						details: errorMessage,
+						provider: CONFIG.provider,
+						model: selectedModel,
+						suggestion: `Visit the ${CONFIG.provider} documentation to see available models, or use the server configuration to select a supported model.`
+					}),
+					{
+						status: 400,
+						headers: { 'Content-Type': 'application/json' }
+					}
+				);
 			}
-		});
+
+			// Re-throw other errors to be handled by the general error handler
+			throw modelError;
+		}
 
 		debugLog(`[${requestId}] Streaming response started`);
 

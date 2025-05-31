@@ -49,16 +49,8 @@ export async function POST({ request }) {
 			return json({ error: 'Invalid provider' }, { status: 400 });
 		}
 
-		const supportedModels = getSupportedModels(provider);
-		if (model && !supportedModels.includes(model)) {
-			return json(
-				{
-					error: `Model ${model} not supported for provider ${provider}`,
-					supportedModels
-				},
-				{ status: 400 }
-			);
-		}
+		// Allow any model name - let the provider API validate it at runtime
+		// This enables support for new models and custom fine-tuned models
 
 		// Note: This endpoint returns the configuration but cannot actually update
 		// environment variables at runtime. For production, update .env.local file.
@@ -72,7 +64,8 @@ export async function POST({ request }) {
 				'1. Stop your development server',
 				'2. Update .env.local with the new AI_PROVIDER and AI_MODEL values',
 				'3. Add the appropriate API key for your chosen provider',
-				'4. Restart your development server'
+				'4. Restart your development server',
+				'Note: If you use a custom model, the provider API will validate it at runtime'
 			]
 		});
 	} catch (error) {
