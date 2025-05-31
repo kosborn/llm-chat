@@ -7,7 +7,7 @@
 	let searchTerm = $state('');
 	let autoScroll = $state(true);
 	let messagesContainer: HTMLDivElement | undefined = $state();
-	let debugEnabled = $state(false);
+	// Remove local debugEnabled state - use debugStore.isEnabled directly
 	let showMetrics = $state(false);
 	let showFilters = $state(false);
 	let showVerbose = $state(false);
@@ -21,7 +21,7 @@
 				handleDebugToggle();
 			}
 			// Escape key to close debug panel
-			if (e.key === 'Escape' && isOpen && debugEnabled) {
+			if (e.key === 'Escape' && isOpen && debugStore.isEnabled) {
 				e.preventDefault();
 				isOpen = false;
 			}
@@ -36,10 +36,9 @@
 	function handleDebugToggle() {
 		if (!debugStore.isEnabled) {
 			debugStore.enable();
-			debugEnabled = true;
 			isOpen = true;
 			debugStore.markAllAsRead();
-			
+
 			// Add a test message to verify the store is working
 			debugStore.log('test', { message: 'Debug interface enabled', timestamp: Date.now() });
 		} else {
@@ -57,10 +56,7 @@
 		}
 	});
 
-	// Sync debugEnabled with debugStore.isEnabled
-	$effect(() => {
-		debugEnabled = debugStore.isEnabled;
-	});
+	// No need for separate debugEnabled state - use debugStore.isEnabled directly
 
 	const messageTypes = [
 		{ value: 'all', label: 'All', color: 'bg-gray-500' },
@@ -132,43 +128,47 @@
 	}
 
 	const filteredMessages = $derived(() => {
-		// Get messages directly from store
-		const allMessages = debugStore.messages || [];
-		
-		// Debug log first few messages to see structure
-		console.log('Debug store state:', {
-			isEnabled: debugStore.isEnabled,
-			messageCount: allMessages.length,
-			firstMessage: allMessages[0]
-		});
-		
-		if (allMessages.length > 0) {
-			console.log('Message types found:', [...new Set(allMessages.map(m => m.type))]);
+		if (!debugStore.isEnabled) return [];
+
+		let messages = debugStore.messages || [];
+
+		// Filter by type
+		if (selectedType !== 'all') {
+			messages = messages.filter((msg) => msg.type === selectedType);
 		}
-		
-		// TEMPORARILY BYPASS ALL FILTERING - just return all messages
-		console.log(`Showing ALL ${allMessages.length} messages (no filtering)`);
-		return allMessages;
+
+		// Filter by search term
+		if (searchTerm.trim()) {
+			const term = searchTerm.toLowerCase();
+			messages = messages.filter((msg) => {
+				const messageText = JSON.stringify(msg.data).toLowerCase();
+				const typeText = msg.type.toLowerCase();
+				const metadataText = msg.metadata ? JSON.stringify(msg.metadata).toLowerCase() : '';
+				return messageText.includes(term) || typeText.includes(term) || metadataText.includes(term);
+			});
+		}
+
+		return messages;
 	});
 
 	const metrics = $derived(() => {
 		try {
 			const messages = debugStore?.messages || [];
-			
+
 			// Initialize byType with all message types to prevent undefined errors
 			const byType: Record<string, number> = {
-				'all': messages.length,
-				'raw_stream': 0,
-				'parsed_data': 0,
-				'tool_call': 0,
-				'tool_result': 0,
-				'api_request': 0,
-				'api_response': 0,
-				'api_metadata': 0,
-				'message_update': 0,
-				'final_response': 0,
-				'test': 0,
-				'error': 0
+				all: messages.length,
+				raw_stream: 0,
+				parsed_data: 0,
+				tool_call: 0,
+				tool_result: 0,
+				api_request: 0,
+				api_response: 0,
+				api_metadata: 0,
+				message_update: 0,
+				final_response: 0,
+				test: 0,
+				error: 0
 			};
 
 			// Count actual messages by type
@@ -212,18 +212,18 @@
 			return {
 				total: 0,
 				byType: {
-					'all': 0,
-					'raw_stream': 0,
-					'parsed_data': 0,
-					'tool_call': 0,
-					'tool_result': 0,
-					'api_request': 0,
-					'api_response': 0,
-					'api_metadata': 0,
-					'message_update': 0,
-					'final_response': 0,
-					'test': 0,
-					'error': 0
+					all: 0,
+					raw_stream: 0,
+					parsed_data: 0,
+					tool_call: 0,
+					tool_result: 0,
+					api_request: 0,
+					api_response: 0,
+					api_metadata: 0,
+					message_update: 0,
+					final_response: 0,
+					test: 0,
+					error: 0
 				},
 				apiMetrics: {
 					totalRequests: 0,
@@ -244,8 +244,10 @@
 		class="relative flex h-12 w-12 items-center justify-center rounded-full bg-gray-800 text-white shadow-lg transition-all hover:bg-gray-700 dark:bg-gray-600 dark:hover:bg-gray-500"
 		title="Toggle Debug Panel (Cmd+D)"
 	>
-		{#if debugStore.newMessageCount > 0 && debugEnabled && !isOpen}
-			<div class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white">
+		{#if debugStore.newMessageCount > 0 && debugStore.isEnabled && !isOpen}
+			<div
+				class="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white"
+			>
 				{debugStore.newMessageCount}
 			</div>
 		{/if}
@@ -253,21 +255,33 @@
 			<div class="absolute -top-1 -left-1 h-3 w-3 animate-ping rounded-full bg-blue-500"></div>
 			<div class="absolute -top-1 -left-1 h-3 w-3 rounded-full bg-blue-500"></div>
 		{/if}
-		{#if debugEnabled && isOpen}
+		{#if debugStore.isEnabled && isOpen}
 			<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M6 18L18 6M6 6l12 12"
+				></path>
 			</svg>
 		{:else}
 			<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+				<path
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					stroke-width="2"
+					d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+				></path>
 			</svg>
 		{/if}
 	</button>
 </div>
 
 <!-- Debug Panel -->
-{#if debugEnabled && isOpen}
-	<div class="fixed right-0 top-0 z-40 flex h-full w-96 flex-col bg-white shadow-xl dark:bg-gray-900">
+{#if debugStore.isEnabled && isOpen}
+	<div
+		class="fixed top-0 right-0 z-40 flex h-full w-96 flex-col bg-white shadow-xl dark:bg-gray-900"
+	>
 		<!-- Header -->
 		<div class="border-b border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800">
 			<div class="flex items-center justify-between">
@@ -278,9 +292,13 @@
 					{/if}
 				</div>
 				<div class="flex items-center gap-2">
-					<span class="text-sm text-gray-500 dark:text-gray-400">{filteredMessages.length}/{metrics?.total || 0}</span>
+					<span class="text-sm text-gray-500 dark:text-gray-400"
+						>{filteredMessages.length}/{metrics?.total || 0}</span
+					>
 					{#if debugStore.newMessageCount > 0}
-						<span class="rounded-full bg-red-500 px-2 py-1 text-xs text-white">{debugStore.newMessageCount} new</span>
+						<span class="rounded-full bg-red-500 px-2 py-1 text-xs text-white"
+							>{debugStore.newMessageCount} new</span
+						>
 					{/if}
 					<button
 						onclick={() => debugStore.clear()}
@@ -303,21 +321,27 @@
 			<div class="mt-2 flex flex-wrap items-center gap-2">
 				<button
 					onclick={() => (showFilters = !showFilters)}
-					class="flex items-center gap-1 rounded {showFilters ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'} px-2 py-1 text-xs"
+					class="flex items-center gap-1 rounded {showFilters
+						? 'bg-blue-500 text-white'
+						: 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'} px-2 py-1 text-xs"
 					title="Toggle message type filters and search"
 				>
 					🔍 Filter {showFilters ? '−' : '+'}
 				</button>
 				<button
 					onclick={() => (showMetrics = !showMetrics)}
-					class="flex items-center gap-1 rounded {showMetrics ? 'bg-purple-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'} px-2 py-1 text-xs"
+					class="flex items-center gap-1 rounded {showMetrics
+						? 'bg-purple-500 text-white'
+						: 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'} px-2 py-1 text-xs"
 					title="Show/hide performance statistics"
 				>
 					📊 Stats {showMetrics ? '−' : '+'}
 				</button>
 				<button
 					onclick={() => (showVerbose = !showVerbose)}
-					class="flex items-center gap-1 rounded {showVerbose ? 'bg-orange-500 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'} px-2 py-1 text-xs"
+					class="flex items-center gap-1 rounded {showVerbose
+						? 'bg-orange-500 text-white'
+						: 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'} px-2 py-1 text-xs"
 					title="Show/hide verbose message updates"
 				>
 					🔬 Verbose
@@ -366,9 +390,15 @@
 				<div class="mt-2 rounded bg-gray-100 p-2 text-xs dark:bg-gray-800">
 					<div class="grid grid-cols-2 gap-1">
 						<div>Total: <span class="font-mono">{metrics?.total || 0}</span></div>
-						<div>Errors: <span class="font-mono text-red-600">{metrics?.byType?.error || 0}</span></div>
-						<div>Requests: <span class="font-mono">{metrics?.apiMetrics?.totalRequests || 0}</span></div>
-						<div>Responses: <span class="font-mono">{metrics?.apiMetrics?.totalResponses || 0}</span></div>
+						<div>
+							Errors: <span class="font-mono text-red-600">{metrics?.byType?.error || 0}</span>
+						</div>
+						<div>
+							Requests: <span class="font-mono">{metrics?.apiMetrics?.totalRequests || 0}</span>
+						</div>
+						<div>
+							Responses: <span class="font-mono">{metrics?.apiMetrics?.totalResponses || 0}</span>
+						</div>
 					</div>
 				</div>
 			{/if}
@@ -381,27 +411,30 @@
 					<div class="text-center">
 						<div class="mb-2 text-2xl">🔍</div>
 						<p class="text-sm">
-							{#if !debugEnabled}
+							{#if !debugStore.isEnabled}
 								Debug mode disabled (Press Cmd+D to enable)
 							{:else if debugStore.messages.length === 0}
 								No debug messages yet (Total: {debugStore.messages.length})
 							{:else if searchTerm}
-								No messages match "{searchTerm}" (Showing {filteredMessages.length} of {debugStore.messages.length})
+								No messages match "{searchTerm}" (Showing {filteredMessages.length} of {debugStore
+									.messages.length})
 							{:else}
-								No messages with current filters (Showing {filteredMessages.length} of {debugStore.messages.length})
+								No messages with current filters (Showing {filteredMessages.length} of {debugStore
+									.messages.length})
 							{/if}
 						</p>
 						<div class="mt-2 text-xs">
-							Debug enabled: {debugEnabled}, 
-							Store enabled: {debugStore.isEnabled},
-							Verbose: {showVerbose},
-							Filter: {selectedType},
+							Store enabled: {debugStore.isEnabled}, Verbose: {showVerbose}, Filter: {selectedType},
 							Total messages: {debugStore.messages.length}
 						</div>
 						{#if debugStore.messages.length > 0}
-							<div class="mt-2 text-xs bg-gray-100 p-2 rounded dark:bg-gray-800">
+							<div class="mt-2 rounded bg-gray-100 p-2 text-xs dark:bg-gray-800">
 								<div>Raw message sample:</div>
-								<pre class="text-xs overflow-x-auto">{JSON.stringify(debugStore.messages[0], null, 2)}</pre>
+								<pre class="overflow-x-auto text-xs">{JSON.stringify(
+										debugStore.messages[0],
+										null,
+										2
+									)}</pre>
 							</div>
 						{/if}
 					</div>
@@ -414,17 +447,71 @@
 						{#if !showVerbose}(hiding verbose updates){/if}
 					</div>
 					{#each filteredMessages as message, index (message.id)}
-						<div class="rounded border-l-4 border-r border-t border-b bg-gray-50 p-2 dark:bg-gray-800" 
-							style="border-left-color: {getTypeColor(message.type).replace('bg-', '#').replace('500', '')}; border-left-color: {message.type === 'error' ? '#ef4444' : message.type === 'tool_call' ? '#a855f7' : message.type === 'tool_result' ? '#f97316' : message.type === 'api_request' ? '#6366f1' : message.type === 'api_response' ? '#14b8a6' : message.type === 'raw_stream' ? '#3b82f6' : message.type === 'parsed_data' ? '#22c55e' : message.type === 'api_metadata' ? '#06b6d4' : message.type === 'message_update' ? '#eab308' : message.type === 'final_response' ? '#10b981' : message.type === 'test' ? '#ec4899' : '#6b7280'}">
+						<div
+							class="rounded border-t border-r border-b border-l-4 bg-gray-50 p-2 dark:bg-gray-800"
+							style="border-left-color: {getTypeColor(message.type)
+								.replace('bg-', '#')
+								.replace('500', '')}; border-left-color: {message.type === 'error'
+								? '#ef4444'
+								: message.type === 'tool_call'
+									? '#a855f7'
+									: message.type === 'tool_result'
+										? '#f97316'
+										: message.type === 'api_request'
+											? '#6366f1'
+											: message.type === 'api_response'
+												? '#14b8a6'
+												: message.type === 'raw_stream'
+													? '#3b82f6'
+													: message.type === 'parsed_data'
+														? '#22c55e'
+														: message.type === 'api_metadata'
+															? '#06b6d4'
+															: message.type === 'message_update'
+																? '#eab308'
+																: message.type === 'final_response'
+																	? '#10b981'
+																	: message.type === 'test'
+																		? '#ec4899'
+																		: '#6b7280'}"
+						>
 							<div class="mb-1 flex items-center justify-between">
 								<div class="flex items-center gap-2">
-									<span class="rounded px-2 py-0.5 text-xs font-mono text-white" 
-										style="background-color: {message.type === 'error' ? '#ef4444' : message.type === 'tool_call' ? '#a855f7' : message.type === 'tool_result' ? '#f97316' : message.type === 'api_request' ? '#6366f1' : message.type === 'api_response' ? '#14b8a6' : message.type === 'raw_stream' ? '#3b82f6' : message.type === 'parsed_data' ? '#22c55e' : message.type === 'api_metadata' ? '#06b6d4' : message.type === 'message_update' ? '#eab308' : message.type === 'final_response' ? '#10b981' : message.type === 'test' ? '#ec4899' : '#6b7280'}">
+									<span
+										class="rounded px-2 py-0.5 font-mono text-xs text-white"
+										style="background-color: {message.type === 'error'
+											? '#ef4444'
+											: message.type === 'tool_call'
+												? '#a855f7'
+												: message.type === 'tool_result'
+													? '#f97316'
+													: message.type === 'api_request'
+														? '#6366f1'
+														: message.type === 'api_response'
+															? '#14b8a6'
+															: message.type === 'raw_stream'
+																? '#3b82f6'
+																: message.type === 'parsed_data'
+																	? '#22c55e'
+																	: message.type === 'api_metadata'
+																		? '#06b6d4'
+																		: message.type === 'message_update'
+																			? '#eab308'
+																			: message.type === 'final_response'
+																				? '#10b981'
+																				: message.type === 'test'
+																					? '#ec4899'
+																					: '#6b7280'}"
+									>
 										{message.type}
 									</span>
-									<span class="text-xs text-gray-500 dark:text-gray-400">{formatTimestamp(message.timestamp)}</span>
+									<span class="text-xs text-gray-500 dark:text-gray-400"
+										>{formatTimestamp(message.timestamp)}</span
+									>
 									{#if index < debugStore.newMessageCount}
-										<span class="animate-pulse rounded bg-red-500 px-1 py-0.5 text-xs text-white">new</span>
+										<span class="animate-pulse rounded bg-red-500 px-1 py-0.5 text-xs text-white"
+											>new</span
+										>
 									{/if}
 								</div>
 								<button
@@ -437,12 +524,21 @@
 							</div>
 							{#if message.metadata}
 								<div class="mb-1 text-xs text-gray-500 dark:text-gray-400">
-									{#if message.metadata.chatId}<span class="mr-2">💬 Chat: {message.metadata.chatId}</span>{/if}
-									{#if message.metadata.toolName}<span class="mr-2">🔧 Tool: {message.metadata.toolName}</span>{/if}
-									{#if message.metadata.model}<span class="mr-2">🤖 Model: {message.metadata.model}</span>{/if}
+									{#if message.metadata.chatId}<span class="mr-2"
+											>💬 Chat: {message.metadata.chatId}</span
+										>{/if}
+									{#if message.metadata.toolName}<span class="mr-2"
+											>🔧 Tool: {message.metadata.toolName}</span
+										>{/if}
+									{#if message.metadata.model}<span class="mr-2"
+											>🤖 Model: {message.metadata.model}</span
+										>{/if}
 								</div>
 							{/if}
-							<pre class="overflow-x-auto whitespace-pre-wrap text-xs text-gray-700 dark:text-gray-300"><code>{formatData(message.data)}</code></pre>
+							<pre
+								class="overflow-x-auto text-xs whitespace-pre-wrap text-gray-700 dark:text-gray-300"><code
+									>{formatData(message.data)}</code
+								></pre>
 						</div>
 					{/each}
 				</div>
