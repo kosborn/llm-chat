@@ -157,7 +157,7 @@ class OfflineQueueStore {
 
 		// Send the message using the client chat service with chat's provider/model
 		const provider = chat.provider || 'groq';
-		const model = chat.model || 'llama-3.1-70b-versatile';
+		const model = chat.model || 'meta-llama/llama-4-scout-17b-16e-instruct';
 		const response = await clientChatService.sendMessage(chat.messages, provider, model);
 
 		if (!response.success) {

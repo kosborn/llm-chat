@@ -32,13 +32,13 @@ const CONFIG = {
 function getDefaultModel(provider: string): string {
 	switch (provider) {
 		case 'groq':
-			return 'llama-3.1-70b-versatile';
+			return 'meta-llama/llama-4-scout-17b-16e-instruct';
 		case 'openai':
 			return 'gpt-4o-mini';
 		case 'anthropic':
 			return 'claude-3-5-sonnet-20241022';
 		default:
-			return 'llama-3.1-70b-versatile';
+			return 'meta-llama/llama-4-scout-17b-16e-instruct';
 	}
 }
 
