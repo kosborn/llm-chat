@@ -214,8 +214,8 @@
 	async function handleRegenerateTitleFromHeader() {
 		if (!chatStore.currentChat) return;
 		
-		// Check if API key is configured
-		if (!apiKeyStore.getApiKey()) {
+		// Check if API key is configured first
+		if (!apiKeyStore.isConfigured || !apiKeyStore.getApiKey()) {
 			showApiConfig = true;
 			return;
 		}
@@ -225,8 +225,11 @@
 			await chatStore.autoRenameChat(chatStore.currentChat.id, true);
 		} catch (error) {
 			console.error('Failed to regenerate title:', error);
-			// Show a user-friendly error message
-			notificationStore.error('Failed to regenerate title. Please check your API key configuration.');
+			if (error instanceof Error && error.message === 'API_KEY_MISSING') {
+				showApiConfig = true;
+			} else {
+				notificationStore.error('Failed to regenerate title. Please try again.');
+			}
 		} finally {
 			autoRenamingChatId = null;
 		}

@@ -247,7 +247,7 @@ class ChatStore {
 		const apiKey = apiKeyStore.getApiKey();
 		if (!apiKey) {
 			if (forceRegenerate) {
-				notificationStore.error('API key required to regenerate title');
+				throw new Error('API_KEY_MISSING');
 			}
 			return;
 		}
