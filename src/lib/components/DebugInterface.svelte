@@ -142,14 +142,31 @@
 	});
 
 	const metrics = $derived(() => {
-		const messages = debugStore.messages;
-		const byType = messages.reduce(
-			(acc, msg) => {
-				acc[msg.type] = (acc[msg.type] || 0) + 1;
-				return acc;
-			},
-			{} as Record<string, number>
-		);
+		const messages = debugStore.messages || [];
+		
+		// Initialize byType with all message types to prevent undefined errors
+		const byType: Record<string, number> = {
+			'all': messages.length,
+			'raw_stream': 0,
+			'parsed_data': 0,
+			'tool_call': 0,
+			'tool_result': 0,
+			'api_request': 0,
+			'api_response': 0,
+			'api_metadata': 0,
+			'message_update': 0,
+			'final_response': 0,
+			'error': 0
+		};
+
+		// Count actual messages by type
+		messages.forEach((msg) => {
+			if (byType.hasOwnProperty(msg.type)) {
+				byType[msg.type] = (byType[msg.type] || 0) + 1;
+			} else {
+				byType[msg.type] = 1;
+			}
+		});
 
 		const apiMetrics = {
 			totalRequests: messages.filter((m) => m.type === 'api_request').length,
@@ -297,7 +314,7 @@
 							>
 								{type.label}
 								{#if type.value !== 'all'}
-									<span class="ml-1 opacity-75">({(metrics.byType && metrics.byType[type.value]) || 0})</span>
+									<span class="ml-1 opacity-75">({metrics.byType[type.value] || 0})</span>
 								{/if}
 							</button>
 						{/each}
