@@ -215,6 +215,19 @@ class DebugStore {
 		return this.isStreaming;
 	}
 
+	getMessageTypeCounts(): Record<string, number> {
+		const counts: Record<string, number> = {};
+		for (const msg of this.messages) {
+			counts[msg.type] = (counts[msg.type] || 0) + 1;
+		}
+		return counts;
+	}
+
+	getUniqueMessageTypes(): string[] {
+		const types = new Set(this.messages.map((msg) => msg.type));
+		return Array.from(types).sort();
+	}
+
 	getApiMetrics(): {
 		totalRequests: number;
 		totalTokens: number;

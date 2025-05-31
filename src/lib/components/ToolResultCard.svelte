@@ -10,7 +10,14 @@
 		children: any;
 	}
 
-	let { toolInvocation, onTechnicalView, title, emoji = '🔧', variant = 'default', children }: Props = $props();
+	let {
+		toolInvocation,
+		onTechnicalView,
+		title,
+		emoji = '🔧',
+		variant = 'default',
+		children
+	}: Props = $props();
 
 	function getVariantClasses(variant: string) {
 		switch (variant) {

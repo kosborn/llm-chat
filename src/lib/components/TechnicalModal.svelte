@@ -30,7 +30,7 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
+		class="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-4"
 		onclick={handleBackdropClick}
 		onkeydown={handleKeydown}
 		tabindex="-1"
@@ -42,7 +42,9 @@
 			class="max-h-[90vh] w-full max-w-4xl overflow-hidden rounded-lg bg-white shadow-xl dark:bg-gray-800"
 		>
 			<!-- Header -->
-			<div class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700">
+			<div
+				class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700"
+			>
 				<h2 id="modal-title" class="text-lg font-semibold text-gray-900 dark:text-gray-100">
 					Technical Details: {toolInvocation.toolName}
 				</h2>
@@ -52,7 +54,12 @@
 					aria-label="Close modal"
 				>
 					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M6 18L18 6M6 6l12 12"
+						/>
 					</svg>
 				</button>
 			</div>
@@ -64,7 +71,9 @@
 					<div>
 						<h3 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Tool Call ID</h3>
 						<div class="rounded-md bg-gray-50 p-3 dark:bg-gray-900">
-							<code class="text-sm text-gray-800 dark:text-gray-200">{toolInvocation.toolCallId}</code>
+							<code class="text-sm text-gray-800 dark:text-gray-200"
+								>{toolInvocation.toolCallId}</code
+							>
 						</div>
 					</div>
 
@@ -72,7 +81,8 @@
 					<div>
 						<h3 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Tool Name</h3>
 						<div class="rounded-md bg-gray-50 p-3 dark:bg-gray-900">
-							<code class="text-sm text-gray-800 dark:text-gray-200">{toolInvocation.toolName}</code>
+							<code class="text-sm text-gray-800 dark:text-gray-200">{toolInvocation.toolName}</code
+							>
 						</div>
 					</div>
 
@@ -80,7 +90,9 @@
 					<div>
 						<h3 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Arguments</h3>
 						<div class="rounded-md bg-gray-50 p-3 dark:bg-gray-900">
-							<pre class="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">{formatJson(toolInvocation.args)}</pre>
+							<pre class="text-sm whitespace-pre-wrap text-gray-800 dark:text-gray-200">{formatJson(
+									toolInvocation.args
+								)}</pre>
 						</div>
 					</div>
 
@@ -89,8 +101,12 @@
 						<div>
 							<h3 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">State</h3>
 							<div class="rounded-md bg-gray-50 p-3 dark:bg-gray-900">
-								<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-									{toolInvocation.state === 'result' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}">
+								<span
+									class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+									{toolInvocation.state === 'result'
+										? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+										: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'}"
+								>
 									{toolInvocation.state}
 								</span>
 							</div>
@@ -106,8 +122,12 @@
 								<div>
 									<h4 class="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">Success</h4>
 									<div class="rounded-md bg-gray-50 p-3 dark:bg-gray-900">
-										<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-											{toolInvocation.result.success ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}">
+										<span
+											class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+											{toolInvocation.result.success
+												? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+												: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}"
+										>
 											{toolInvocation.result.success ? 'True' : 'False'}
 										</span>
 									</div>
@@ -118,7 +138,9 @@
 									<div>
 										<h4 class="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">Error</h4>
 										<div class="rounded-md bg-red-50 p-3 dark:bg-red-900/20">
-											<pre class="whitespace-pre-wrap text-sm text-red-800 dark:text-red-200">{toolInvocation.result.error}</pre>
+											<pre
+												class="text-sm whitespace-pre-wrap text-red-800 dark:text-red-200">{toolInvocation
+													.result.error}</pre>
 										</div>
 									</div>
 								{/if}
@@ -128,7 +150,10 @@
 									<div>
 										<h4 class="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">Data</h4>
 										<div class="rounded-md bg-gray-50 p-3 dark:bg-gray-900">
-											<pre class="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">{formatJson(toolInvocation.result.data)}</pre>
+											<pre
+												class="text-sm whitespace-pre-wrap text-gray-800 dark:text-gray-200">{formatJson(
+													toolInvocation.result.data
+												)}</pre>
 										</div>
 									</div>
 								{/if}
@@ -136,9 +161,14 @@
 								<!-- Metadata -->
 								{#if toolInvocation.result.metadata}
 									<div>
-										<h4 class="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">Metadata</h4>
+										<h4 class="mb-1 text-xs font-medium text-gray-600 dark:text-gray-400">
+											Metadata
+										</h4>
 										<div class="rounded-md bg-gray-50 p-3 dark:bg-gray-900">
-											<pre class="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">{formatJson(toolInvocation.result.metadata)}</pre>
+											<pre
+												class="text-sm whitespace-pre-wrap text-gray-800 dark:text-gray-200">{formatJson(
+													toolInvocation.result.metadata
+												)}</pre>
 										</div>
 									</div>
 								{/if}
@@ -150,7 +180,9 @@
 					<div>
 						<h3 class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">Raw JSON</h3>
 						<div class="rounded-md bg-gray-50 p-3 dark:bg-gray-900">
-							<pre class="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">{formatJson(toolInvocation)}</pre>
+							<pre class="text-sm whitespace-pre-wrap text-gray-800 dark:text-gray-200">{formatJson(
+									toolInvocation
+								)}</pre>
 						</div>
 					</div>
 				</div>

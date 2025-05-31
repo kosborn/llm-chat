@@ -12,13 +12,7 @@
 	let data = $derived(toolInvocation.result?.data || toolInvocation.result);
 </script>
 
-<ToolResultCard
-	{toolInvocation}
-	{onTechnicalView}
-	title="Current Time"
-	emoji="🕐"
-	variant="purple"
->
+<ToolResultCard {toolInvocation} {onTechnicalView} title="Current Time" emoji="🕐" variant="purple">
 	<div class="text-sm">
 		<div>📍 Timezone: <strong>{data.timezone}</strong></div>
 		<div>🕐 Time: <strong>{data.formattedTime}</strong></div>

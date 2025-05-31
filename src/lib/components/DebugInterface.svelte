@@ -4,6 +4,8 @@
 	let isOpen = $state(false);
 	let autoScroll = $state(true);
 	let messagesContainer: HTMLDivElement = $state();
+	let selectedTypes = $state<Set<string>>(new Set());
+	let showFilterMenu = $state(false);
 
 	function handleKeyDown(event: KeyboardEvent) {
 		// Cmd+D to toggle debug mode (Mac) or Ctrl+D (Windows/Linux)
@@ -57,9 +59,65 @@
 		navigator.clipboard.writeText(text);
 	}
 
+	function getUniqueMessageTypes(): string[] {
+		return debugStore.getUniqueMessageTypes();
+	}
+
+	function getFilteredMessages() {
+		if (selectedTypes.size === 0) {
+			return debugStore.messages;
+		}
+		return debugStore.messages.filter((msg) => selectedTypes.has(msg.type));
+	}
+
+	function toggleType(type: string) {
+		const newTypes = new Set(selectedTypes);
+		if (newTypes.has(type)) {
+			newTypes.delete(type);
+		} else {
+			newTypes.add(type);
+		}
+		selectedTypes = newTypes;
+	}
+
+	function selectAllTypes() {
+		selectedTypes = new Set(getUniqueMessageTypes());
+	}
+
+	function clearAllTypes() {
+		selectedTypes = new Set();
+	}
+
+	function selectPreset(preset: string) {
+		switch (preset) {
+			case 'api':
+				selectedTypes = new Set(['api_request', 'api_response', 'api_metadata']);
+				break;
+			case 'tools':
+				selectedTypes = new Set(['tool_call', 'tool_result']);
+				break;
+			case 'stream':
+				selectedTypes = new Set(['raw_stream', 'parsed_data', 'message_update', 'final_response']);
+				break;
+			case 'errors':
+				selectedTypes = new Set(['error']);
+				break;
+			default:
+				clearAllTypes();
+		}
+		showFilterMenu = false;
+	}
+
 	$effect(() => {
 		if (autoScroll && messagesContainer && isOpen) {
 			messagesContainer.scrollTop = 0;
+		}
+	});
+
+	// Reset filter when messages are cleared
+	$effect(() => {
+		if (debugStore.messages.length === 0) {
+			selectedTypes = new Set();
 		}
 	});
 </script>
@@ -147,33 +205,136 @@
 				</div>
 			</div>
 
-			<!-- Auto scroll option -->
-			<div class="mt-3">
-				<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
-					<input type="checkbox" bind:checked={autoScroll} class="rounded" />
-					Auto scroll
-				</label>
+			<!-- Controls -->
+			<div class="mt-3 flex flex-col gap-3">
+				<div class="flex items-center justify-between">
+					<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
+						<input type="checkbox" bind:checked={autoScroll} class="rounded" />
+						Auto scroll
+					</label>
+
+					<div class="flex items-center gap-2">
+						<span class="text-xs text-gray-600 dark:text-gray-400">
+							Showing {getFilteredMessages().length} of {debugStore.messages.length} messages
+						</span>
+						<button
+							onclick={() => (showFilterMenu = !showFilterMenu)}
+							class="rounded border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
+						>
+							Filter {selectedTypes.size > 0 ? `(${selectedTypes.size})` : ''}
+						</button>
+					</div>
+				</div>
+
+				{#if showFilterMenu}
+					<div
+						class="rounded border border-gray-200 bg-gray-50 p-3 dark:border-gray-700 dark:bg-gray-800"
+					>
+						<!-- Filter Presets -->
+						<div class="mb-3">
+							<div class="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
+								Quick Filters:
+							</div>
+							<div class="flex flex-wrap gap-1">
+								<button
+									onclick={() => selectPreset('api')}
+									class="rounded bg-orange-100 px-2 py-1 text-xs text-orange-800 hover:bg-orange-200 dark:bg-orange-900 dark:text-orange-200 dark:hover:bg-orange-800"
+								>
+									API
+								</button>
+								<button
+									onclick={() => selectPreset('tools')}
+									class="rounded bg-purple-100 px-2 py-1 text-xs text-purple-800 hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-200 dark:hover:bg-purple-800"
+								>
+									Tools
+								</button>
+								<button
+									onclick={() => selectPreset('stream')}
+									class="rounded bg-blue-100 px-2 py-1 text-xs text-blue-800 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:hover:bg-blue-800"
+								>
+									Stream
+								</button>
+								<button
+									onclick={() => selectPreset('errors')}
+									class="rounded bg-red-100 px-2 py-1 text-xs text-red-800 hover:bg-red-200 dark:bg-red-900 dark:text-red-200 dark:hover:bg-red-800"
+								>
+									Errors
+								</button>
+							</div>
+						</div>
+
+						<!-- Individual Type Checkboxes -->
+						<div class="mb-3">
+							<div class="mb-2 flex items-center justify-between">
+								<div class="text-xs font-medium text-gray-600 dark:text-gray-400">
+									Message Types:
+								</div>
+								<div class="flex gap-1">
+									<button
+										onclick={selectAllTypes}
+										class="text-xs text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-200"
+									>
+										All
+									</button>
+									<button
+										onclick={clearAllTypes}
+										class="text-xs text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
+									>
+										None
+									</button>
+								</div>
+							</div>
+							<div class="grid grid-cols-2 gap-1">
+								{#each getUniqueMessageTypes() as type}
+									<label class="flex items-center gap-1 text-xs">
+										<input
+											type="checkbox"
+											checked={selectedTypes.has(type)}
+											onchange={() => toggleType(type)}
+											class="rounded"
+										/>
+										<span class="flex-1 truncate {getTypeColor(type)} rounded px-1">
+											{type}
+										</span>
+										<span class="text-gray-500 dark:text-gray-400">
+											({debugStore.getMessageTypeCounts()[type] || 0})
+										</span>
+									</label>
+								{/each}
+							</div>
+						</div>
+
+						<button
+							onclick={() => (showFilterMenu = false)}
+							class="w-full rounded bg-gray-200 px-2 py-1 text-xs text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+						>
+							Close Filter
+						</button>
+					</div>
+				{/if}
 			</div>
 		</div>
 
 		<!-- Messages -->
 		<div bind:this={messagesContainer} class="flex-1 overflow-y-auto p-4">
-			{#if debugStore.messages.length === 0}
+			{#if getFilteredMessages().length === 0}
 				<div class="flex h-full items-center justify-center text-gray-500 dark:text-gray-400">
 					<div class="text-center">
 						<div class="mb-2 text-2xl">📝</div>
 						<p class="text-sm">
 							{#if !debugStore.isEnabled}
 								Debug mode is disabled
-							{:else}
+							{:else if debugStore.messages.length === 0}
 								No debug messages yet
+							{:else}
+								No messages match the selected filter
 							{/if}
 						</p>
 					</div>
 				</div>
 			{:else}
 				<div class="space-y-3">
-					{#each debugStore.messages as message (message.id)}
+					{#each getFilteredMessages() as message (message.id)}
 						<div
 							class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
 						>

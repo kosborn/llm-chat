@@ -118,7 +118,10 @@
 			<div class="mt-3 space-y-2">
 				{#each message.toolInvocations as toolInvocation (toolInvocation.toolCallId)}
 					<div class="tool-result">
-						<ToolRenderer {toolInvocation} onTechnicalView={() => openTechnicalModal(toolInvocation)} />
+						<ToolRenderer
+							{toolInvocation}
+							onTechnicalView={() => openTechnicalModal(toolInvocation)}
+						/>
 					</div>
 				{/each}
 			</div>
