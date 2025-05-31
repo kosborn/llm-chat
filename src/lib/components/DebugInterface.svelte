@@ -39,8 +39,12 @@
 			isOpen = true;
 			debugStore.markAllAsRead();
 
-			// Add a test message to verify the store is working
+			// Add multiple test messages to verify the store is working
 			debugStore.log('test', { message: 'Debug interface enabled', timestamp: Date.now() });
+			debugStore.log('api_request', { url: '/api/test', method: 'POST', body: { test: true } });
+			debugStore.log('api_response', { status: 200, data: { success: true } });
+			debugStore.log('tool_call', { toolCallId: 'test_123', toolName: 'test-tool', args: { input: 'test' } });
+			debugStore.log('error', { message: 'Test error message', code: 'TEST_ERROR' });
 		} else {
 			isOpen = !isOpen;
 			if (isOpen) {
@@ -128,7 +132,9 @@
 	}
 
 	const filteredMessages = $derived(() => {
-		if (!debugStore.isEnabled) return [];
+		if (!debugStore.isEnabled) {
+			return [];
+		}
 
 		let messages = debugStore.messages || [];
 
@@ -153,7 +159,7 @@
 
 	const metrics = $derived(() => {
 		try {
-			const messages = debugStore?.messages || [];
+			const messages = debugStore.messages || [];
 
 			// Initialize byType with all message types to prevent undefined errors
 			const byType: Record<string, number> = {
@@ -300,6 +306,7 @@
 							>{debugStore.newMessageCount} new</span
 						>
 					{/if}
+
 					<button
 						onclick={() => debugStore.clear()}
 						class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
@@ -425,7 +432,7 @@
 						</p>
 						<div class="mt-2 text-xs">
 							Store enabled: {debugStore.isEnabled}, Verbose: {showVerbose}, Filter: {selectedType},
-							Total messages: {debugStore.messages.length}
+							Total messages: {debugStore.messages.length}, Filtered: {filteredMessages.length}
 						</div>
 						{#if debugStore.messages.length > 0}
 							<div class="mt-2 rounded bg-gray-100 p-2 text-xs dark:bg-gray-800">
