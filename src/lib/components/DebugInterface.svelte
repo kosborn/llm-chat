@@ -5,6 +5,7 @@
 	let autoScroll = $state(true);
 	let messagesContainer: HTMLDivElement = $state();
 	let selectedTypes = $state<Set<string>>(new Set());
+	let hiddenTypes = $state<Set<string>>(new Set(['message_update']));
 	let showFilterMenu = $state(false);
 
 	function handleKeyDown(event: KeyboardEvent) {
@@ -60,14 +61,20 @@
 	}
 
 	function getUniqueMessageTypes(): string[] {
-		return debugStore.getUniqueMessageTypes();
+		return debugStore.getUniqueMessageTypes().filter((type) => !hiddenTypes.has(type));
 	}
 
 	function getFilteredMessages() {
+		let filtered = debugStore.messages;
+
+		// Filter out hidden types
+		filtered = filtered.filter((msg) => !hiddenTypes.has(msg.type));
+
+		// Apply selected type filter
 		if (selectedTypes.size === 0) {
-			return debugStore.messages;
+			return filtered;
 		}
-		return debugStore.messages.filter((msg) => selectedTypes.has(msg.type));
+		return filtered.filter((msg) => selectedTypes.has(msg.type));
 	}
 
 	function toggleType(type: string) {
@@ -97,7 +104,7 @@
 				selectedTypes = new Set(['tool_call', 'tool_result']);
 				break;
 			case 'stream':
-				selectedTypes = new Set(['raw_stream', 'parsed_data', 'message_update', 'final_response']);
+				selectedTypes = new Set(['raw_stream', 'parsed_data', 'final_response']);
 				break;
 			case 'errors':
 				selectedTypes = new Set(['error']);
@@ -106,6 +113,16 @@
 				clearAllTypes();
 		}
 		showFilterMenu = false;
+	}
+
+	function toggleHiddenType(type: string) {
+		const newHiddenTypes = new Set(hiddenTypes);
+		if (newHiddenTypes.has(type)) {
+			newHiddenTypes.delete(type);
+		} else {
+			newHiddenTypes.add(type);
+		}
+		hiddenTypes = newHiddenTypes;
 	}
 
 	$effect(() => {
@@ -304,6 +321,38 @@
 							</div>
 						</div>
 
+						<!-- Hidden Types Section -->
+						{#if debugStore.getUniqueMessageTypes().some((type) => hiddenTypes.has(type))}
+							<div class="mb-3 border-t border-gray-200 pt-3 dark:border-gray-600">
+								<div class="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">
+									Hidden Types (trace logs):
+								</div>
+								<div class="grid grid-cols-2 gap-1">
+									{#each debugStore
+										.getUniqueMessageTypes()
+										.filter((type) => hiddenTypes.has(type)) as type}
+										<label class="flex items-center gap-1 text-xs opacity-60">
+											<input
+												type="checkbox"
+												checked={false}
+												onchange={() => toggleHiddenType(type)}
+												class="rounded"
+											/>
+											<span class="flex-1 truncate {getTypeColor(type)} rounded px-1">
+												{type}
+											</span>
+											<span class="text-gray-500 dark:text-gray-400">
+												({debugStore.getMessageTypeCounts()[type] || 0})
+											</span>
+										</label>
+									{/each}
+								</div>
+								<div class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+									Check to show these verbose trace logs
+								</div>
+							</div>
+						{/if}
+
 						<button
 							onclick={() => (showFilterMenu = false)}
 							class="w-full rounded bg-gray-200 px-2 py-1 text-xs text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
@@ -366,7 +415,7 @@
 							</div>
 
 							<!-- Message Content -->
-							<div class="overflow-x-auto">
+							<div class="max-h-64 overflow-auto">
 								<pre class="text-xs text-gray-700 dark:text-gray-300"><code
 										>{JSON.stringify(message, null, 2)}</code
 									></pre>
