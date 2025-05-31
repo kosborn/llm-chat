@@ -52,11 +52,19 @@ class DebugStore {
 		}
 	}
 
+	toggleEnabled(): void {
+		this.isEnabled = !this.isEnabled;
+	}
+
 	enable(): void {
 		this.isEnabled = true;
 	}
 
 	disable(): void {
+		this.isEnabled = false;
+	}
+
+	disableAndClear(): void {
 		this.isEnabled = false;
 		this.clear();
 	}

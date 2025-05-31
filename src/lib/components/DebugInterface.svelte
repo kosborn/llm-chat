@@ -28,10 +28,8 @@
 			// Add a test message to verify it's working
 			debugStore.log('test', { message: 'Debug interface enabled', timestamp: Date.now() });
 		} else {
-			debugStore.toggle();
-			if (!debugStore.isEnabled) {
-				isOpen = false;
-			}
+			// Just toggle panel visibility, don't disable debug mode
+			isOpen = !isOpen;
 		}
 	}
 
@@ -131,9 +129,9 @@
 		}
 	});
 
-	// Reset filter when messages are cleared
+	// Reset filter when messages are cleared (but not when debug is just disabled)
 	$effect(() => {
-		if (debugStore.messages.length === 0) {
+		if (debugStore.messages.length === 0 && debugStore.isEnabled) {
 			selectedTypes = new Set();
 		}
 	});
@@ -146,7 +144,11 @@
 	<button
 		onclick={handleDebugToggle}
 		class="relative flex h-12 w-12 items-center justify-center rounded-full bg-gray-800 text-white shadow-lg transition-colors hover:bg-gray-700 dark:bg-gray-200 dark:text-gray-800 dark:hover:bg-gray-300"
-		title="Toggle Debug Interface (Cmd+D)"
+		title={debugStore.isEnabled
+			? isOpen
+				? 'Close Debug Panel (Cmd+D)'
+				: 'Open Debug Panel (Cmd+D)'
+			: 'Enable Debug Mode (Cmd+D)'}
 	>
 		{#if debugStore.newMessageCount > 0 && debugStore.isEnabled && !isOpen}
 			<div
@@ -193,9 +195,18 @@
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-3">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Debug Messages</h2>
-					{#if debugStore.isStreamingActive()}
-						<div class="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
-					{/if}
+					<div class="flex items-center gap-2">
+						<span
+							class="rounded px-2 py-1 text-xs font-medium {debugStore.isEnabled
+								? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+								: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'}"
+						>
+							{debugStore.isEnabled ? 'Enabled' : 'Disabled'}
+						</span>
+						{#if debugStore.isStreamingActive()}
+							<div class="h-2 w-2 animate-pulse rounded-full bg-green-500"></div>
+						{/if}
+					</div>
 				</div>
 
 				<div class="flex items-center gap-2">
@@ -219,6 +230,21 @@
 					>
 						Clear
 					</button>
+					{#if debugStore.isEnabled}
+						<button
+							onclick={() => debugStore.toggleEnabled()}
+							class="rounded px-2 py-1 text-xs text-orange-600 hover:bg-orange-100 dark:text-orange-400 dark:hover:bg-orange-900"
+						>
+							Disable
+						</button>
+					{:else}
+						<button
+							onclick={() => debugStore.enable()}
+							class="rounded px-2 py-1 text-xs text-green-600 hover:bg-green-100 dark:text-green-400 dark:hover:bg-green-900"
+						>
+							Enable
+						</button>
+					{/if}
 				</div>
 			</div>
 
@@ -372,13 +398,18 @@
 						<div class="mb-2 text-2xl">📝</div>
 						<p class="text-sm">
 							{#if !debugStore.isEnabled}
-								Debug mode is disabled
+								Debug mode is disabled. Enable it to start collecting messages.
 							{:else if debugStore.messages.length === 0}
-								No debug messages yet
+								No debug messages yet. Messages will appear here as the system runs.
 							{:else}
 								No messages match the selected filter
 							{/if}
 						</p>
+						{#if !debugStore.isEnabled && debugStore.messages.length > 0}
+							<p class="mt-2 text-xs text-gray-400">
+								{debugStore.messages.length} messages preserved from previous session
+							</p>
+						{/if}
 					</div>
 				</div>
 			{:else}
