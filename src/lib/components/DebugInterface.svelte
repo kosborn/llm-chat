@@ -186,7 +186,7 @@
 <!-- Debug Interface Panel -->
 {#if isOpen}
 	<div
-		class="fixed right-4 bottom-20 z-40 h-[80vh] w-[90vw] max-w-4xl rounded-lg border border-gray-200 bg-white shadow-2xl md:w-[60vw] dark:border-gray-700 dark:bg-gray-900"
+		class="fixed right-4 bottom-20 z-40 flex h-[80vh] w-[90vw] max-w-4xl flex-col rounded-lg border border-gray-200 bg-white shadow-2xl md:w-[60vw] dark:border-gray-700 dark:bg-gray-900"
 	>
 		<!-- Header -->
 		<div class="border-b border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800">
@@ -365,7 +365,7 @@
 		</div>
 
 		<!-- Messages -->
-		<div bind:this={messagesContainer} class="flex-1 overflow-y-auto p-4">
+		<div bind:this={messagesContainer} class="min-h-0 flex-1 overflow-y-auto p-4">
 			{#if getFilteredMessages().length === 0}
 				<div class="flex h-full items-center justify-center text-gray-500 dark:text-gray-400">
 					<div class="text-center">
