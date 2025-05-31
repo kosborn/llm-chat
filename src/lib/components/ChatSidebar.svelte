@@ -2,6 +2,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import type { Chat } from '../../app.d.ts';
 	import { stripMarkdown } from '$lib/utils/markdown.js';
+	import { getProviderDisplayName } from '$lib/utils/cost-calculator.js';
 
 	interface Props {
 		chats: Chat[];
@@ -90,6 +91,30 @@
 			return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
 		}
 	}
+
+	function getProviderIcon(provider?: string): string {
+		switch (provider) {
+			case 'groq':
+				return '🚀';
+			case 'anthropic':
+				return '🎭';
+			case 'openai':
+				return '🤖';
+			default:
+				return '💬';
+		}
+	}
+
+	function getChatProvider(chat: Chat): string | undefined {
+		// Find the most recent assistant message with metadata
+		for (let i = chat.messages.length - 1; i >= 0; i--) {
+			const message = chat.messages[i];
+			if (message.role === 'assistant' && message.apiMetadata?.provider) {
+				return message.apiMetadata.provider;
+			}
+		}
+		return undefined;
+	}
 </script>
 
 <div class="flex h-full flex-col">
@@ -156,6 +181,9 @@
 								/>
 							{:else}
 								<div class="flex flex-1 items-center gap-2">
+									<span class="text-sm" title={getChatProvider(chat) ? getProviderDisplayName(getChatProvider(chat)!) : 'No provider'}>
+										{getProviderIcon(getChatProvider(chat))}
+									</span>
 									<h3 class="flex-1 truncate text-sm font-medium text-gray-900 dark:text-gray-100">
 										{chat.title}
 									</h3>

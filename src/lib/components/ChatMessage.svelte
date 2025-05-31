@@ -11,6 +11,7 @@
 		formatTokenCount,
 		getTokenCountColor
 	} from '$lib/utils/simple-token-counter';
+	import { getProviderDisplayName } from '$lib/utils/cost-calculator.js';
 
 	interface Props {
 		message: ChatMessage;
@@ -50,6 +51,26 @@
 		showTechnicalModal = false;
 		selectedToolInvocation = null;
 	}
+
+	function getProviderIcon(provider?: string): string {
+		switch (provider) {
+			case 'groq':
+				return '🚀';
+			case 'anthropic':
+				return '🎭';
+			case 'openai':
+				return '🤖';
+			default:
+				return '🤖';
+		}
+	}
+
+	function getProviderName(message: ChatMessage): string {
+		if (message.role === 'user') return 'You';
+		return message.apiMetadata?.provider 
+			? getProviderDisplayName(message.apiMetadata.provider)
+			: 'Assistant';
+	}
 </script>
 
 <div
@@ -64,7 +85,7 @@
 			class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium
 			{message.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-500 text-white'}"
 		>
-			{message.role === 'user' ? '👤' : '🤖'}
+			{message.role === 'user' ? '👤' : getProviderIcon(message.apiMetadata?.provider)}
 		</div>
 	</div>
 
@@ -72,7 +93,7 @@
 	<div class="min-w-0 flex-1">
 		<div class="mb-1 flex items-center gap-2">
 			<span class="text-sm font-medium text-gray-900 dark:text-gray-100">
-				{message.role === 'user' ? 'You' : 'Assistant'}
+				{getProviderName(message)}
 			</span>
 			<span class="text-xs text-gray-500 dark:text-gray-400">
 				{formatTimestamp(message.timestamp)}
