@@ -4,6 +4,7 @@
 	import { providerStore } from '$lib/stores/provider-store.svelte.js';
 	import ModelSelector from './ModelSelector.svelte';
 	import type { ProviderId } from '$lib/providers/index.js';
+	import type { ProviderStatus } from '$lib/providers/provider-manager.js';
 
 	interface Props {
 		provider?: ProviderId;
@@ -22,10 +23,35 @@
 	}: Props = $props();
 
 	let showDetails = $state(false);
+	let providerStatus = $state<ProviderStatus | null>(null);
+
+	// Load status for specific provider/model combination
+	const loadProviderStatus = async (targetProvider: ProviderId, targetModel: string) => {
+		try {
+			const status = await providerStore.getProviderStatus(targetProvider, targetModel);
+			providerStatus = status;
+		} catch (error) {
+			console.warn('Failed to load provider status:', error);
+			providerStatus = {
+				canSend: false,
+				hasApiKey: false,
+				isValidApiKey: false,
+				isServerAvailable: false,
+				provider: targetProvider,
+				model: targetModel,
+				displayName: targetProvider,
+				errorMessage: 'Failed to load status'
+			};
+		}
+	};
+
+	// Load status when provider or model changes
+	$effect(() => {
+		loadProviderStatus(provider, model);
+	});
 
 	// Status based on currently selected provider and model
 	const status = $derived(() => {
-		const providerStatus = providerStore.status;
 		if (!providerStatus) {
 			return {
 				canSend: false,
@@ -39,7 +65,7 @@
 		}
 
 		return {
-			canSend: providerStatus.canSend,
+			canSend: providerStatus.canSend && networkStore.isOnline,
 			hasApiKey: providerStatus.hasApiKey,
 			isOnline: networkStore.isOnline,
 			isValidApiKey: providerStatus.isValidApiKey,
@@ -78,9 +104,9 @@
 	const sessionTokens = $derived(() => apiMetrics()?.totalTokens || 0);
 
 	const formatCost = (cost: number) => providerStore.formatCost(cost);
-	const getModelDisplayName = (provider: ProviderId, model: string) => 
+	const getModelDisplayName = (provider: ProviderId, model: string) =>
 		providerStore.getModelDisplayName(provider, model);
-	const getProviderDisplayName = (provider: ProviderId) => 
+	const getProviderDisplayName = (provider: ProviderId) =>
 		providerStore.getProviderDisplayName(provider);
 </script>
 
