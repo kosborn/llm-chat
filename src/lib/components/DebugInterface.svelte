@@ -2,8 +2,6 @@
 	import { debugStore } from '$lib/stores/debug-store.svelte.js';
 
 	let isOpen = $state(false);
-	let searchTerm = $state('');
-	let selectedType = $state('all');
 	let autoScroll = $state(true);
 	let messagesContainer: HTMLDivElement = $state();
 
@@ -58,39 +56,6 @@
 	function copyToClipboard(text: string) {
 		navigator.clipboard.writeText(text);
 	}
-
-	const messageTypes = [
-		{ label: 'All', value: 'all' },
-		{ label: 'Raw Stream', value: 'raw_stream' },
-		{ label: 'Parsed Data', value: 'parsed_data' },
-		{ label: 'Tool Call', value: 'tool_call' },
-		{ label: 'Tool Result', value: 'tool_result' },
-		{ label: 'API Request', value: 'api_request' },
-		{ label: 'API Response', value: 'api_response' },
-		{ label: 'API Metadata', value: 'api_metadata' },
-		{ label: 'Error', value: 'error' },
-		{ label: 'Message Update', value: 'message_update' },
-		{ label: 'Final Response', value: 'final_response' },
-		{ label: 'Test', value: 'test' }
-	];
-
-	const filteredMessages = $derived(() => {
-		let filtered = debugStore.messages;
-
-		if (selectedType !== 'all') {
-			filtered = filtered.filter((msg) => msg.type === selectedType);
-		}
-
-		if (searchTerm.trim()) {
-			const term = searchTerm.toLowerCase();
-			filtered = filtered.filter((msg) => {
-				const messageText = JSON.stringify(msg, null, 2).toLowerCase();
-				return messageText.includes(term);
-			});
-		}
-
-		return filtered;
-	});
 
 	$effect(() => {
 		if (autoScroll && messagesContainer && isOpen) {
@@ -160,7 +125,7 @@
 
 				<div class="flex items-center gap-2">
 					<span class="text-sm text-gray-500 dark:text-gray-400">
-						{filteredMessages.length} messages
+						{debugStore.messages.length} messages
 					</span>
 					{#if debugStore.newMessageCount > 0}
 						<span class="rounded-full bg-red-500 px-2 py-1 text-xs text-white">
@@ -182,23 +147,8 @@
 				</div>
 			</div>
 
-			<!-- Filters -->
-			<div class="mt-3 flex flex-wrap gap-2">
-				<input
-					bind:value={searchTerm}
-					placeholder="Search messages..."
-					class="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
-				/>
-
-				<select
-					bind:value={selectedType}
-					class="rounded border border-gray-300 px-2 py-1 text-sm dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300"
-				>
-					{#each messageTypes as type}
-						<option value={type.value}>{type.label}</option>
-					{/each}
-				</select>
-
+			<!-- Auto scroll option -->
+			<div class="mt-3">
 				<label class="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-400">
 					<input type="checkbox" bind:checked={autoScroll} class="rounded" />
 					Auto scroll
@@ -208,26 +158,22 @@
 
 		<!-- Messages -->
 		<div bind:this={messagesContainer} class="flex-1 overflow-y-auto p-4">
-			{#if filteredMessages.length === 0}
+			{#if debugStore.messages.length === 0}
 				<div class="flex h-full items-center justify-center text-gray-500 dark:text-gray-400">
 					<div class="text-center">
-						<div class="mb-2 text-2xl">🔍</div>
+						<div class="mb-2 text-2xl">📝</div>
 						<p class="text-sm">
 							{#if !debugStore.isEnabled}
 								Debug mode is disabled
-							{:else if debugStore.messages.length === 0}
-								No debug messages yet
-							{:else if searchTerm}
-								No messages match your search
 							{:else}
-								No messages of this type
+								No debug messages yet
 							{/if}
 						</p>
 					</div>
 				</div>
 			{:else}
 				<div class="space-y-3">
-					{#each filteredMessages as message (message.id)}
+					{#each debugStore.messages as message (message.id)}
 						<div
 							class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800"
 						>
