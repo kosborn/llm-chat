@@ -190,7 +190,54 @@ class ClientChatService {
 	}
 
 	async generateTitle(userMessage: string, assistantMessage: string): Promise<string | null> {
-		if (!apiKeyStore.isConfigured || !networkStore.isOnline) {
+		// Check network status first
+		if (!networkStore.isOnline) {
+			return null;
+		}
+
+		// Try server-side first
+		try {
+			const serverTitle = await this.tryServerSideTitle(userMessage, assistantMessage);
+			if (serverTitle) {
+				return serverTitle;
+			}
+		} catch (error) {
+			console.log('Server-side title generation unavailable, falling back to client-side:', error);
+		}
+
+		// Fallback to client-side
+		return this.generateTitleClientSide(userMessage, assistantMessage);
+	}
+
+	private async tryServerSideTitle(
+		userMessage: string,
+		assistantMessage: string
+	): Promise<string | null> {
+		const response = await fetch('/api/generate-title', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify({
+				userMessage,
+				assistantMessage
+			})
+		});
+
+		if (!response.ok) {
+			throw new Error(`Server error: ${response.status}`);
+		}
+
+		const data = await response.json();
+		return data.title || null;
+	}
+
+	private async generateTitleClientSide(
+		userMessage: string,
+		assistantMessage: string
+	): Promise<string | null> {
+		// Check if we have an API key for client-side
+		if (!apiKeyStore.isConfigured) {
 			return null;
 		}
 
@@ -248,7 +295,7 @@ class ClientChatService {
 
 			return title.trim() || null;
 		} catch (error) {
-			console.error('Title generation error:', error);
+			console.error('Client-side title generation error:', error);
 			return null;
 		}
 	}

@@ -262,11 +262,36 @@ class ChatStore {
 				await this.updateChatTitle(chatId, title.trim());
 				notificationStore.success(`Chat renamed to "${title.trim()}"`, 2000);
 			} else if (forceRegenerate) {
-				notificationStore.error('Failed to generate title. Please try again.');
+				// Check if we're offline or missing API key for better error messages
+				if (!clientChatService.canSendMessages()) {
+					notificationStore.error(
+						'Cannot generate title while offline. Please check your connection.'
+					);
+				} else {
+					notificationStore.error(
+						'Failed to generate title. The AI service may be temporarily unavailable.'
+					);
+				}
 			}
 		} catch (err) {
 			if (forceRegenerate) {
-				notificationStore.error('Failed to generate title. Please try again.');
+				console.error('Title generation error:', err);
+				// Provide specific error messages based on the error type
+				if (err instanceof Error) {
+					if (err.message.includes('503') || err.message.includes('Server error')) {
+						notificationStore.error(
+							'Title generation service is temporarily unavailable. Please try again later.'
+						);
+					} else if (err.message.includes('401') || err.message.includes('unauthorized')) {
+						notificationStore.error('API key is invalid. Please check your settings.');
+					} else if (err.message.includes('network') || err.message.includes('fetch')) {
+						notificationStore.error('Network error. Please check your connection and try again.');
+					} else {
+						notificationStore.error(`Failed to generate title: ${err.message}`);
+					}
+				} else {
+					notificationStore.error('Failed to generate title. Please try again.');
+				}
 			}
 			console.warn('Auto-rename failed:', err);
 		}
