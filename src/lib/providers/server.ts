@@ -64,8 +64,8 @@ export function getAvailableProviders(): ProviderId[] {
 
 export function getDefaultModels(): Record<string, string> {
 	const defaultModels: Record<string, string> = {};
-	
-	providerManager.getAllProviders().forEach((provider) => {
+
+	Object.values(PROVIDERS).forEach((provider) => {
 		defaultModels[provider.id] = provider.defaultModel;
 	});
 
