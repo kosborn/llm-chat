@@ -36,7 +36,7 @@
 	function handleDebugToggle() {
 		if (!debugEnabled) {
 			debugEnabled = true;
-			debugStore.isEnabled = true;
+			debugStore.enable();
 			isOpen = true;
 			debugStore.markAllAsRead();
 		} else {
@@ -52,6 +52,11 @@
 		if (debugEnabled && debugStore.messages.length > 0 && !isOpen) {
 			isOpen = true;
 		}
+	});
+
+	// Sync debugEnabled with debugStore.isEnabled
+	$effect(() => {
+		debugEnabled = debugStore.isEnabled;
 	});
 
 	const messageTypes = [
@@ -123,21 +128,33 @@
 	}
 
 	const filteredMessages = $derived(() => {
-		let messages = debugStore.messages;
+		// Access messages directly from debugStore
+		const allMessages = debugStore?.messages || [];
+		
+		// Start with all messages
+		let messages = [...allMessages];
 		
 		// Hide message_update by default unless verbose mode is on
 		if (!showVerbose) {
-			messages = messages.filter((msg) => msg.type !== 'message_update');
+			messages = messages.filter((msg) => msg?.type !== 'message_update');
 		}
 		
+		// Filter by selected type
 		if (selectedType !== 'all') {
-			messages = messages.filter((msg) => msg.type === selectedType);
+			messages = messages.filter((msg) => msg?.type === selectedType);
 		}
+		
+		// Filter by search term
 		if (searchTerm) {
-			messages = messages.filter((msg) =>
-				formatData(msg.data).toLowerCase().includes(searchTerm.toLowerCase())
-			);
+			messages = messages.filter((msg) => {
+				try {
+					return formatData(msg?.data || '').toLowerCase().includes(searchTerm.toLowerCase());
+				} catch {
+					return false;
+				}
+			});
 		}
+		
 		return messages;
 	});
 
@@ -370,17 +387,30 @@
 						<div class="mb-2 text-2xl">🔍</div>
 						<p class="text-sm">
 							{#if !debugEnabled}
-								Debug mode disabled
+								Debug mode disabled (Press Cmd+D to enable)
+							{:else if debugStore.messages.length === 0}
+								No debug messages yet (Total: {debugStore.messages.length})
 							{:else if searchTerm}
-								No messages match your search
+								No messages match "{searchTerm}" (Showing {filteredMessages.length} of {debugStore.messages.length})
 							{:else}
-								No debug messages yet
+								No messages with current filters (Showing {filteredMessages.length} of {debugStore.messages.length})
 							{/if}
 						</p>
+						<div class="mt-2 text-xs">
+							Debug enabled: {debugEnabled}, 
+							Verbose: {showVerbose},
+							Filter: {selectedType},
+							Total messages: {debugStore.messages.length}
+						</div>
 					</div>
 				</div>
 			{:else}
 				<div class="space-y-1">
+					<!-- Debug info -->
+					<div class="mb-2 text-xs text-gray-500 dark:text-gray-400">
+						Showing {filteredMessages.length} of {debugStore.messages.length} messages
+						{#if !showVerbose}(hiding verbose updates){/if}
+					</div>
 					{#each filteredMessages as message, index (message.id)}
 						<div class="rounded border-l-4 border-r border-t border-b bg-gray-50 p-2 dark:bg-gray-800" 
 							style="border-left-color: {getTypeColor(message.type).replace('bg-', '#').replace('500', '')}; border-left-color: {message.type === 'error' ? '#ef4444' : message.type === 'tool_call' ? '#a855f7' : message.type === 'tool_result' ? '#f97316' : message.type === 'api_request' ? '#6366f1' : message.type === 'api_response' ? '#14b8a6' : message.type === 'raw_stream' ? '#3b82f6' : message.type === 'parsed_data' ? '#22c55e' : message.type === 'api_metadata' ? '#06b6d4' : message.type === 'message_update' ? '#eab308' : message.type === 'final_response' ? '#10b981' : '#6b7280'}">
