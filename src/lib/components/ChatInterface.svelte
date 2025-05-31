@@ -419,6 +419,16 @@
 			} finally {
 				reader.releaseLock();
 
+				// Log the final response
+				if (accumulatedContent) {
+					debugStore.logFinalResponse(accumulatedContent, {
+						chatId: chatStore.currentChatId,
+						messageId: assistantMessageId,
+						wordCount: accumulatedContent.split(/\s+/).length,
+						toolInvocations: accumulatedToolInvocations.length
+					});
+				}
+
 				// Add API metadata to the message after streaming is complete
 				if (apiMetadata || Object.keys(finalUsage).length > 0) {
 					console.log('[DEBUG] Processing API metadata:', { apiMetadata, finalUsage });

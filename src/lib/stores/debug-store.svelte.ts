@@ -12,7 +12,8 @@ interface DebugMessage {
 		| 'api_response'
 		| 'api_metadata'
 		| 'error'
-		| 'message_update';
+		| 'message_update'
+		| 'final_response';
 	data: unknown;
 	metadata?: {
 		chatId?: string;
@@ -176,6 +177,10 @@ class DebugStore {
 
 	logMessageUpdate(update: unknown, metadata?: DebugMessage['metadata']): void {
 		this.log('message_update', update, metadata);
+	}
+
+	logFinalResponse(content: string, metadata?: DebugMessage['metadata']): void {
+		this.log('final_response', { content, completedAt: Date.now() }, metadata);
 	}
 
 	getMessagesByType(type: DebugMessage['type']): DebugMessage[] {

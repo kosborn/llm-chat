@@ -64,6 +64,7 @@
 		{ value: 'api_response', label: 'API Res', color: 'bg-teal-500' },
 		{ value: 'api_metadata', label: 'Metadata', color: 'bg-cyan-500' },
 		{ value: 'message_update', label: 'Update', color: 'bg-yellow-500' },
+		{ value: 'final_response', label: 'Final', color: 'bg-emerald-500' },
 		{ value: 'error', label: 'Error', color: 'bg-red-500' }
 	];
 
@@ -121,7 +122,7 @@
 		URL.revokeObjectURL(url);
 	}
 
-	const filteredMessages = () => {
+	const filteredMessages = $derived(() => {
 		let messages = debugStore.messages;
 		
 		// Hide message_update by default unless verbose mode is on
@@ -138,7 +139,7 @@
 			);
 		}
 		return messages;
-	};
+	});
 
 	const metrics = $derived(() => {
 		const messages = debugStore.messages;
@@ -221,7 +222,7 @@
 					{/if}
 				</div>
 				<div class="flex items-center gap-2">
-					<span class="text-sm text-gray-500 dark:text-gray-400">{filteredMessages().length}/{metrics.total}</span>
+					<span class="text-sm text-gray-500 dark:text-gray-400">{filteredMessages.length}/{metrics.total}</span>
 					{#if debugStore.newMessageCount > 0}
 						<span class="rounded-full bg-red-500 px-2 py-1 text-xs text-white">{debugStore.newMessageCount} new</span>
 					{/if}
@@ -296,7 +297,7 @@
 							>
 								{type.label}
 								{#if type.value !== 'all'}
-									<span class="ml-1 opacity-75">({metrics.byType[type.value] || 0})</span>
+									<span class="ml-1 opacity-75">({(metrics.byType && metrics.byType[type.value]) || 0})</span>
 								{/if}
 							</button>
 						{/each}
@@ -319,7 +320,7 @@
 
 		<!-- Messages Container -->
 		<div bind:this={messagesContainer} class="flex-1 overflow-y-auto p-2">
-			{#if filteredMessages().length === 0}
+			{#if filteredMessages.length === 0}
 				<div class="flex h-full items-center justify-center text-gray-500 dark:text-gray-400">
 					<div class="text-center">
 						<div class="mb-2 text-2xl">🔍</div>
@@ -336,13 +337,13 @@
 				</div>
 			{:else}
 				<div class="space-y-1">
-					{#each filteredMessages() as message, index (message.id)}
+					{#each filteredMessages as message, index (message.id)}
 						<div class="rounded border-l-4 border-r border-t border-b bg-gray-50 p-2 dark:bg-gray-800" 
-							style="border-left-color: {getTypeColor(message.type).replace('bg-', '#').replace('500', '')}; border-left-color: {message.type === 'error' ? '#ef4444' : message.type === 'tool_call' ? '#a855f7' : message.type === 'tool_result' ? '#f97316' : message.type === 'api_request' ? '#6366f1' : message.type === 'api_response' ? '#14b8a6' : message.type === 'raw_stream' ? '#3b82f6' : message.type === 'parsed_data' ? '#22c55e' : message.type === 'api_metadata' ? '#06b6d4' : message.type === 'message_update' ? '#eab308' : '#6b7280'}">
+							style="border-left-color: {getTypeColor(message.type).replace('bg-', '#').replace('500', '')}; border-left-color: {message.type === 'error' ? '#ef4444' : message.type === 'tool_call' ? '#a855f7' : message.type === 'tool_result' ? '#f97316' : message.type === 'api_request' ? '#6366f1' : message.type === 'api_response' ? '#14b8a6' : message.type === 'raw_stream' ? '#3b82f6' : message.type === 'parsed_data' ? '#22c55e' : message.type === 'api_metadata' ? '#06b6d4' : message.type === 'message_update' ? '#eab308' : message.type === 'final_response' ? '#10b981' : '#6b7280'}">
 							<div class="mb-1 flex items-center justify-between">
 								<div class="flex items-center gap-2">
 									<span class="rounded px-2 py-0.5 text-xs font-mono text-white" 
-										style="background-color: {message.type === 'error' ? '#ef4444' : message.type === 'tool_call' ? '#a855f7' : message.type === 'tool_result' ? '#f97316' : message.type === 'api_request' ? '#6366f1' : message.type === 'api_response' ? '#14b8a6' : message.type === 'raw_stream' ? '#3b82f6' : message.type === 'parsed_data' ? '#22c55e' : message.type === 'api_metadata' ? '#06b6d4' : message.type === 'message_update' ? '#eab308' : '#6b7280'}">
+										style="background-color: {message.type === 'error' ? '#ef4444' : message.type === 'tool_call' ? '#a855f7' : message.type === 'tool_result' ? '#f97316' : message.type === 'api_request' ? '#6366f1' : message.type === 'api_response' ? '#14b8a6' : message.type === 'raw_stream' ? '#3b82f6' : message.type === 'parsed_data' ? '#22c55e' : message.type === 'api_metadata' ? '#06b6d4' : message.type === 'message_update' ? '#eab308' : message.type === 'final_response' ? '#10b981' : '#6b7280'}">
 										{message.type}
 									</span>
 									<span class="text-xs text-gray-500 dark:text-gray-400">{formatTimestamp(message.timestamp)}</span>
