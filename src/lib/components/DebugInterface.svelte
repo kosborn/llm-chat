@@ -142,59 +142,86 @@
 	});
 
 	const metrics = $derived(() => {
-		const messages = debugStore.messages || [];
-		
-		// Initialize byType with all message types to prevent undefined errors
-		const byType: Record<string, number> = {
-			'all': messages.length,
-			'raw_stream': 0,
-			'parsed_data': 0,
-			'tool_call': 0,
-			'tool_result': 0,
-			'api_request': 0,
-			'api_response': 0,
-			'api_metadata': 0,
-			'message_update': 0,
-			'final_response': 0,
-			'error': 0
-		};
+		try {
+			const messages = debugStore?.messages || [];
+			
+			// Initialize byType with all message types to prevent undefined errors
+			const byType: Record<string, number> = {
+				'all': messages.length,
+				'raw_stream': 0,
+				'parsed_data': 0,
+				'tool_call': 0,
+				'tool_result': 0,
+				'api_request': 0,
+				'api_response': 0,
+				'api_metadata': 0,
+				'message_update': 0,
+				'final_response': 0,
+				'error': 0
+			};
 
-		// Count actual messages by type
-		messages.forEach((msg) => {
-			if (byType.hasOwnProperty(msg.type)) {
-				byType[msg.type] = (byType[msg.type] || 0) + 1;
-			} else {
-				byType[msg.type] = 1;
-			}
-		});
-
-		const apiMetrics = {
-			totalRequests: messages.filter((m) => m.type === 'api_request').length,
-			totalResponses: messages.filter((m) => m.type === 'api_response').length,
-			errors: messages.filter((m) => m.type === 'error').length,
-			modelUsage: {} as Record<string, number>,
-			providerUsage: {} as Record<string, number>
-		};
-
-		// Count model and provider usage
-		messages
-			.filter((m) => m.type === 'api_request' && m.metadata)
-			.forEach((msg) => {
-				if (msg.metadata?.model) {
-					apiMetrics.modelUsage[msg.metadata.model] =
-						(apiMetrics.modelUsage[msg.metadata.model] || 0) + 1;
-				}
-				if (msg.metadata?.provider) {
-					apiMetrics.providerUsage[msg.metadata.provider] =
-						(apiMetrics.providerUsage[msg.metadata.provider] || 0) + 1;
+			// Count actual messages by type
+			messages.forEach((msg) => {
+				if (msg?.type && byType.hasOwnProperty(msg.type)) {
+					byType[msg.type] = (byType[msg.type] || 0) + 1;
+				} else if (msg?.type) {
+					byType[msg.type] = 1;
 				}
 			});
 
-		return {
-			total: messages.length,
-			byType,
-			apiMetrics
-		};
+			const apiMetrics = {
+				totalRequests: messages.filter((m) => m?.type === 'api_request').length,
+				totalResponses: messages.filter((m) => m?.type === 'api_response').length,
+				errors: messages.filter((m) => m?.type === 'error').length,
+				modelUsage: {} as Record<string, number>,
+				providerUsage: {} as Record<string, number>
+			};
+
+			// Count model and provider usage
+			messages
+				.filter((m) => m?.type === 'api_request' && m?.metadata)
+				.forEach((msg) => {
+					if (msg.metadata?.model) {
+						apiMetrics.modelUsage[msg.metadata.model] =
+							(apiMetrics.modelUsage[msg.metadata.model] || 0) + 1;
+					}
+					if (msg.metadata?.provider) {
+						apiMetrics.providerUsage[msg.metadata.provider] =
+							(apiMetrics.providerUsage[msg.metadata.provider] || 0) + 1;
+					}
+				});
+
+			return {
+				total: messages.length,
+				byType,
+				apiMetrics
+			};
+		} catch (error) {
+			// Fallback safe metrics object
+			return {
+				total: 0,
+				byType: {
+					'all': 0,
+					'raw_stream': 0,
+					'parsed_data': 0,
+					'tool_call': 0,
+					'tool_result': 0,
+					'api_request': 0,
+					'api_response': 0,
+					'api_metadata': 0,
+					'message_update': 0,
+					'final_response': 0,
+					'error': 0
+				},
+				apiMetrics: {
+					totalRequests: 0,
+					totalResponses: 0,
+					errors: 0,
+					modelUsage: {},
+					providerUsage: {}
+				}
+			};
+		}
 	});
 </script>
 
@@ -239,7 +266,7 @@
 					{/if}
 				</div>
 				<div class="flex items-center gap-2">
-					<span class="text-sm text-gray-500 dark:text-gray-400">{filteredMessages.length}/{metrics.total}</span>
+					<span class="text-sm text-gray-500 dark:text-gray-400">{filteredMessages.length}/{metrics?.total || 0}</span>
 					{#if debugStore.newMessageCount > 0}
 						<span class="rounded-full bg-red-500 px-2 py-1 text-xs text-white">{debugStore.newMessageCount} new</span>
 					{/if}
@@ -314,7 +341,7 @@
 							>
 								{type.label}
 								{#if type.value !== 'all'}
-									<span class="ml-1 opacity-75">({metrics.byType[type.value] || 0})</span>
+									<span class="ml-1 opacity-75">({metrics?.byType?.[type.value] || 0})</span>
 								{/if}
 							</button>
 						{/each}
@@ -326,10 +353,10 @@
 			{#if showMetrics}
 				<div class="mt-2 rounded bg-gray-100 p-2 text-xs dark:bg-gray-800">
 					<div class="grid grid-cols-2 gap-1">
-						<div>Total: <span class="font-mono">{metrics.total}</span></div>
-						<div>Errors: <span class="font-mono text-red-600">{metrics.byType.error || 0}</span></div>
-						<div>Requests: <span class="font-mono">{metrics.apiMetrics.totalRequests}</span></div>
-						<div>Responses: <span class="font-mono">{metrics.apiMetrics.totalResponses}</span></div>
+						<div>Total: <span class="font-mono">{metrics?.total || 0}</span></div>
+						<div>Errors: <span class="font-mono text-red-600">{metrics?.byType?.error || 0}</span></div>
+						<div>Requests: <span class="font-mono">{metrics?.apiMetrics?.totalRequests || 0}</span></div>
+						<div>Responses: <span class="font-mono">{metrics?.apiMetrics?.totalResponses || 0}</span></div>
 					</div>
 				</div>
 			{/if}
