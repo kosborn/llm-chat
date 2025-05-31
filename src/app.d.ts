@@ -89,7 +89,7 @@ export interface Chat {
 	createdAt: number;
 	updatedAt: number;
 	archived?: boolean;
-	provider?: 'groq' | 'anthropic' | 'openai';
+	provider?: 'groq' | 'anthropic' | 'openai' | 'google';
 	model?: string;
 }
 

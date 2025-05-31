@@ -11,7 +11,7 @@
 	let { isOpen, onClose }: Props = $props();
 
 	let apiKey = $state('');
-	let provider = $state<'groq' | 'openai' | 'anthropic'>('groq');
+	let provider = $state<'groq' | 'openai' | 'anthropic' | 'google'>('groq');
 	let showKey = $state(false);
 	let isValid = $state(false);
 	let errorMessage = $state('');
@@ -113,6 +113,8 @@
 				return key.startsWith('sk-');
 			case 'anthropic':
 				return key.startsWith('sk-ant-');
+			case 'google':
+				return key.startsWith('AIza');
 			default:
 				return key.length > 10;
 		}
@@ -126,6 +128,8 @@
 				return 'OpenAI API keys should start with "sk-"';
 			case 'anthropic':
 				return 'Anthropic API keys should start with "sk-ant-"';
+			case 'google':
+				return 'Google API keys should start with "AIza"';
 			default:
 				return 'Invalid API key format';
 		}
@@ -285,6 +289,7 @@
 							   dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
 					>
 						<option value="groq">Groq (Fast, Free Tier Available)</option>
+						<option value="google">Google (Gemini Models)</option>
 						<option value="openai">OpenAI (GPT Models)</option>
 						<option value="anthropic">Anthropic (Claude Models)</option>
 					</select>
@@ -305,7 +310,7 @@
 							bind:value={apiKey}
 							placeholder={serverAvailable
 								? 'Optional - server AI is available'
-								: `Enter your ${provider === 'groq' ? 'Groq' : provider === 'openai' ? 'OpenAI' : 'Anthropic'} API key`}
+								: `Enter your ${provider === 'groq' ? 'Groq' : provider === 'openai' ? 'OpenAI' : provider === 'google' ? 'Google' : 'Anthropic'} API key`}
 							class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 pr-10 text-gray-900
 								   focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
 								   dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100
@@ -356,7 +361,9 @@
 							? 'Groq'
 							: provider === 'openai'
 								? 'OpenAI'
-								: 'Anthropic'} API key:
+								: provider === 'google'
+									? 'Google'
+									: 'Anthropic'} API key:
 					</h4>
 					<div class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
 						{#if provider === 'groq'}
@@ -392,6 +399,17 @@
 							<p>2. Sign in to your Anthropic account</p>
 							<p>3. Go to API Keys section</p>
 							<p>4. Generate a new API key</p>
+						{:else if provider === 'google'}
+							<p>
+								1. Visit <a
+									href="https://ai.google.dev/"
+									target="_blank"
+									class="text-blue-600 hover:underline dark:text-blue-400">ai.google.dev</a
+								>
+							</p>
+							<p>2. Sign in with your Google account</p>
+							<p>3. Click "Get API key"</p>
+							<p>4. Create a new API key</p>
 						{/if}
 					</div>
 				</div>

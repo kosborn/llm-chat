@@ -67,7 +67,7 @@
 
 	function getProviderName(message: ChatMessage): string {
 		if (message.role === 'user') return 'You';
-		return message.apiMetadata?.provider 
+		return message.apiMetadata?.provider
 			? getProviderDisplayName(message.apiMetadata.provider)
 			: 'Assistant';
 	}

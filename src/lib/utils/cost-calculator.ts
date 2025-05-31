@@ -104,6 +104,20 @@ const PRICING_DATA: Record<string, ProviderPricing> = {
 			inputCostPer1kTokens: 0.0,
 			outputCostPer1kTokens: 0.0
 		}
+	},
+	google: {
+		'gemini-1.5-pro': {
+			inputCostPer1kTokens: 0.00125,
+			outputCostPer1kTokens: 0.005
+		},
+		'gemini-1.5-flash': {
+			inputCostPer1kTokens: 0.000075,
+			outputCostPer1kTokens: 0.0003
+		},
+		'gemini-2.0-flash-exp': {
+			inputCostPer1kTokens: 0.0,
+			outputCostPer1kTokens: 0.0
+		}
 	}
 };
 
@@ -196,6 +210,11 @@ export function getModelDisplayName(provider: string, model: string): string {
 			'mixtral-8x7b-32768': 'Mixtral 8x7B',
 			'gemma2-9b-it': 'Gemma 2 9B',
 			'gemma-7b-it': 'Gemma 7B'
+		},
+		google: {
+			'gemini-1.5-pro': 'Gemini 1.5 Pro',
+			'gemini-1.5-flash': 'Gemini 1.5 Flash',
+			'gemini-2.0-flash-exp': 'Gemini 2.0 Flash (Experimental)'
 		}
 	};
 
@@ -218,7 +237,8 @@ export function getProviderDisplayName(provider: string): string {
 	const displayNames: Record<string, string> = {
 		openai: 'OpenAI',
 		anthropic: 'Anthropic',
-		groq: 'Groq'
+		groq: 'Groq',
+		google: 'Google'
 	};
 
 	return displayNames[provider.toLowerCase()] || provider;

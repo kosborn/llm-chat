@@ -6,9 +6,9 @@
 	} from '$lib/utils/cost-calculator.js';
 
 	interface Props {
-		provider: 'groq' | 'anthropic' | 'openai';
+		provider: 'groq' | 'anthropic' | 'openai' | 'google';
 		model: string;
-		onProviderChange: (provider: 'groq' | 'anthropic' | 'openai') => void;
+		onProviderChange: (provider: 'groq' | 'anthropic' | 'openai' | 'google') => void;
 		onModelChange: (model: string) => void;
 		disabled?: boolean;
 		compact?: boolean;
@@ -27,11 +27,12 @@
 
 	// Available providers in preferred order
 	const PROVIDERS: Array<{
-		value: 'groq' | 'anthropic' | 'openai';
+		value: 'groq' | 'anthropic' | 'openai' | 'google';
 		label: string;
 		description: string;
 	}> = [
 		{ value: 'groq', label: 'Groq', description: 'Fast, free tier available' },
+		{ value: 'google', label: 'Google', description: 'Gemini models' },
 		{ value: 'anthropic', label: 'Anthropic', description: 'Claude models' },
 		{ value: 'openai', label: 'OpenAI', description: 'GPT models' }
 	];
@@ -40,7 +41,8 @@
 	const DEFAULT_MODELS = {
 		groq: 'llama-3.3-70b-versatile',
 		anthropic: 'claude-3-5-sonnet-20241022',
-		openai: 'gpt-4o-mini'
+		openai: 'gpt-4o-mini',
+		google: 'gemini-1.5-pro'
 	};
 
 	// Get supported models for current provider
@@ -54,7 +56,7 @@
 		}
 	});
 
-	function handleProviderChange(newProvider: 'groq' | 'anthropic' | 'openai') {
+	function handleProviderChange(newProvider: 'groq' | 'anthropic' | 'openai' | 'google') {
 		onProviderChange(newProvider);
 		// Auto-select default model for new provider
 		onModelChange(DEFAULT_MODELS[newProvider]);
@@ -67,7 +69,7 @@
 		<select
 			bind:value={provider}
 			onchange={(e) =>
-				handleProviderChange(e.currentTarget.value as 'groq' | 'anthropic' | 'openai')}
+				handleProviderChange(e.currentTarget.value as 'groq' | 'anthropic' | 'openai' | 'google')}
 			{disabled}
 			class="rounded border-0 bg-transparent px-1 py-0 text-xs font-medium text-gray-900
 				   focus:ring-1 focus:ring-blue-500 focus:outline-none
@@ -108,7 +110,7 @@
 				id="provider-select"
 				bind:value={provider}
 				onchange={(e) =>
-					handleProviderChange(e.currentTarget.value as 'groq' | 'anthropic' | 'openai')}
+					handleProviderChange(e.currentTarget.value as 'groq' | 'anthropic' | 'openai' | 'google')}
 				{disabled}
 				class="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-gray-900
 					   focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none
@@ -159,6 +161,8 @@
 					<span class="font-medium">{getProviderDisplayName(provider)}:</span>
 					{#if provider === 'groq'}
 						<span>Free tier available, fast inference</span>
+					{:else if provider === 'google'}
+						<span>Gemini models, multimodal capabilities</span>
 					{:else if provider === 'anthropic'}
 						<span>Claude models, excellent reasoning</span>
 					{:else if provider === 'openai'}

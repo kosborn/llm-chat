@@ -35,7 +35,7 @@
 			const apiKey = apiKeyStore.getApiKey(provider);
 			const hasApiKey = !!apiKey;
 			const isValidApiKey = hasApiKey && apiKeyStore.validateApiKey(apiKey);
-			
+
 			// Determine canSend status based on current provider:
 			// - If offline and no valid API key for this provider: definitely can't send
 			// - If online: can try server-side first, then client-side with API key
@@ -48,7 +48,7 @@
 				// Offline but have valid API key for this provider: can send client-side
 				canSend = true;
 			}
-			
+
 			return {
 				canSend,
 				hasApiKey,

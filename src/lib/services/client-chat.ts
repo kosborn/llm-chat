@@ -1,6 +1,7 @@
 import { createGroq } from '@ai-sdk/groq';
 import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { streamText } from 'ai';
 import { apiKeyStore } from '$lib/stores/api-key-store.svelte.js';
 import { networkStore } from '$lib/stores/network-store.svelte.js';
@@ -56,7 +57,11 @@ class ClientChatService {
 		const requestProvider = provider || 'groq';
 		const requestModel =
 			model ||
-			(requestProvider === 'groq' ? 'llama-3.3-70b-versatile' : 'claude-3-5-sonnet-20241022');
+			(requestProvider === 'groq'
+				? 'llama-3.3-70b-versatile'
+				: requestProvider === 'google'
+					? 'gemini-1.5-pro'
+					: 'claude-3-5-sonnet-20241022');
 
 		// Log outbound message to debug store
 		debugStore.logOutboundMessage(outboundMessages, 'server', {
@@ -221,6 +226,8 @@ class ClientChatService {
 				return createOpenAI({ apiKey });
 			case 'anthropic':
 				return createAnthropic({ apiKey });
+			case 'google':
+				return createGoogleGenerativeAI({ apiKey });
 			default:
 				throw new Error(`Unsupported provider: ${providerType}`);
 		}
@@ -234,6 +241,8 @@ class ClientChatService {
 				return 'OpenAI';
 			case 'anthropic':
 				return 'Anthropic';
+			case 'google':
+				return 'Google';
 			default:
 				return provider;
 		}
@@ -279,7 +288,11 @@ class ClientChatService {
 		const requestProvider = provider || 'groq';
 		const requestModel =
 			model ||
-			(requestProvider === 'groq' ? 'llama-3.3-70b-versatile' : 'claude-3-5-sonnet-20241022');
+			(requestProvider === 'groq'
+				? 'llama-3.3-70b-versatile'
+				: requestProvider === 'google'
+					? 'gemini-1.5-pro'
+					: 'claude-3-5-sonnet-20241022');
 
 		const response = await fetch('/api/generate-title', {
 			method: 'POST',

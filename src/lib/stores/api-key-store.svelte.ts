@@ -4,12 +4,13 @@ interface ApiKeys {
 	groq?: string;
 	openai?: string;
 	anthropic?: string;
+	google?: string;
 }
 
 class ApiKeyStore {
 	apiKeys = $state<ApiKeys>({});
 	isConfigured = $state(false);
-	provider = $state<'groq' | 'openai' | 'anthropic'>('groq');
+	provider = $state<'groq' | 'openai' | 'anthropic' | 'google'>('groq');
 
 	constructor() {
 		if (browser) {
@@ -23,7 +24,8 @@ class ApiKeyStore {
 			const storedProvider = localStorage.getItem('ai-chat-provider') as
 				| 'groq'
 				| 'openai'
-				| 'anthropic';
+				| 'anthropic'
+				| 'google';
 
 			if (storedKeys) {
 				this.apiKeys = JSON.parse(storedKeys);
@@ -42,7 +44,7 @@ class ApiKeyStore {
 		this.isConfigured = Object.values(this.apiKeys).some((key) => !!key);
 	}
 
-	setApiKey(key: string, provider: 'groq' | 'openai' | 'anthropic'): void {
+	setApiKey(key: string, provider: 'groq' | 'openai' | 'anthropic' | 'google'): void {
 		if (!browser) return;
 
 		try {
@@ -60,7 +62,7 @@ class ApiKeyStore {
 		}
 	}
 
-	clearApiKey(provider?: 'groq' | 'openai' | 'anthropic'): void {
+	clearApiKey(provider?: 'groq' | 'openai' | 'anthropic' | 'google'): void {
 		if (provider) {
 			this.setApiKey('', provider);
 		} else {
@@ -72,16 +74,16 @@ class ApiKeyStore {
 		}
 	}
 
-	getApiKey(provider?: 'groq' | 'openai' | 'anthropic'): string | null {
+	getApiKey(provider?: 'groq' | 'openai' | 'anthropic' | 'google'): string | null {
 		const targetProvider = provider || this.provider;
 		return this.apiKeys[targetProvider] || null;
 	}
 
-	hasApiKey(provider: 'groq' | 'openai' | 'anthropic'): boolean {
+	hasApiKey(provider: 'groq' | 'openai' | 'anthropic' | 'google'): boolean {
 		return !!this.apiKeys[provider];
 	}
 
-	validateApiKey(key: string, provider?: 'groq' | 'openai' | 'anthropic'): boolean {
+	validateApiKey(key: string, provider?: 'groq' | 'openai' | 'anthropic' | 'google'): boolean {
 		if (!key || key.trim().length === 0) {
 			return false;
 		}
@@ -96,12 +98,14 @@ class ApiKeyStore {
 				return key.startsWith('sk-');
 			case 'anthropic':
 				return key.startsWith('sk-ant-');
+			case 'google':
+				return key.startsWith('AIza');
 			default:
 				return key.length > 10; // Basic length check
 		}
 	}
 
-	getProviderName(provider?: 'groq' | 'openai' | 'anthropic'): string {
+	getProviderName(provider?: 'groq' | 'openai' | 'anthropic' | 'google'): string {
 		const targetProvider = provider || this.provider;
 		switch (targetProvider) {
 			case 'groq':
@@ -110,12 +114,14 @@ class ApiKeyStore {
 				return 'OpenAI';
 			case 'anthropic':
 				return 'Anthropic';
+			case 'google':
+				return 'Google';
 			default:
 				return 'Unknown';
 		}
 	}
 
-	getModelForProvider(provider?: 'groq' | 'openai' | 'anthropic'): string {
+	getModelForProvider(provider?: 'groq' | 'openai' | 'anthropic' | 'google'): string {
 		const targetProvider = provider || this.provider;
 		switch (targetProvider) {
 			case 'groq':
@@ -124,13 +130,15 @@ class ApiKeyStore {
 				return 'gpt-4o-mini';
 			case 'anthropic':
 				return 'claude-3-5-sonnet-20241022';
+			case 'google':
+				return 'gemini-1.5-pro';
 			default:
 				return 'llama-3.3-70b-versatile';
 		}
 	}
 
-	getAvailableProviders(): Array<'groq' | 'openai' | 'anthropic'> {
-		return (Object.keys(this.apiKeys) as Array<'groq' | 'openai' | 'anthropic'>).filter(
+	getAvailableProviders(): Array<'groq' | 'openai' | 'anthropic' | 'google'> {
+		return (Object.keys(this.apiKeys) as Array<'groq' | 'openai' | 'anthropic' | 'google'>).filter(
 			(provider) => !!this.apiKeys[provider]
 		);
 	}

@@ -1,19 +1,27 @@
 import { createGroq } from '@ai-sdk/groq';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createOpenAI } from '@ai-sdk/openai';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { generateText } from 'ai';
-import { GROQ_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY } from '$env/static/private';
+import {
+	GROQ_API_KEY,
+	ANTHROPIC_API_KEY,
+	OPENAI_API_KEY,
+	GOOGLE_API_KEY
+} from '$env/static/private';
 
 // Provider instances
 const groq = createGroq({ apiKey: GROQ_API_KEY });
 const anthropic = createAnthropic({ apiKey: ANTHROPIC_API_KEY });
 const openai = createOpenAI({ apiKey: OPENAI_API_KEY });
+const google = createGoogleGenerativeAI({ apiKey: GOOGLE_API_KEY });
 
 // Default models for each provider
 const DEFAULT_MODELS = {
 	groq: 'llama-3.3-70b-versatile',
 	anthropic: 'claude-3-5-sonnet-20241022',
-	openai: 'gpt-4o-mini'
+	openai: 'gpt-4o-mini',
+	google: 'gemini-1.5-pro'
 };
 
 // Available API keys check
@@ -29,6 +37,9 @@ function getAvailableProviders(): string[] {
 	if (OPENAI_API_KEY && OPENAI_API_KEY !== 'your_openai_api_key_here') {
 		providers.push('openai');
 	}
+	if (GOOGLE_API_KEY && GOOGLE_API_KEY !== 'your_google_api_key_here') {
+		providers.push('google');
+	}
 
 	return providers;
 }
@@ -41,6 +52,8 @@ function getProviderInstance(provider: string) {
 			return anthropic;
 		case 'openai':
 			return openai;
+		case 'google':
+			return google;
 		default:
 			throw new Error(`Unsupported provider: ${provider}`);
 	}
@@ -71,9 +84,11 @@ export async function POST({ request }: { request: Request }) {
 
 		// If requested provider is not available, fall back to available ones
 		if (!availableProviders.includes(selectedProvider)) {
-			// Prefer Groq first, then Anthropic, then OpenAI
+			// Prefer Groq first, then Google, then Anthropic, then OpenAI
 			if (availableProviders.includes('groq')) {
 				selectedProvider = 'groq';
+			} else if (availableProviders.includes('google')) {
+				selectedProvider = 'google';
 			} else if (availableProviders.includes('anthropic')) {
 				selectedProvider = 'anthropic';
 			} else {
@@ -121,9 +136,11 @@ export async function POST({ request }: { request: Request }) {
 			if (remainingProviders.length > 0) {
 				const fallbackProvider = remainingProviders.includes('groq')
 					? 'groq'
-					: remainingProviders.includes('anthropic')
-						? 'anthropic'
-						: remainingProviders[0];
+					: remainingProviders.includes('google')
+						? 'google'
+						: remainingProviders.includes('anthropic')
+							? 'anthropic'
+							: remainingProviders[0];
 				const fallbackModel = DEFAULT_MODELS[fallbackProvider];
 
 				try {

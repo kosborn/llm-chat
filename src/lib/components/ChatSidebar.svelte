@@ -181,7 +181,12 @@
 								/>
 							{:else}
 								<div class="flex flex-1 items-center gap-2">
-									<span class="text-sm" title={getChatProvider(chat) ? getProviderDisplayName(getChatProvider(chat)!) : 'No provider'}>
+									<span
+										class="text-sm"
+										title={getChatProvider(chat)
+											? getProviderDisplayName(getChatProvider(chat)!)
+											: 'No provider'}
+									>
 										{getProviderIcon(getChatProvider(chat))}
 									</span>
 									<h3 class="flex-1 truncate text-sm font-medium text-gray-900 dark:text-gray-100">
