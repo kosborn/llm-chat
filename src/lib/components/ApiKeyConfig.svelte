@@ -343,14 +343,13 @@
 						How to get your {getProvider(provider)?.displayName || 'AI'} API key:
 					</h4>
 					<div class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-						{@const currentProvider = getProvider(provider)}
-						{#if currentProvider}
+						{#if getProvider(provider)}
+							{@const currentProvider = getProvider(provider)}
 							<p>
 								1. Visit <a
 									href={currentProvider.signupUrl}
 									target="_blank"
-									class="text-blue-600 hover:underline dark:text-blue-400"
-									>{currentProvider.signupUrl}</a
+									class="text-blue-600 hover:underline dark:text-blue-400">{currentProvider.signupUrl}</a
 								>
 							</p>
 							<p>2. Sign in or create an account</p>
