@@ -56,6 +56,10 @@ const PRICING_DATA: Record<string, ProviderPricing> = {
 		}
 	},
 	groq: {
+		'llama-3.3-70b-versatile': {
+			inputCostPer1kTokens: 0.0,
+			outputCostPer1kTokens: 0.0
+		},
 		'llama-3.1-405b-reasoning': {
 			inputCostPer1kTokens: 0.0,
 			outputCostPer1kTokens: 0.0
@@ -65,6 +69,18 @@ const PRICING_DATA: Record<string, ProviderPricing> = {
 			outputCostPer1kTokens: 0.0
 		},
 		'llama-3.1-8b-instant': {
+			inputCostPer1kTokens: 0.0,
+			outputCostPer1kTokens: 0.0
+		},
+		'deepseek-r1-distill-llama-70b': {
+			inputCostPer1kTokens: 0.0,
+			outputCostPer1kTokens: 0.0
+		},
+		'meta-llama/llama-4-maverick-17b-128e-instruct': {
+			inputCostPer1kTokens: 0.0,
+			outputCostPer1kTokens: 0.0
+		},
+		'meta-llama/llama-4-scout-17b-16e-instruct': {
 			inputCostPer1kTokens: 0.0,
 			outputCostPer1kTokens: 0.0
 		},
@@ -168,9 +184,13 @@ export function getModelDisplayName(provider: string, model: string): string {
 			'claude-3-haiku-20240307': 'Claude 3 Haiku'
 		},
 		groq: {
+			'llama-3.3-70b-versatile': 'Llama 3.3 70B',
 			'llama-3.1-405b-reasoning': 'Llama 3.1 405B',
 			'llama-3.1-70b-versatile': 'Llama 3.1 70B',
 			'llama-3.1-8b-instant': 'Llama 3.1 8B',
+			'deepseek-r1-distill-llama-70b': 'DeepSeek R1 Distill 70B',
+			'meta-llama/llama-4-maverick-17b-128e-instruct': 'Llama 4 Maverick 17B',
+			'meta-llama/llama-4-scout-17b-16e-instruct': 'Llama 4 Scout 17B',
 			'llama3-groq-70b-8192-tool-use-preview': 'Llama 3 70B (Tool Use)',
 			'llama3-groq-8b-8192-tool-use-preview': 'Llama 3 8B (Tool Use)',
 			'mixtral-8x7b-32768': 'Mixtral 8x7B',

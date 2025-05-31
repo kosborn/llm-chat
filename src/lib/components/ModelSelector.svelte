@@ -36,7 +36,7 @@
 
 	// Default models for each provider
 	const DEFAULT_MODELS = {
-		groq: 'llama-3.1-70b-versatile',
+		groq: 'llama-3.3-70b-versatile',
 		anthropic: 'claude-3-5-sonnet-20241022',
 		openai: 'gpt-4o-mini'
 	};

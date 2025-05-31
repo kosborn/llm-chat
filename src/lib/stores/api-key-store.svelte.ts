@@ -119,13 +119,13 @@ class ApiKeyStore {
 		const targetProvider = provider || this.provider;
 		switch (targetProvider) {
 			case 'groq':
-				return 'llama-3.1-70b-versatile';
+				return 'llama-3.3-70b-versatile';
 			case 'openai':
 				return 'gpt-4o-mini';
 			case 'anthropic':
 				return 'claude-3-5-sonnet-20241022';
 			default:
-				return 'llama-3.1-70b-versatile';
+				return 'llama-3.3-70b-versatile';
 		}
 	}
 

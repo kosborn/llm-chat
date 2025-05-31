@@ -56,7 +56,7 @@ class ClientChatService {
 		const requestProvider = provider || 'groq';
 		const requestModel =
 			model ||
-			(requestProvider === 'groq' ? 'llama-3.1-70b-versatile' : 'claude-3-5-sonnet-20241022');
+			(requestProvider === 'groq' ? 'llama-3.3-70b-versatile' : 'claude-3-5-sonnet-20241022');
 
 		// Log outbound message to debug store
 		debugStore.logOutboundMessage(outboundMessages, 'server', {
@@ -279,7 +279,7 @@ class ClientChatService {
 		const requestProvider = provider || 'groq';
 		const requestModel =
 			model ||
-			(requestProvider === 'groq' ? 'llama-3.1-70b-versatile' : 'claude-3-5-sonnet-20241022');
+			(requestProvider === 'groq' ? 'llama-3.3-70b-versatile' : 'claude-3-5-sonnet-20241022');
 
 		const response = await fetch('/api/generate-title', {
 			method: 'POST',

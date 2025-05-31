@@ -38,7 +38,7 @@
 
 	// Per-chat provider and model selection
 	let currentProvider = $state<'groq' | 'anthropic' | 'openai'>('groq');
-	let currentModel = $state('llama-3.1-70b-versatile');
+	let currentModel = $state('llama-3.3-70b-versatile');
 
 	const status = $derived(() => {
 		try {
@@ -119,7 +119,18 @@
 				return;
 			}
 
-			await chatStore.createChat();
+			const newChatId = await chatStore.createChat();
+			
+			// Set provider and model on the new chat
+			if (chatStore.currentChat) {
+				const updatedChat = {
+					...chatStore.currentChat,
+					provider: currentProvider,
+					model: currentModel
+				};
+				await chatStore.updateChat(updatedChat);
+			}
+			
 			// Focus the input after creating a new chat
 			setTimeout(() => {
 				chatInputComponent?.focus();
@@ -131,13 +142,15 @@
 
 	async function handleSelectChat(event: CustomEvent<{ chatId: string }>) {
 		await chatStore.selectChat(event.detail.chatId);
+	}
 
-		// Sync provider and model from selected chat
+	// Sync provider and model when current chat changes
+	$effect(() => {
 		if (chatStore.currentChat) {
 			currentProvider = chatStore.currentChat.provider || 'groq';
-			currentModel = chatStore.currentChat.model || 'llama-3.1-70b-versatile';
+			currentModel = chatStore.currentChat.model || 'llama-3.3-70b-versatile';
 		}
-	}
+	});
 
 	async function handleArchiveChat(event: CustomEvent<{ chatId: string }>) {
 		try {
@@ -264,6 +277,10 @@
 				model: selectedModel
 			};
 			await chatStore.updateChat(updatedChat);
+			
+			// Update local state to match
+			currentProvider = selectedProvider;
+			currentModel = selectedModel;
 		}
 
 		if (!chatStore.currentChatId) {

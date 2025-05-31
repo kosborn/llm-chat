@@ -38,7 +38,9 @@ class ChatStorage {
 			title: title || 'New Chat',
 			messages: [],
 			createdAt: Date.now(),
-			updatedAt: Date.now()
+			updatedAt: Date.now(),
+			provider: 'groq',
+			model: 'llama-3.3-70b-versatile'
 		};
 
 		// Serialize to ensure it can be stored in IndexedDB
