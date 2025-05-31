@@ -11,6 +11,7 @@
 	} from '$lib/utils/simple-token-counter';
 	import ToolSelector from './ToolSelector.svelte';
 	import FormattedTextInput from './FormattedTextInput.svelte';
+	import ModelSelector from './ModelSelector.svelte';
 	import { defaultFormatRules } from '$lib/utils/text-formatter';
 
 	import type { ToolMetadata } from '$lib/tools/types.js';
@@ -18,12 +19,23 @@
 	interface Props {
 		disabled?: boolean;
 		placeholder?: string;
+		provider?: 'groq' | 'anthropic' | 'openai';
+		model?: string;
+		onProviderChange?: (provider: 'groq' | 'anthropic' | 'openai') => void;
+		onModelChange?: (model: string) => void;
 	}
 
-	let { disabled = false, placeholder = 'Type a message...' }: Props = $props();
+	let {
+		disabled = false,
+		placeholder = 'Type a message...',
+		provider = 'groq',
+		model = 'llama-3.1-70b-versatile',
+		onProviderChange,
+		onModelChange
+	}: Props = $props();
 
 	const dispatch = createEventDispatcher<{
-		submit: { message: string };
+		submit: { message: string; provider: string; model: string };
 	}>();
 
 	let inputValue = $state('');
@@ -43,7 +55,7 @@
 		event?.preventDefault();
 		const message = inputValue.trim();
 		if (message && !disabled) {
-			dispatch('submit', { message });
+			dispatch('submit', { message, provider, model });
 			inputValue = '';
 			// Reset textarea height
 			const textarea = formattedTextInput?.getTextarea();
@@ -220,6 +232,20 @@
 </script>
 
 <div class="border-t border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
+	<!-- Model Selector -->
+	<div class="mb-3 flex justify-end">
+		<div class="w-64">
+			<ModelSelector
+				{provider}
+				{model}
+				onProviderChange={(newProvider) => onProviderChange?.(newProvider)}
+				onModelChange={(newModel) => onModelChange?.(newModel)}
+				{disabled}
+				compact={true}
+			/>
+		</div>
+	</div>
+
 	<form onsubmit={handleSubmit} class="flex items-end gap-3">
 		<div class="flex-1">
 			<FormattedTextInput

@@ -17,7 +17,7 @@ interface ChatResponse {
 class ClientChatService {
 	async sendMessage(
 		messages: ChatMessage[],
-		provider?: 'groq' | 'openai' | 'anthropic',
+		provider?: string,
 		model?: string
 	): Promise<ChatResponse> {
 		// Check network status first
@@ -30,29 +30,38 @@ class ClientChatService {
 
 		// Try server-side first
 		try {
-			return await this.sendMessageServerSide(messages, provider, model);
+			const serverResponse = await this.tryServerSide(messages, provider, model);
+			if (serverResponse.success) {
+				return serverResponse;
+			}
 		} catch (error) {
-			console.log('Server unavailable, falling back to client-side:', error);
+			console.log('Server-side unavailable, falling back to client-side:', error);
 		}
 
 		// Fallback to client-side
 		return this.sendMessageClientSide(messages, provider, model);
 	}
 
-	private async sendMessageServerSide(
+	private async tryServerSide(
 		messages: ChatMessage[],
-		provider?: 'groq' | 'openai' | 'anthropic',
+		provider?: string,
 		model?: string
 	): Promise<ChatResponse> {
-		// Convert messages to the format expected by the server
 		const outboundMessages = messages.map((msg) => ({
 			role: msg.role,
 			content: msg.content
 		}));
 
-		debugStore.addApiMetrics({
-			provider: provider || 'server',
-			model: model || 'default'
+		// Use provided provider/model or defaults (Groq first, then Anthropic)
+		const requestProvider = provider || 'groq';
+		const requestModel =
+			model ||
+			(requestProvider === 'groq' ? 'llama-3.1-70b-versatile' : 'claude-3-5-sonnet-20241022');
+
+		// Log outbound message to debug store
+		debugStore.logOutboundMessage(outboundMessages, 'server', {
+			provider: requestProvider,
+			model: requestModel
 		});
 
 		const response = await fetch('/api/chat', {
@@ -62,8 +71,8 @@ class ClientChatService {
 			},
 			body: JSON.stringify({
 				messages: outboundMessages,
-				provider,
-				model
+				provider: requestProvider,
+				model: requestModel
 			})
 		});
 
@@ -75,21 +84,31 @@ class ClientChatService {
 			throw new Error('No response body');
 		}
 
+		// Extract provider/model info from response headers if available
+		const actualProvider = response.headers.get('X-Provider') || requestProvider;
+		const actualModel = response.headers.get('X-Model') || requestModel;
+		const wasFallback = response.headers.get('X-Fallback') === 'true';
+
+		if (wasFallback) {
+			console.log(`Server used fallback: ${actualProvider}/${actualModel}`);
+		}
+
 		return {
 			success: true,
-			stream: response.body
+			stream: response.body,
+			apiMetadata: {
+				provider: actualProvider,
+				model: actualModel,
+				timestamp: Date.now()
+			}
 		};
 	}
 
 	private async sendMessageClientSide(
 		messages: ChatMessage[],
-		provider?: 'groq' | 'openai' | 'anthropic',
+		provider?: string,
 		model?: string
 	): Promise<ChatResponse> {
-		// Use provided provider/model or fall back to API key store
-		const effectiveProvider = provider || apiKeyStore.provider;
-		const effectiveModel = model || apiKeyStore.getModelForProvider();
-
 		// Check if we have an API key
 		if (!apiKeyStore.isConfigured) {
 			return {
@@ -99,22 +118,24 @@ class ClientChatService {
 			};
 		}
 
-		// Validate the API key format
-		const apiKey = apiKeyStore.getApiKey();
-		if (!apiKey || !apiKeyStore.validateApiKey(apiKey)) {
+		// Use provided provider/model or fall back to configured ones
+		const currentProvider = provider || apiKeyStore.provider;
+		const currentModel = model || apiKeyStore.getModelForProvider(currentProvider);
+
+		// Get API key for the specific provider
+		const apiKey = apiKeyStore.getApiKey(currentProvider);
+		if (!apiKey || !apiKeyStore.validateApiKey(apiKey, currentProvider)) {
 			return {
 				success: false,
-				error: `Server AI is unavailable and your ${apiKeyStore.getProviderName()} API key format is invalid. Please check your API key in settings.`
+				error: `Server AI is unavailable and your ${this.getProviderDisplayName(currentProvider)} API key format is invalid. Please check your API key in settings.`
 			};
 		}
 
 		const startTime = Date.now();
-		const currentProvider = effectiveProvider;
-		const currentModel = effectiveModel;
 
 		try {
-			const provider = this.createProvider(apiKey, effectiveProvider);
-			const model = provider(currentModel);
+			const providerInstance = this.createProvider(apiKey, currentProvider);
+			const modelInstance = providerInstance(currentModel);
 
 			// Convert ChatMessage format to AI SDK format
 			const aiMessages = messages.map((msg) => ({
@@ -137,7 +158,7 @@ class ClientChatService {
 			});
 
 			const result = streamText({
-				model,
+				model: modelInstance,
 				messages: aiMessages,
 				temperature: 0.7,
 				maxSteps: 5
@@ -191,9 +212,9 @@ class ClientChatService {
 		}
 	}
 
-	private createProvider(apiKey: string, provider?: 'groq' | 'openai' | 'anthropic') {
-		const effectiveProvider = provider || apiKeyStore.provider;
-		switch (effectiveProvider) {
+	private createProvider(apiKey: string, provider?: string) {
+		const providerType = provider || apiKeyStore.provider;
+		switch (providerType) {
 			case 'groq':
 				return createGroq({ apiKey });
 			case 'openai':
@@ -201,11 +222,29 @@ class ClientChatService {
 			case 'anthropic':
 				return createAnthropic({ apiKey });
 			default:
-				throw new Error(`Unsupported provider: ${effectiveProvider}`);
+				throw new Error(`Unsupported provider: ${providerType}`);
 		}
 	}
 
-	async generateTitle(userMessage: string, assistantMessage: string): Promise<string | null> {
+	private getProviderDisplayName(provider: string): string {
+		switch (provider) {
+			case 'groq':
+				return 'Groq';
+			case 'openai':
+				return 'OpenAI';
+			case 'anthropic':
+				return 'Anthropic';
+			default:
+				return provider;
+		}
+	}
+
+	async generateTitle(
+		userMessage: string,
+		assistantMessage: string,
+		provider?: string,
+		model?: string
+	): Promise<string | null> {
 		// Check network status first
 		if (!networkStore.isOnline) {
 			return null;
@@ -213,7 +252,12 @@ class ClientChatService {
 
 		// Try server-side first
 		try {
-			const serverTitle = await this.tryServerSideTitle(userMessage, assistantMessage);
+			const serverTitle = await this.tryServerSideTitle(
+				userMessage,
+				assistantMessage,
+				provider,
+				model
+			);
 			if (serverTitle) {
 				return serverTitle;
 			}
@@ -222,13 +266,21 @@ class ClientChatService {
 		}
 
 		// Fallback to client-side
-		return this.generateTitleClientSide(userMessage, assistantMessage);
+		return this.generateTitleClientSide(userMessage, assistantMessage, provider, model);
 	}
 
 	private async tryServerSideTitle(
 		userMessage: string,
-		assistantMessage: string
+		assistantMessage: string,
+		provider?: string,
+		model?: string
 	): Promise<string | null> {
+		// Use provided provider/model or defaults (Groq first, then Anthropic)
+		const requestProvider = provider || 'groq';
+		const requestModel =
+			model ||
+			(requestProvider === 'groq' ? 'llama-3.1-70b-versatile' : 'claude-3-5-sonnet-20241022');
+
 		const response = await fetch('/api/generate-title', {
 			method: 'POST',
 			headers: {
@@ -236,7 +288,9 @@ class ClientChatService {
 			},
 			body: JSON.stringify({
 				userMessage,
-				assistantMessage
+				assistantMessage,
+				provider: requestProvider,
+				model: requestModel
 			})
 		});
 
@@ -250,22 +304,24 @@ class ClientChatService {
 
 	private async generateTitleClientSide(
 		userMessage: string,
-		assistantMessage: string
+		assistantMessage: string,
+		provider?: string,
+		model?: string
 	): Promise<string | null> {
-		// Check if we have an API key for client-side
-		if (!apiKeyStore.isConfigured) {
-			return null;
-		}
+		// Use provided provider/model or fall back to configured ones
+		const currentProvider = provider || apiKeyStore.provider;
+		const currentModel = model || apiKeyStore.getModelForProvider(currentProvider);
+
+		// Check if we have an API key for the specific provider
+		const apiKey = apiKeyStore.getApiKey(currentProvider);
+		if (!apiKey) return null;
 
 		try {
-			const apiKey = apiKeyStore.getApiKey();
-			if (!apiKey) return null;
-
-			const provider = this.createProvider(apiKey);
-			const model = provider(apiKeyStore.getModelForProvider());
+			const providerInstance = this.createProvider(apiKey, currentProvider);
+			const modelInstance = providerInstance(currentModel);
 
 			const result = await streamText({
-				model,
+				model: modelInstance,
 				messages: [
 					{
 						role: 'system',

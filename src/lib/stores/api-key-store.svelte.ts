@@ -1,7 +1,13 @@
 import { browser } from '$app/environment';
 
+interface ApiKeys {
+	groq?: string;
+	openai?: string;
+	anthropic?: string;
+}
+
 class ApiKeyStore {
-	apiKey = $state<string | null>(null);
+	apiKeys = $state<ApiKeys>({});
 	isConfigured = $state(false);
 	provider = $state<'groq' | 'openai' | 'anthropic'>('groq');
 
@@ -13,60 +19,77 @@ class ApiKeyStore {
 
 	private loadFromStorage(): void {
 		try {
-			const stored = localStorage.getItem('ai-chat-api-key');
+			const storedKeys = localStorage.getItem('ai-chat-api-keys');
 			const storedProvider = localStorage.getItem('ai-chat-provider') as
 				| 'groq'
 				| 'openai'
 				| 'anthropic';
 
-			if (stored) {
-				this.apiKey = stored;
-				this.isConfigured = true;
+			if (storedKeys) {
+				this.apiKeys = JSON.parse(storedKeys);
+				this.updateConfiguredState();
 			}
 
 			if (storedProvider) {
 				this.provider = storedProvider;
 			}
 		} catch (error) {
-			console.warn('Failed to load API key from storage:', error);
+			console.warn('Failed to load API keys from storage:', error);
 		}
 	}
 
-	setApiKey(key: string, provider: 'groq' | 'openai' | 'anthropic' = 'groq'): void {
+	private updateConfiguredState(): void {
+		this.isConfigured = Object.values(this.apiKeys).some((key) => !!key);
+	}
+
+	setApiKey(key: string, provider: 'groq' | 'openai' | 'anthropic'): void {
 		if (!browser) return;
 
 		try {
-			this.apiKey = key;
+			this.apiKeys = {
+				...this.apiKeys,
+				[provider]: key
+			};
 			this.provider = provider;
-			this.isConfigured = !!key;
+			this.updateConfiguredState();
 
-			if (key) {
-				localStorage.setItem('ai-chat-api-key', key);
-				localStorage.setItem('ai-chat-provider', provider);
-			} else {
-				localStorage.removeItem('ai-chat-api-key');
-				localStorage.removeItem('ai-chat-provider');
-			}
+			localStorage.setItem('ai-chat-api-keys', JSON.stringify(this.apiKeys));
+			localStorage.setItem('ai-chat-provider', provider);
 		} catch (error) {
 			console.error('Failed to save API key:', error);
 		}
 	}
 
-	clearApiKey(): void {
-		this.setApiKey('');
+	clearApiKey(provider?: 'groq' | 'openai' | 'anthropic'): void {
+		if (provider) {
+			this.setApiKey('', provider);
+		} else {
+			this.apiKeys = {};
+			this.updateConfiguredState();
+			if (browser) {
+				localStorage.removeItem('ai-chat-api-keys');
+			}
+		}
 	}
 
-	getApiKey(): string | null {
-		return this.apiKey;
+	getApiKey(provider?: 'groq' | 'openai' | 'anthropic'): string | null {
+		const targetProvider = provider || this.provider;
+		return this.apiKeys[targetProvider] || null;
 	}
 
-	validateApiKey(key: string): boolean {
+	hasApiKey(provider: 'groq' | 'openai' | 'anthropic'): boolean {
+		return !!this.apiKeys[provider];
+	}
+
+	validateApiKey(key: string, provider?: 'groq' | 'openai' | 'anthropic'): boolean {
 		if (!key || key.trim().length === 0) {
 			return false;
 		}
 
+		const targetProvider = provider || this.provider;
+
 		// Basic validation based on provider
-		switch (this.provider) {
+		switch (targetProvider) {
 			case 'groq':
 				return key.startsWith('gsk_');
 			case 'openai':
@@ -78,8 +101,9 @@ class ApiKeyStore {
 		}
 	}
 
-	getProviderName(): string {
-		switch (this.provider) {
+	getProviderName(provider?: 'groq' | 'openai' | 'anthropic'): string {
+		const targetProvider = provider || this.provider;
+		switch (targetProvider) {
 			case 'groq':
 				return 'Groq';
 			case 'openai':
@@ -91,17 +115,28 @@ class ApiKeyStore {
 		}
 	}
 
-	getModelForProvider(): string {
-		switch (this.provider) {
+	getModelForProvider(provider?: 'groq' | 'openai' | 'anthropic'): string {
+		const targetProvider = provider || this.provider;
+		switch (targetProvider) {
 			case 'groq':
-				return 'meta-llama/llama-4-scout-17b-16e-instruct';
+				return 'llama-3.1-70b-versatile';
 			case 'openai':
 				return 'gpt-4o-mini';
 			case 'anthropic':
-				return 'claude-3-haiku-20240307';
+				return 'claude-3-5-sonnet-20241022';
 			default:
-				return 'meta-llama/llama-4-scout-17b-16e-instruct';
+				return 'llama-3.1-70b-versatile';
 		}
+	}
+
+	getAvailableProviders(): Array<'groq' | 'openai' | 'anthropic'> {
+		return (Object.keys(this.apiKeys) as Array<'groq' | 'openai' | 'anthropic'>).filter(
+			(provider) => !!this.apiKeys[provider]
+		);
+	}
+
+	getConfiguredProviderCount(): number {
+		return this.getAvailableProviders().length;
 	}
 }
 

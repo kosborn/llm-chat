@@ -6,10 +6,9 @@
 
 	interface Props {
 		onConfigureApi: () => void;
-		onConfigureServer?: () => void;
 	}
 
-	let { onConfigureApi, onConfigureServer }: Props = $props();
+	let { onConfigureApi }: Props = $props();
 	let serverAvailable = $state<boolean | null>(null);
 	let checkingServer = $state(false);
 	let lastCheckTime = 0;
@@ -128,34 +127,22 @@
 		</span>
 	</div>
 
-	<!-- Configure Buttons -->
-	<div class="flex gap-1">
-		{#if needsApiKey()}
-			<button
-				onclick={onConfigureApi}
-				class="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700"
-			>
-				Configure
-			</button>
-		{:else}
-			<button
-				onclick={onConfigureApi}
-				class="rounded bg-gray-600 px-2 py-1 text-xs text-white hover:bg-gray-700"
-			>
-				Client
-			</button>
-		{/if}
-		
-		{#if onConfigureServer}
-			<button
-				onclick={onConfigureServer}
-				class="rounded bg-purple-600 px-2 py-1 text-xs text-white hover:bg-purple-700"
-				title="Configure server AI provider and model"
-			>
-				Server
-			</button>
-		{/if}
-	</div>
+	<!-- Configure Button -->
+	{#if needsApiKey()}
+		<button
+			onclick={onConfigureApi}
+			class="rounded bg-blue-600 px-2 py-1 text-xs text-white hover:bg-blue-700"
+		>
+			Configure
+		</button>
+	{:else}
+		<button
+			onclick={onConfigureApi}
+			class="rounded bg-gray-600 px-2 py-1 text-xs text-white hover:bg-gray-700"
+		>
+			Settings
+		</button>
+	{/if}
 
 	<!-- Queue Status -->
 	{#if offlineQueueStore.hasQueuedMessages()}

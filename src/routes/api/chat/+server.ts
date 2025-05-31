@@ -1,15 +1,9 @@
 import { createGroq } from '@ai-sdk/groq';
-import { createOpenAI } from '@ai-sdk/openai';
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { createOpenAI } from '@ai-sdk/openai';
 import { streamText } from 'ai';
 import { toolsRegistry } from '$lib/tools/index.js';
-import {
-	GROQ_API_KEY,
-	OPENAI_API_KEY,
-	ANTHROPIC_API_KEY,
-	AI_PROVIDER,
-	AI_MODEL
-} from '$env/static/private';
+import { GROQ_API_KEY, ANTHROPIC_API_KEY, OPENAI_API_KEY } from '$env/static/private';
 
 // Debug logging utility for server-side debugging
 const DEBUG_MODE = process.env.NODE_ENV === 'development';
@@ -23,109 +17,76 @@ function debugLog(message: string, data?: any) {
 	}
 }
 
-// Provider configuration with fallback defaults
-const CONFIG = {
-	provider: (AI_PROVIDER || 'groq').toLowerCase() as 'groq' | 'openai' | 'anthropic',
-	model: AI_MODEL || getDefaultModel((AI_PROVIDER || 'groq').toLowerCase())
+// Provider instances
+const groq = createGroq({ apiKey: GROQ_API_KEY });
+const anthropic = createAnthropic({ apiKey: ANTHROPIC_API_KEY });
+const openai = createOpenAI({ apiKey: OPENAI_API_KEY });
+
+// Default models for each provider
+const DEFAULT_MODELS = {
+	groq: 'llama-3.1-70b-versatile',
+	anthropic: 'claude-3-5-sonnet-20241022',
+	openai: 'gpt-4o-mini'
 };
 
-function getDefaultModel(provider: string): string {
-	switch (provider) {
-		case 'groq':
-			return 'meta-llama/llama-4-scout-17b-16e-instruct';
-		case 'openai':
-			return 'gpt-4o-mini';
-		case 'anthropic':
-			return 'claude-3-5-sonnet-20241022';
-		default:
-			return 'meta-llama/llama-4-scout-17b-16e-instruct';
+// Available API keys check
+function getAvailableProviders(): string[] {
+	const providers: string[] = [];
+
+	if (GROQ_API_KEY && GROQ_API_KEY !== 'your_groq_api_key_here') {
+		providers.push('groq');
 	}
+	if (ANTHROPIC_API_KEY && ANTHROPIC_API_KEY !== 'your_anthropic_api_key_here') {
+		providers.push('anthropic');
+	}
+	if (OPENAI_API_KEY && OPENAI_API_KEY !== 'your_openai_api_key_here') {
+		providers.push('openai');
+	}
+
+	return providers;
 }
 
-function createProvider() {
-	return createDynamicProvider(CONFIG.provider);
-}
-
-function createDynamicProvider(provider: 'groq' | 'openai' | 'anthropic') {
+function getProviderInstance(provider: string) {
 	switch (provider) {
 		case 'groq':
-			if (!GROQ_API_KEY || GROQ_API_KEY === 'your_groq_api_key_here') {
-				throw new Error('Groq API key not configured');
-			}
-			return createGroq({ apiKey: GROQ_API_KEY });
-
-		case 'openai':
-			if (!OPENAI_API_KEY || OPENAI_API_KEY === 'your_openai_api_key_here') {
-				throw new Error('OpenAI API key not configured');
-			}
-			return createOpenAI({ apiKey: OPENAI_API_KEY });
-
+			return groq;
 		case 'anthropic':
-			if (!ANTHROPIC_API_KEY || ANTHROPIC_API_KEY === 'your_anthropic_api_key_here') {
-				throw new Error('Anthropic API key not configured');
-			}
-			return createAnthropic({ apiKey: ANTHROPIC_API_KEY });
-
+			return anthropic;
+		case 'openai':
+			return openai;
 		default:
 			throw new Error(`Unsupported provider: ${provider}`);
 	}
-}
-
-function getProviderStatus() {
-	const status = {
-		provider: CONFIG.provider,
-		model: CONFIG.model,
-		available: false,
-		error: null as string | null
-	};
-
-	try {
-		createProvider();
-		status.available = true;
-	} catch (error) {
-		status.error = error instanceof Error ? error.message : 'Unknown error';
-	}
-
-	return status;
 }
 
 export async function POST({ request }: { request: Request }) {
 	const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
 	try {
-		debugLog(`[${requestId}] Incoming chat request`, {
-			provider: CONFIG.provider,
-			model: CONFIG.model
-		});
+		debugLog(`[${requestId}] Incoming chat request`);
 
-		const { messages, model: requestModel, provider: requestProvider } = await request.json();
-
-		// Use request provider/model or fall back to server defaults
-		const selectedProvider = requestProvider || CONFIG.provider;
-		const selectedModel =
-			requestModel || (requestProvider ? getDefaultModel(requestProvider) : CONFIG.model);
+		const { messages, provider, model } = await request.json();
 
 		debugLog(`[${requestId}] Parsed request body`, {
 			messageCount: messages.length,
-			selectedProvider,
-			selectedModel,
+			provider,
+			model,
 			lastMessage: messages[messages.length - 1]
 		});
 
 		// Handle health check requests
 		if (messages.length === 1 && messages[0].content === 'health-check') {
-			debugLog(`[${requestId}] Health check request - checking provider availability`);
+			debugLog(`[${requestId}] Health check request - checking API key availability`);
 
-			const status = getProviderStatus();
+			const availableProviders = getAvailableProviders();
 
-			if (!status.available) {
-				debugLog(`[${requestId}] Provider not available: ${status.error}`);
+			if (availableProviders.length === 0) {
+				debugLog(`[${requestId}] No valid API keys configured`);
 				return new Response(
 					JSON.stringify({
-						error: status.error,
+						error: 'Server API keys not configured',
 						available: false,
-						provider: status.provider,
-						model: status.model
+						providers: []
 					}),
 					{
 						status: 503,
@@ -134,12 +95,13 @@ export async function POST({ request }: { request: Request }) {
 				);
 			}
 
+			// Return a simple success response for health checks
 			return new Response(
 				JSON.stringify({
 					status: 'ok',
 					available: true,
-					provider: status.provider,
-					model: status.model
+					providers: availableProviders,
+					defaultModels: DEFAULT_MODELS
 				}),
 				{
 					status: 200,
@@ -148,19 +110,14 @@ export async function POST({ request }: { request: Request }) {
 			);
 		}
 
-		// Create provider instance dynamically
-		let provider;
-		try {
-			provider = createDynamicProvider(selectedProvider);
-		} catch (error) {
-			const errorMessage = error instanceof Error ? error.message : 'Provider configuration error';
-			debugLog(`[${requestId}] Provider creation failed: ${errorMessage}`);
+		const availableProviders = getAvailableProviders();
 
+		// Check if any API keys are available for actual chat requests
+		if (availableProviders.length === 0) {
+			debugLog(`[${requestId}] No valid API keys configured for chat request`);
 			return new Response(
 				JSON.stringify({
-					error: `AI provider '${selectedProvider}' not configured: ${errorMessage}. Please configure your own API key.`,
-					provider: selectedProvider,
-					model: selectedModel
+					error: 'Server API keys not configured. Please configure your own API key.'
 				}),
 				{
 					status: 503,
@@ -169,13 +126,37 @@ export async function POST({ request }: { request: Request }) {
 			);
 		}
 
+		// Determine provider and model to use
+		let selectedProvider = provider || 'groq'; // Default to Groq
+		let selectedModel = model;
+
+		// If requested provider is not available, fall back to available ones
+		if (!availableProviders.includes(selectedProvider)) {
+			// Prefer Groq first, then Anthropic, then OpenAI
+			if (availableProviders.includes('groq')) {
+				selectedProvider = 'groq';
+			} else if (availableProviders.includes('anthropic')) {
+				selectedProvider = 'anthropic';
+			} else {
+				selectedProvider = availableProviders[0];
+			}
+			debugLog(`[${requestId}] Provider ${provider} not available, using ${selectedProvider}`);
+		}
+
+		// Set default model if not specified
+		if (!selectedModel) {
+			selectedModel = DEFAULT_MODELS[selectedProvider];
+		}
+
+		debugLog(`[${requestId}] Using provider: ${selectedProvider}, model: ${selectedModel}`);
 		debugLog(`[${requestId}] Available tools`, Object.keys(toolsRegistry));
 
-		// Attempt to create the AI model and handle potential model validation errors
-		let result;
 		try {
-			result = streamText({
-				model: provider(selectedModel),
+			const providerInstance = getProviderInstance(selectedProvider);
+			const modelInstance = providerInstance(selectedModel);
+
+			const result = streamText({
+				model: modelInstance,
 				messages,
 				tools: toolsRegistry as any,
 				maxSteps: 5,
@@ -204,62 +185,80 @@ export async function POST({ request }: { request: Request }) {
 					});
 				}
 			});
-		} catch (modelError) {
-			const errorMessage = modelError instanceof Error ? modelError.message : String(modelError);
-			debugLog(`[${requestId}] Model creation/validation failed`, {
-				error: errorMessage,
-				provider: selectedProvider,
-				model: selectedModel
+
+			debugLog(`[${requestId}] Streaming response started`);
+
+			return result.toDataStreamResponse({
+				headers: {
+					'X-Provider': selectedProvider,
+					'X-Model': selectedModel
+				}
+			});
+		} catch (providerError) {
+			debugLog(`[${requestId}] Provider error with ${selectedProvider}`, {
+				error: providerError instanceof Error ? providerError.message : String(providerError)
 			});
 
-			// Check if it's a model-related error and provide helpful feedback
-			if (
-				errorMessage.toLowerCase().includes('model') ||
-				errorMessage.toLowerCase().includes('not found') ||
-				errorMessage.toLowerCase().includes('invalid') ||
-				errorMessage.toLowerCase().includes('unsupported')
-			) {
-				return new Response(
-					JSON.stringify({
-						error: `Model "${selectedModel}" is not supported by ${selectedProvider}. Please check the model name or try a different model.`,
-						details: errorMessage,
-						provider: selectedProvider,
-						model: selectedModel,
-						suggestion: `Visit the ${selectedProvider} documentation to see available models, or select a different provider/model for this chat.`
-					}),
-					{
-						status: 400,
-						headers: { 'Content-Type': 'application/json' }
-					}
-				);
+			// Try fallback to next available provider
+			const remainingProviders = availableProviders.filter((p) => p !== selectedProvider);
+
+			if (remainingProviders.length > 0) {
+				const fallbackProvider = remainingProviders.includes('groq')
+					? 'groq'
+					: remainingProviders.includes('anthropic')
+						? 'anthropic'
+						: remainingProviders[0];
+				const fallbackModel = DEFAULT_MODELS[fallbackProvider];
+
+				debugLog(`[${requestId}] Trying fallback provider: ${fallbackProvider}`);
+
+				try {
+					const fallbackProviderInstance = getProviderInstance(fallbackProvider);
+					const fallbackModelInstance = fallbackProviderInstance(fallbackModel);
+
+					const result = streamText({
+						model: fallbackModelInstance,
+						messages,
+						tools: toolsRegistry as any,
+						maxSteps: 5,
+						temperature: 0.7,
+						onFinish: (result) => {
+							debugLog(`[${requestId}] Fallback generation finished`, {
+								finishReason: result.finishReason,
+								usage: result.usage,
+								provider: fallbackProvider,
+								model: fallbackModel
+							});
+						}
+					});
+
+					return result.toDataStreamResponse({
+						headers: {
+							'X-Provider': fallbackProvider,
+							'X-Model': fallbackModel,
+							'X-Fallback': 'true'
+						}
+					});
+				} catch (fallbackError) {
+					debugLog(`[${requestId}] Fallback provider also failed`, {
+						error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+					});
+					throw fallbackError;
+				}
+			} else {
+				throw providerError;
 			}
-
-			// Re-throw other errors to be handled by the general error handler
-			throw modelError;
 		}
-
-		debugLog(`[${requestId}] Streaming response started`);
-
-		return result.toDataStreamResponse();
 	} catch (error) {
 		debugLog(`[${requestId}] Error occurred`, {
 			error: error instanceof Error ? error.message : String(error),
-			stack: error instanceof Error ? error.stack : undefined,
-			provider: selectedProvider || CONFIG.provider,
-			model: selectedModel || CONFIG.model
+			stack: error instanceof Error ? error.stack : undefined
 		});
 
 		console.error('Chat API error:', error);
-		return new Response(
-			JSON.stringify({
-				error: 'Internal server error',
-				provider: selectedProvider || CONFIG.provider,
-				model: selectedModel || CONFIG.model
-			}),
-			{
-				status: 500,
-				headers: { 'Content-Type': 'application/json' }
-			}
-		);
+		return new Response(JSON.stringify({ error: 'Internal server error' }), {
+			status: 500,
+			headers: { 'Content-Type': 'application/json' }
+		});
 	}
 }

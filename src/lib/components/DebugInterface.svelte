@@ -97,7 +97,12 @@
 	function selectPreset(preset: string) {
 		switch (preset) {
 			case 'api':
-				selectedTypes = new Set(['api_request', 'api_response', 'api_metadata', 'outbound_message']);
+				selectedTypes = new Set([
+					'api_request',
+					'api_response',
+					'api_metadata',
+					'outbound_message'
+				]);
 				break;
 			case 'tools':
 				selectedTypes = new Set(['tool_call', 'tool_result']);

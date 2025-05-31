@@ -68,19 +68,19 @@ const PRICING_DATA: Record<string, ProviderPricing> = {
 			inputCostPer1kTokens: 0.0,
 			outputCostPer1kTokens: 0.0
 		},
-		'llama-3.3-70b-versatile': {
+		'llama3-groq-70b-8192-tool-use-preview': {
 			inputCostPer1kTokens: 0.0,
 			outputCostPer1kTokens: 0.0
 		},
-		'gemma2-9b-it': {
-			inputCostPer1kTokens: 0.0,
-			outputCostPer1kTokens: 0.0
-		},
-		'meta-llama/llama-4-scout-17b-16e-instruct': {
+		'llama3-groq-8b-8192-tool-use-preview': {
 			inputCostPer1kTokens: 0.0,
 			outputCostPer1kTokens: 0.0
 		},
 		'mixtral-8x7b-32768': {
+			inputCostPer1kTokens: 0.0,
+			outputCostPer1kTokens: 0.0
+		},
+		'gemma2-9b-it': {
 			inputCostPer1kTokens: 0.0,
 			outputCostPer1kTokens: 0.0
 		},
@@ -171,10 +171,10 @@ export function getModelDisplayName(provider: string, model: string): string {
 			'llama-3.1-405b-reasoning': 'Llama 3.1 405B',
 			'llama-3.1-70b-versatile': 'Llama 3.1 70B',
 			'llama-3.1-8b-instant': 'Llama 3.1 8B',
-			'llama-3.3-70b-versatile': 'Llama 3.3 70B',
-			'gemma2-9b-it': 'Gemma 2 9B',
-			'meta-llama/llama-4-scout-17b-16e-instruct': 'Llama 4 Scout 17B',
+			'llama3-groq-70b-8192-tool-use-preview': 'Llama 3 70B (Tool Use)',
+			'llama3-groq-8b-8192-tool-use-preview': 'Llama 3 8B (Tool Use)',
 			'mixtral-8x7b-32768': 'Mixtral 8x7B',
+			'gemma2-9b-it': 'Gemma 2 9B',
 			'gemma-7b-it': 'Gemma 7B'
 		}
 	};

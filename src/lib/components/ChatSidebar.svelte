@@ -36,8 +36,6 @@
 		dispatch('archiveChat', { chatId });
 	}
 
-
-
 	function startEditingTitle(chat: Chat, event: Event) {
 		event.stopPropagation();
 		editingChatId = chat.id;
@@ -221,8 +219,6 @@
 											/>
 										</svg>
 									</button>
-
-
 								{/if}
 
 								{#if autoRenamingChatId !== chat.id}

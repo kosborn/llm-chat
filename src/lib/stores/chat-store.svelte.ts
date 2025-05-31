@@ -36,14 +36,10 @@ class ChatStore {
 		}
 	}
 
-	async createChat(
-		title?: string,
-		provider?: 'groq' | 'openai' | 'anthropic',
-		model?: string
-	): Promise<string> {
+	async createChat(title?: string): Promise<string> {
 		try {
 			this.error = null;
-			const chat = await chatStorage.createChat(title, provider, model);
+			const chat = await chatStorage.createChat(title);
 			this.chats = [cloneForState(chat), ...this.chats];
 			this.currentChatId = chat.id;
 			return chat.id;
@@ -142,64 +138,6 @@ class ChatStore {
 		}
 	}
 
-	async updateChatProvider(
-		chatId: string,
-		provider: 'groq' | 'openai' | 'anthropic',
-		model?: string
-	): Promise<void> {
-		try {
-			this.error = null;
-			const chat = this.chats.find((c) => c.id === chatId);
-			if (!chat) {
-				throw new Error('Chat not found');
-			}
-
-			const updatedChat = {
-				...chat,
-				provider,
-				model: model || this.getDefaultModelForProvider(provider),
-				updatedAt: Date.now()
-			};
-
-			// Update local state
-			const chatIndex = this.chats.findIndex((c) => c.id === chatId);
-			if (chatIndex !== -1) {
-				const newChats = [...this.chats];
-				newChats[chatIndex] = updatedChat;
-				this.chats = newChats;
-			}
-
-			// Update storage
-			await chatStorage.updateChat(serialize(updatedChat));
-		} catch (err) {
-			this.error = err instanceof Error ? err.message : 'Failed to update chat provider';
-			throw err;
-		}
-	}
-
-	getDefaultModelForProvider(provider: 'groq' | 'openai' | 'anthropic'): string {
-		switch (provider) {
-			case 'groq':
-				return 'meta-llama/llama-4-scout-17b-16e-instruct';
-			case 'openai':
-				return 'gpt-4o-mini';
-			case 'anthropic':
-				return 'claude-3-5-sonnet-20241022';
-			default:
-				return 'meta-llama/llama-4-scout-17b-16e-instruct';
-		}
-	}
-
-	getChatProvider(chatId?: string): 'groq' | 'openai' | 'anthropic' {
-		const chat = chatId ? this.chats.find((c) => c.id === chatId) : this.currentChat;
-		return chat?.provider || 'groq';
-	}
-
-	getChatModel(chatId?: string): string {
-		const chat = chatId ? this.chats.find((c) => c.id === chatId) : this.currentChat;
-		return chat?.model || this.getDefaultModelForProvider(this.getChatProvider(chatId));
-	}
-
 	async archiveChat(chatId: string): Promise<void> {
 		try {
 			this.error = null;
@@ -279,6 +217,28 @@ class ChatStore {
 		}
 	}
 
+	async updateChat(chat: Chat): Promise<void> {
+		const chatIndex = this.chats.findIndex((c) => c.id === chat.id);
+		if (chatIndex === -1) return;
+
+		// Create updated chat object with new timestamp
+		const updatedChat = {
+			...chat,
+			updatedAt: Date.now()
+		};
+
+		// Update local state
+		const newChats = [...this.chats];
+		newChats[chatIndex] = updatedChat;
+		this.chats = newChats;
+
+		try {
+			await chatStorage.updateChat(serialize(updatedChat));
+		} catch (err) {
+			this.error = err instanceof Error ? err.message : 'Failed to update chat';
+		}
+	}
+
 	async autoRenameChat(chatId: string, forceRegenerate = false): Promise<void> {
 		const chat = this.chats.find((c) => c.id === chatId);
 		if (!chat || chat.messages.length < 2) return;
@@ -317,7 +277,9 @@ class ChatStore {
 		try {
 			const title = await clientChatService.generateTitle(
 				userMessage.content,
-				assistantMessage.content
+				assistantMessage.content,
+				chat.provider,
+				chat.model
 			);
 
 			if (title?.trim()) {

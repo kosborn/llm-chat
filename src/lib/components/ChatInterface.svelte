@@ -16,7 +16,6 @@
 	import ChatInput from './ChatInput.svelte';
 	import DebugInterface from './DebugInterface.svelte';
 	import ApiKeyConfig from './ApiKeyConfig.svelte';
-	import ChatProviderSelector from './ChatProviderSelector.svelte';
 
 	import PWAInstallPrompt from './PWAInstallPrompt.svelte';
 	import {
@@ -36,6 +35,10 @@
 	let showStatusDetails = $state(false);
 	let editingTitle = $state(false);
 	let titleInput = $state('');
+
+	// Per-chat provider and model selection
+	let currentProvider = $state<'groq' | 'anthropic' | 'openai'>('groq');
+	let currentModel = $state('llama-3.1-70b-versatile');
 
 	const status = $derived(() => {
 		try {
@@ -128,6 +131,12 @@
 
 	async function handleSelectChat(event: CustomEvent<{ chatId: string }>) {
 		await chatStore.selectChat(event.detail.chatId);
+
+		// Sync provider and model from selected chat
+		if (chatStore.currentChat) {
+			currentProvider = chatStore.currentChat.provider || 'groq';
+			currentModel = chatStore.currentChat.model || 'llama-3.1-70b-versatile';
+		}
 	}
 
 	async function handleArchiveChat(event: CustomEvent<{ chatId: string }>) {
@@ -236,11 +245,25 @@
 		}
 	}
 
-	async function handleSubmitMessage(event: CustomEvent<{ message: string }>) {
+	async function handleSubmitMessage(
+		event: CustomEvent<{ message: string; provider: string; model: string }>
+	) {
 		const messageText = event.detail.message;
+		const selectedProvider = event.detail.provider as 'groq' | 'anthropic' | 'openai';
+		const selectedModel = event.detail.model;
 
 		if (!chatStore.currentChatId) {
 			await chatStore.createChat();
+		}
+
+		// Update current chat with selected provider and model
+		if (chatStore.currentChat && chatStore.currentChatId) {
+			const updatedChat = {
+				...chatStore.currentChat,
+				provider: selectedProvider,
+				model: selectedModel
+			};
+			await chatStore.updateChat(updatedChat);
 		}
 
 		if (!chatStore.currentChatId) {
@@ -304,10 +327,12 @@
 			// Prepare messages for client-side API
 			const messages = chatStore.currentChat?.messages || [];
 
-			// Use client-side chat service with current chat's provider/model
-			const provider = chatStore.getChatProvider();
-			const model = chatStore.getChatModel();
-			const response = await clientChatService.sendMessage(messages, provider, model);
+			// Use client-side chat service with selected provider and model
+			const response = await clientChatService.sendMessage(
+				messages,
+				selectedProvider,
+				selectedModel
+			);
 
 			if (!response.success) {
 				throw new Error(response.error || 'Failed to send message');
@@ -876,18 +901,20 @@
 
 					<!-- Status Information -->
 					<div class="flex items-center gap-4">
-						<!-- Provider Selector and Status -->
-						<div class="flex items-center gap-3">
+						<!-- Model and Provider info -->
+						<div class="flex items-center gap-2">
 							<div
 								class="h-2 w-2 rounded-full {status().canSend ? 'bg-green-500' : 'bg-red-500'}"
 							></div>
-							<ChatProviderSelector
-								chatId={chatStore.currentChat.id}
-								onProviderChange={() => {
-									// Force a status update when provider changes
-									// The component will handle the actual provider/model update
-								}}
-							/>
+							<span class="text-sm font-medium text-gray-900 dark:text-gray-100">
+								{getModelDisplayName(
+									status().provider || 'groq',
+									status().model || 'meta-llama/llama-4-scout-17b-16e-instruct'
+								)}
+							</span>
+							<span class="text-xs text-gray-500 dark:text-gray-400">
+								via {getProviderDisplayName(status().provider || 'groq')}
+							</span>
 						</div>
 
 						{#if !status().canSend}
@@ -1058,7 +1085,10 @@
 			<ChatInput
 				bind:this={chatInputComponent}
 				disabled={isStreaming}
-				placeholder={isStreaming ? 'AI is thinking...' : 'Type a message...'}
+				provider={currentProvider}
+				model={currentModel}
+				onProviderChange={(provider) => (currentProvider = provider)}
+				onModelChange={(model) => (currentModel = model)}
 				on:submit={handleSubmitMessage}
 			/>
 		{/if}
