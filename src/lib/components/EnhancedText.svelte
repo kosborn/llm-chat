@@ -24,21 +24,24 @@
 	const processedContent = $derived(() => {
 		if (!text) return { html: '', segments: [] };
 
-		if (enableMarkdown) {
+		// If only markdown is enabled, use markdown
+		if (enableMarkdown && !enableFormatting) {
 			try {
 				const markdownHtml = renderMarkdown(text);
 				return { html: markdownHtml, segments: [] };
 			} catch (error) {
 				console.error('Error rendering markdown:', error);
-				// Fall through to formatting or plain text
+				return { html: text.replace(/\n/g, '<br>'), segments: [] };
 			}
 		}
 
+		// If formatting is enabled, use text formatter (with or without markdown)
 		if (enableFormatting) {
 			const segments = parseFormattedText(text);
 			return { html: '', segments };
 		}
 
+		// Default: plain text with line breaks
 		return { html: text.replace(/\n/g, '<br>'), segments: [] };
 	});
 
