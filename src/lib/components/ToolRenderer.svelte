@@ -4,11 +4,12 @@
 
 	interface Props {
 		toolInvocation: ToolInvocation;
+		onTechnicalView?: () => void;
 	}
 
-	let { toolInvocation }: Props = $props();
+	let { toolInvocation, onTechnicalView }: Props = $props();
 
 	let ToolComponent = $derived(getToolComponent(toolInvocation));
 </script>
 
-<svelte:component this={ToolComponent} {toolInvocation} />
+<svelte:component this={ToolComponent} {toolInvocation} {onTechnicalView} />

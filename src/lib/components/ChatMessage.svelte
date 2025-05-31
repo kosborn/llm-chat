@@ -117,28 +117,8 @@
 		{#if message.toolInvocations && message.toolInvocations.length > 0}
 			<div class="mt-3 space-y-2">
 				{#each message.toolInvocations as toolInvocation (toolInvocation.toolCallId)}
-					<div class="tool-result relative">
-						<div class="mb-2 flex items-center justify-between">
-							<span class="text-xs font-medium text-gray-600 dark:text-gray-400">
-								Tool: {toolInvocation.toolName}
-							</span>
-							<button
-								onclick={() => openTechnicalModal(toolInvocation)}
-								class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-								title="View technical details"
-								aria-label="View technical details for {toolInvocation.toolName}"
-							>
-								<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										stroke-width="2"
-										d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"
-									/>
-								</svg>
-							</button>
-						</div>
-						<ToolRenderer {toolInvocation} />
+					<div class="tool-result">
+						<ToolRenderer {toolInvocation} onTechnicalView={() => openTechnicalModal(toolInvocation)} />
 					</div>
 				{/each}
 			</div>
