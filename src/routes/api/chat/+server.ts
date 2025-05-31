@@ -38,12 +38,31 @@ export async function POST({ request }: { request: Request }) {
 
 		// Handle health check requests
 		if (messages.length === 1 && messages[0].content === 'health-check') {
-			debugLog(`[${requestId}] Health check request - checking API key availability`);
-
 			const availableProviders = getAvailableProviders();
+			const defaultModels = getDefaultModels();
+			const timestamp = new Date().toISOString();
+			const uptime = process.uptime();
+			const memoryUsage = process.memoryUsage();
+
+			debugLog(`[${requestId}] Health check request - System Status Check`, {
+				timestamp,
+				availableProviders: availableProviders.length,
+				providerList: availableProviders,
+				uptime: `${Math.floor(uptime / 60)}m ${Math.floor(uptime % 60)}s`,
+				memoryUsage: {
+					rss: `${Math.round(memoryUsage.rss / 1024 / 1024)}MB`,
+					heapUsed: `${Math.round(memoryUsage.heapUsed / 1024 / 1024)}MB`,
+					heapTotal: `${Math.round(memoryUsage.heapTotal / 1024 / 1024)}MB`
+				},
+				nodeVersion: process.version,
+				platform: process.platform
+			});
 
 			if (availableProviders.length === 0) {
-				debugLog(`[${requestId}] No valid API keys configured`);
+				debugLog(`[${requestId}] Health check FAILED - No valid API keys configured`, {
+					configuredProviders: 0,
+					requiredEnvVars: ['GROQ_API_KEY', 'ANTHROPIC_API_KEY', 'OPENAI_API_KEY', 'GOOGLE_API_KEY']
+				});
 				return new Response(
 					JSON.stringify({
 						error: 'Server API keys not configured',
@@ -57,13 +76,23 @@ export async function POST({ request }: { request: Request }) {
 				);
 			}
 
+			debugLog(`[${requestId}] Health check PASSED - System operational`, {
+				providersAvailable: availableProviders.length,
+				defaultModels: Object.keys(defaultModels).length,
+				toolsRegistered: Object.keys(toolsRegistry).length,
+				status: 'healthy'
+			});
+
 			// Return a simple success response for health checks
 			return new Response(
 				JSON.stringify({
 					status: 'ok',
 					available: true,
 					providers: availableProviders,
-					defaultModels: getDefaultModels()
+					defaultModels: defaultModels,
+					timestamp,
+					uptime: Math.floor(uptime),
+					toolsCount: Object.keys(toolsRegistry).length
 				}),
 				{
 					status: 200,
@@ -76,7 +105,24 @@ export async function POST({ request }: { request: Request }) {
 
 		// Check if any API keys are available for actual chat requests
 		if (availableProviders.length === 0) {
-			debugLog(`[${requestId}] No valid API keys configured for chat request`);
+			debugLog(`[${requestId}] Chat request FAILED - No valid API keys configured`, {
+				messageCount: messages.length,
+				requestedProvider: provider,
+				requestedModel: model,
+				envCheck: {
+					groqKey:
+						!!process.env.GROQ_API_KEY && process.env.GROQ_API_KEY !== 'your_groq_api_key_here',
+					anthropicKey:
+						!!process.env.ANTHROPIC_API_KEY &&
+						process.env.ANTHROPIC_API_KEY !== 'your_anthropic_api_key_here',
+					openaiKey:
+						!!process.env.OPENAI_API_KEY &&
+						process.env.OPENAI_API_KEY !== 'your_openai_api_key_here',
+					googleKey:
+						!!process.env.GOOGLE_API_KEY &&
+						process.env.GOOGLE_API_KEY !== 'your_google_api_key_here'
+				}
+			});
 			return new Response(
 				JSON.stringify({
 					error: 'Server API keys not configured. Please configure your own API key.'
@@ -100,11 +146,26 @@ export async function POST({ request }: { request: Request }) {
 		}
 
 		if (provider && provider !== selectedProvider) {
-			debugLog(`[${requestId}] Provider ${provider} not available, using ${selectedProvider}`);
+			debugLog(
+				`[${requestId}] Provider fallback - requested ${provider} not available, using ${selectedProvider}`,
+				{
+					requestedProvider: provider,
+					selectedProvider,
+					availableProviders,
+					reason: 'provider_not_available'
+				}
+			);
 		}
 
-		debugLog(`[${requestId}] Using provider: ${selectedProvider}, model: ${selectedModel}`);
-		debugLog(`[${requestId}] Available tools`, Object.keys(toolsRegistry));
+		debugLog(`[${requestId}] Chat session initialized`, {
+			provider: selectedProvider,
+			model: selectedModel,
+			messageCount: messages.length,
+			availableTools: Object.keys(toolsRegistry).length,
+			toolNames: Object.keys(toolsRegistry),
+			temperature: 0.7,
+			maxSteps: 5
+		});
 
 		try {
 			const providerInstance = getProviderInstance(selectedProvider);
@@ -151,7 +212,17 @@ export async function POST({ request }: { request: Request }) {
 			});
 		} catch (providerError) {
 			debugLog(`[${requestId}] Provider error with ${selectedProvider}`, {
-				error: providerError instanceof Error ? providerError.message : String(providerError)
+				error: providerError instanceof Error ? providerError.message : String(providerError),
+				stack:
+					providerError instanceof Error
+						? providerError.stack?.split('\n').slice(0, 3).join('\n')
+						: undefined,
+				provider: selectedProvider,
+				model: selectedModel,
+				messageCount: messages.length,
+				errorType:
+					providerError instanceof Error ? providerError.constructor.name : typeof providerError,
+				timestamp: new Date().toISOString()
 			});
 
 			// Try fallback to next available provider
@@ -160,7 +231,13 @@ export async function POST({ request }: { request: Request }) {
 			if (fallbackProvider) {
 				const fallbackModel = getDefaultModelForProvider(fallbackProvider);
 
-				debugLog(`[${requestId}] Trying fallback provider: ${fallbackProvider}`);
+				debugLog(`[${requestId}] Attempting fallback provider`, {
+					originalProvider: selectedProvider,
+					fallbackProvider,
+					fallbackModel,
+					availableProviders,
+					attempt: 'fallback'
+				});
 
 				try {
 					const fallbackProviderInstance = getProviderInstance(fallbackProvider);
@@ -190,8 +267,21 @@ export async function POST({ request }: { request: Request }) {
 						}
 					});
 				} catch (fallbackError) {
-					debugLog(`[${requestId}] Fallback provider also failed`, {
-						error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError)
+					debugLog(`[${requestId}] Fallback provider also failed - no more providers available`, {
+						error: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+						stack:
+							fallbackError instanceof Error
+								? fallbackError.stack?.split('\n').slice(0, 3).join('\n')
+								: undefined,
+						originalProvider: selectedProvider,
+						fallbackProvider,
+						fallbackModel,
+						errorType:
+							fallbackError instanceof Error
+								? fallbackError.constructor.name
+								: typeof fallbackError,
+						allProvidersFailed: true,
+						timestamp: new Date().toISOString()
 					});
 					throw fallbackError;
 				}
@@ -200,9 +290,20 @@ export async function POST({ request }: { request: Request }) {
 			}
 		}
 	} catch (error) {
-		debugLog(`[${requestId}] Error occurred`, {
+		debugLog(`[${requestId}] Critical error in chat endpoint`, {
 			error: error instanceof Error ? error.message : String(error),
-			stack: error instanceof Error ? error.stack : undefined
+			stack: error instanceof Error ? error.stack?.split('\n').slice(0, 5).join('\n') : undefined,
+			errorType: error instanceof Error ? error.constructor.name : typeof error,
+			requestData: {
+				messageCount: messages?.length || 0,
+				provider: provider || 'none',
+				model: model || 'none'
+			},
+			systemInfo: {
+				memoryUsage: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`,
+				uptime: `${Math.floor(process.uptime())}s`
+			},
+			timestamp: new Date().toISOString()
 		});
 
 		console.error('Chat API error:', error);
