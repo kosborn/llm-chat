@@ -15,7 +15,11 @@ interface ChatResponse {
 }
 
 class ClientChatService {
-	async sendMessage(messages: ChatMessage[]): Promise<ChatResponse> {
+	async sendMessage(
+		messages: ChatMessage[],
+		provider?: 'groq' | 'openai' | 'anthropic',
+		model?: string
+	): Promise<ChatResponse> {
 		// Check network status first
 		if (!networkStore.isOnline) {
 			return {
@@ -26,28 +30,29 @@ class ClientChatService {
 
 		// Try server-side first
 		try {
-			const serverResponse = await this.tryServerSide(messages);
-			if (serverResponse.success) {
-				return serverResponse;
-			}
+			return await this.sendMessageServerSide(messages, provider, model);
 		} catch (error) {
-			console.log('Server-side unavailable, falling back to client-side:', error);
+			console.log('Server unavailable, falling back to client-side:', error);
 		}
 
 		// Fallback to client-side
-		return this.sendMessageClientSide(messages);
+		return this.sendMessageClientSide(messages, provider, model);
 	}
 
-	private async tryServerSide(messages: ChatMessage[]): Promise<ChatResponse> {
+	private async sendMessageServerSide(
+		messages: ChatMessage[],
+		provider?: 'groq' | 'openai' | 'anthropic',
+		model?: string
+	): Promise<ChatResponse> {
+		// Convert messages to the format expected by the server
 		const outboundMessages = messages.map((msg) => ({
 			role: msg.role,
 			content: msg.content
 		}));
 
-		// Log outbound message to debug store
-		debugStore.logOutboundMessage(outboundMessages, 'server', {
-			provider: 'groq', // Server-side uses Groq
-			model: 'meta-llama/llama-4-scout-17b-16e-instruct'
+		debugStore.addApiMetrics({
+			provider: provider || 'server',
+			model: model || 'default'
 		});
 
 		const response = await fetch('/api/chat', {
@@ -56,7 +61,9 @@ class ClientChatService {
 				'Content-Type': 'application/json'
 			},
 			body: JSON.stringify({
-				messages: outboundMessages
+				messages: outboundMessages,
+				provider,
+				model
 			})
 		});
 
@@ -74,7 +81,15 @@ class ClientChatService {
 		};
 	}
 
-	private async sendMessageClientSide(messages: ChatMessage[]): Promise<ChatResponse> {
+	private async sendMessageClientSide(
+		messages: ChatMessage[],
+		provider?: 'groq' | 'openai' | 'anthropic',
+		model?: string
+	): Promise<ChatResponse> {
+		// Use provided provider/model or fall back to API key store
+		const effectiveProvider = provider || apiKeyStore.provider;
+		const effectiveModel = model || apiKeyStore.getModelForProvider();
+
 		// Check if we have an API key
 		if (!apiKeyStore.isConfigured) {
 			return {
@@ -94,11 +109,11 @@ class ClientChatService {
 		}
 
 		const startTime = Date.now();
-		const currentProvider = apiKeyStore.provider;
-		const currentModel = apiKeyStore.getModelForProvider();
+		const currentProvider = effectiveProvider;
+		const currentModel = effectiveModel;
 
 		try {
-			const provider = this.createProvider(apiKey);
+			const provider = this.createProvider(apiKey, effectiveProvider);
 			const model = provider(currentModel);
 
 			// Convert ChatMessage format to AI SDK format
@@ -176,8 +191,9 @@ class ClientChatService {
 		}
 	}
 
-	private createProvider(apiKey: string) {
-		switch (apiKeyStore.provider) {
+	private createProvider(apiKey: string, provider?: 'groq' | 'openai' | 'anthropic') {
+		const effectiveProvider = provider || apiKeyStore.provider;
+		switch (effectiveProvider) {
 			case 'groq':
 				return createGroq({ apiKey });
 			case 'openai':
@@ -185,7 +201,7 @@ class ClientChatService {
 			case 'anthropic':
 				return createAnthropic({ apiKey });
 			default:
-				throw new Error(`Unsupported provider: ${apiKeyStore.provider}`);
+				throw new Error(`Unsupported provider: ${effectiveProvider}`);
 		}
 	}
 

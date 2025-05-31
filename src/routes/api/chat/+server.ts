@@ -43,7 +43,11 @@ function getDefaultModel(provider: string): string {
 }
 
 function createProvider() {
-	switch (CONFIG.provider) {
+	return createDynamicProvider(CONFIG.provider);
+}
+
+function createDynamicProvider(provider: 'groq' | 'openai' | 'anthropic') {
+	switch (provider) {
 		case 'groq':
 			if (!GROQ_API_KEY || GROQ_API_KEY === 'your_groq_api_key_here') {
 				throw new Error('Groq API key not configured');
@@ -63,7 +67,7 @@ function createProvider() {
 			return createAnthropic({ apiKey: ANTHROPIC_API_KEY });
 
 		default:
-			throw new Error(`Unsupported provider: ${CONFIG.provider}`);
+			throw new Error(`Unsupported provider: ${provider}`);
 	}
 }
 
@@ -94,13 +98,16 @@ export async function POST({ request }: { request: Request }) {
 			model: CONFIG.model
 		});
 
-		const { messages, model: requestModel } = await request.json();
+		const { messages, model: requestModel, provider: requestProvider } = await request.json();
 
-		// Allow model override from request
-		const selectedModel = requestModel || CONFIG.model;
+		// Use request provider/model or fall back to server defaults
+		const selectedProvider = requestProvider || CONFIG.provider;
+		const selectedModel =
+			requestModel || (requestProvider ? getDefaultModel(requestProvider) : CONFIG.model);
 
 		debugLog(`[${requestId}] Parsed request body`, {
 			messageCount: messages.length,
+			selectedProvider,
 			selectedModel,
 			lastMessage: messages[messages.length - 1]
 		});
@@ -141,18 +148,18 @@ export async function POST({ request }: { request: Request }) {
 			);
 		}
 
-		// Create provider instance
+		// Create provider instance dynamically
 		let provider;
 		try {
-			provider = createProvider();
+			provider = createDynamicProvider(selectedProvider);
 		} catch (error) {
 			const errorMessage = error instanceof Error ? error.message : 'Provider configuration error';
 			debugLog(`[${requestId}] Provider creation failed: ${errorMessage}`);
 
 			return new Response(
 				JSON.stringify({
-					error: `Server AI provider not configured: ${errorMessage}. Please configure your own API key.`,
-					provider: CONFIG.provider,
+					error: `AI provider '${selectedProvider}' not configured: ${errorMessage}. Please configure your own API key.`,
+					provider: selectedProvider,
 					model: selectedModel
 				}),
 				{
@@ -192,7 +199,7 @@ export async function POST({ request }: { request: Request }) {
 						finishReason: result.finishReason,
 						usage: result.usage,
 						steps: result.steps?.length,
-						provider: CONFIG.provider,
+						provider: selectedProvider,
 						model: selectedModel
 					});
 				}
@@ -201,7 +208,7 @@ export async function POST({ request }: { request: Request }) {
 			const errorMessage = modelError instanceof Error ? modelError.message : String(modelError);
 			debugLog(`[${requestId}] Model creation/validation failed`, {
 				error: errorMessage,
-				provider: CONFIG.provider,
+				provider: selectedProvider,
 				model: selectedModel
 			});
 
@@ -214,11 +221,11 @@ export async function POST({ request }: { request: Request }) {
 			) {
 				return new Response(
 					JSON.stringify({
-						error: `Model "${selectedModel}" is not supported by ${CONFIG.provider}. Please check the model name or try a different model.`,
+						error: `Model "${selectedModel}" is not supported by ${selectedProvider}. Please check the model name or try a different model.`,
 						details: errorMessage,
-						provider: CONFIG.provider,
+						provider: selectedProvider,
 						model: selectedModel,
-						suggestion: `Visit the ${CONFIG.provider} documentation to see available models, or use the server configuration to select a supported model.`
+						suggestion: `Visit the ${selectedProvider} documentation to see available models, or select a different provider/model for this chat.`
 					}),
 					{
 						status: 400,
@@ -238,16 +245,16 @@ export async function POST({ request }: { request: Request }) {
 		debugLog(`[${requestId}] Error occurred`, {
 			error: error instanceof Error ? error.message : String(error),
 			stack: error instanceof Error ? error.stack : undefined,
-			provider: CONFIG.provider,
-			model: CONFIG.model
+			provider: selectedProvider || CONFIG.provider,
+			model: selectedModel || CONFIG.model
 		});
 
 		console.error('Chat API error:', error);
 		return new Response(
 			JSON.stringify({
 				error: 'Internal server error',
-				provider: CONFIG.provider,
-				model: CONFIG.model
+				provider: selectedProvider || CONFIG.provider,
+				model: selectedModel || CONFIG.model
 			}),
 			{
 				status: 500,

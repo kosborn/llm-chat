@@ -36,10 +36,14 @@ class ChatStore {
 		}
 	}
 
-	async createChat(title?: string): Promise<string> {
+	async createChat(
+		title?: string,
+		provider?: 'groq' | 'openai' | 'anthropic',
+		model?: string
+	): Promise<string> {
 		try {
 			this.error = null;
-			const chat = await chatStorage.createChat(title);
+			const chat = await chatStorage.createChat(title, provider, model);
 			this.chats = [cloneForState(chat), ...this.chats];
 			this.currentChatId = chat.id;
 			return chat.id;
@@ -136,6 +140,64 @@ class ChatStore {
 		} catch (err) {
 			this.error = err instanceof Error ? err.message : 'Failed to update message';
 		}
+	}
+
+	async updateChatProvider(
+		chatId: string,
+		provider: 'groq' | 'openai' | 'anthropic',
+		model?: string
+	): Promise<void> {
+		try {
+			this.error = null;
+			const chat = this.chats.find((c) => c.id === chatId);
+			if (!chat) {
+				throw new Error('Chat not found');
+			}
+
+			const updatedChat = {
+				...chat,
+				provider,
+				model: model || this.getDefaultModelForProvider(provider),
+				updatedAt: Date.now()
+			};
+
+			// Update local state
+			const chatIndex = this.chats.findIndex((c) => c.id === chatId);
+			if (chatIndex !== -1) {
+				const newChats = [...this.chats];
+				newChats[chatIndex] = updatedChat;
+				this.chats = newChats;
+			}
+
+			// Update storage
+			await chatStorage.updateChat(serialize(updatedChat));
+		} catch (err) {
+			this.error = err instanceof Error ? err.message : 'Failed to update chat provider';
+			throw err;
+		}
+	}
+
+	getDefaultModelForProvider(provider: 'groq' | 'openai' | 'anthropic'): string {
+		switch (provider) {
+			case 'groq':
+				return 'llama-3.1-70b-versatile';
+			case 'openai':
+				return 'gpt-4o-mini';
+			case 'anthropic':
+				return 'claude-3-5-sonnet-20241022';
+			default:
+				return 'llama-3.1-70b-versatile';
+		}
+	}
+
+	getChatProvider(chatId?: string): 'groq' | 'openai' | 'anthropic' {
+		const chat = chatId ? this.chats.find((c) => c.id === chatId) : this.currentChat;
+		return chat?.provider || 'groq';
+	}
+
+	getChatModel(chatId?: string): string {
+		const chat = chatId ? this.chats.find((c) => c.id === chatId) : this.currentChat;
+		return chat?.model || this.getDefaultModelForProvider(this.getChatProvider(chatId));
 	}
 
 	async archiveChat(chatId: string): Promise<void> {

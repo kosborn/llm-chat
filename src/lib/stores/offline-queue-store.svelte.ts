@@ -155,8 +155,10 @@ class OfflineQueueStore {
 			throw new Error('Chat not found');
 		}
 
-		// Send the message using the client chat service
-		const response = await clientChatService.sendMessage(chat.messages);
+		// Send the message using the client chat service with chat's provider/model
+		const provider = chat.provider || 'groq';
+		const model = chat.model || 'llama-3.1-70b-versatile';
+		const response = await clientChatService.sendMessage(chat.messages, provider, model);
 
 		if (!response.success) {
 			throw new Error(response.error || 'Failed to send queued message');

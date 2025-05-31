@@ -16,6 +16,7 @@
 	import ChatInput from './ChatInput.svelte';
 	import DebugInterface from './DebugInterface.svelte';
 	import ApiKeyConfig from './ApiKeyConfig.svelte';
+	import ChatProviderSelector from './ChatProviderSelector.svelte';
 
 	import PWAInstallPrompt from './PWAInstallPrompt.svelte';
 	import {
@@ -213,13 +214,13 @@
 
 	async function handleRegenerateTitleFromHeader() {
 		if (!chatStore.currentChat) return;
-		
+
 		// Check if we can send messages (handles both server and client-side requirements)
 		if (!clientChatService.canSendMessages()) {
 			showApiConfig = true;
 			return;
 		}
-		
+
 		try {
 			autoRenamingChatId = chatStore.currentChat.id;
 			await chatStore.autoRenameChat(chatStore.currentChat.id, true);
@@ -234,8 +235,6 @@
 			autoRenamingChatId = null;
 		}
 	}
-
-
 
 	async function handleSubmitMessage(event: CustomEvent<{ message: string }>) {
 		const messageText = event.detail.message;
@@ -305,8 +304,10 @@
 			// Prepare messages for client-side API
 			const messages = chatStore.currentChat?.messages || [];
 
-			// Use client-side chat service
-			const response = await clientChatService.sendMessage(messages);
+			// Use client-side chat service with current chat's provider/model
+			const provider = chatStore.getChatProvider();
+			const model = chatStore.getChatModel();
+			const response = await clientChatService.sendMessage(messages, provider, model);
 
 			if (!response.success) {
 				throw new Error(response.error || 'Failed to send message');
@@ -758,7 +759,7 @@
 			<!-- Chat Header with Status -->
 			<div class="border-b border-gray-200 p-4 dark:border-gray-700">
 				<div class="flex items-center justify-between">
-					<div class="flex-1 min-w-0">
+					<div class="min-w-0 flex-1">
 						{#if editingTitle}
 							<input
 								bind:value={titleInput}
@@ -875,20 +876,18 @@
 
 					<!-- Status Information -->
 					<div class="flex items-center gap-4">
-						<!-- Model and Provider info -->
-						<div class="flex items-center gap-2">
+						<!-- Provider Selector and Status -->
+						<div class="flex items-center gap-3">
 							<div
 								class="h-2 w-2 rounded-full {status().canSend ? 'bg-green-500' : 'bg-red-500'}"
 							></div>
-							<span class="text-sm font-medium text-gray-900 dark:text-gray-100">
-								{getModelDisplayName(
-									status().provider || 'groq',
-									status().model || 'meta-llama/llama-4-scout-17b-16e-instruct'
-								)}
-							</span>
-							<span class="text-xs text-gray-500 dark:text-gray-400">
-								via {getProviderDisplayName(status().provider || 'groq')}
-							</span>
+							<ChatProviderSelector
+								chatId={chatStore.currentChat.id}
+								onProviderChange={() => {
+									// Force a status update when provider changes
+									// The component will handle the actual provider/model update
+								}}
+							/>
 						</div>
 
 						{#if !status().canSend}

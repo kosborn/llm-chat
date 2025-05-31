@@ -30,7 +30,11 @@ class ChatStorage {
 		});
 	}
 
-	async createChat(title?: string): Promise<Chat> {
+	async createChat(
+		title?: string,
+		provider?: 'groq' | 'openai' | 'anthropic',
+		model?: string
+	): Promise<Chat> {
 		if (!this.db) await this.init();
 
 		const chat: Chat = {
@@ -38,7 +42,9 @@ class ChatStorage {
 			title: title || 'New Chat',
 			messages: [],
 			createdAt: Date.now(),
-			updatedAt: Date.now()
+			updatedAt: Date.now(),
+			provider: provider || 'groq',
+			model: model || 'llama-3.1-70b-versatile'
 		};
 
 		// Serialize to ensure it can be stored in IndexedDB

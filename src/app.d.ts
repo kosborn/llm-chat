@@ -89,6 +89,8 @@ export interface Chat {
 	createdAt: number;
 	updatedAt: number;
 	archived?: boolean;
+	provider?: 'groq' | 'openai' | 'anthropic';
+	model?: string;
 }
 
 export interface CustomTool {
