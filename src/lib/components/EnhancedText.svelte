@@ -25,21 +25,21 @@
 
 	// Process text with both markdown and formatting
 	const processedContent = $derived(() => {
-		if (!text) return { html: '', segments: [] };
+		if (!text) return { html: '', segments: [], useMarkdown: false };
 
 		// If only markdown is enabled, use markdown (handled separately due to async)
 		if (enableMarkdown && !enableFormatting) {
-			return { html: markdownHtml, segments: [] };
+			return { html: markdownHtml, segments: [], useMarkdown: false };
 		}
 
 		// If formatting is enabled (with or without markdown), use text formatter
 		if (enableFormatting) {
 			const segments = parseFormattedText(text);
-			return { html: '', segments };
+			return { html: '', segments, useMarkdown: enableMarkdown };
 		}
 
 		// Default: plain text with line breaks
-		return { html: text.replace(/\n/g, '<br>'), segments: [] };
+		return { html: text.replace(/\n/g, '<br>'), segments: [], useMarkdown: false };
 	});
 
 	// Handle async markdown rendering
@@ -48,35 +48,18 @@
 			isLoadingMarkdown = true;
 			try {
 				if (enableFormatting) {
-					// For combined markdown + formatting, we need to process segments
-					// and render markdown while preserving special formatting
+					// Render markdown first, then post-process for special formatting
+					let html = await renderMarkdown(text);
+					
+					// Find and replace special patterns in the rendered HTML
 					const segments = parseFormattedText(text);
-					let processedText = '';
-
+					
 					for (const segment of segments) {
-						if (
-							segment.isFormatted &&
-							(isToolMention(segment) || isUrl(segment) || isIpAddress(segment))
-						) {
-							// Replace special segments with placeholders
-							processedText += `__SPECIAL_${segments.indexOf(segment)}__`;
-						} else {
-							processedText += segment.text;
-						}
-					}
-
-					// Render markdown on the text with placeholders
-					let renderedHtml = await renderMarkdown(processedText);
-
-					// Replace placeholders back with formatted segments
-					for (let i = 0; i < segments.length; i++) {
-						const segment = segments[i];
-						if (
-							segment.isFormatted &&
-							(isToolMention(segment) || isUrl(segment) || isIpAddress(segment))
-						) {
+						if (segment.isFormatted && 
+							(isToolMention(segment) || isUrl(segment) || isIpAddress(segment))) {
+							
 							let replacement = '';
-
+							
 							if (isToolMention(segment)) {
 								const toolName = segment.text.slice(1);
 								replacement = `<span class="${segment.className} cursor-help border-b border-dotted border-current" data-tool="${toolName}" title="Tool: ${toolName}">${segment.text}</span>`;
@@ -85,17 +68,15 @@
 							} else if (isIpAddress(segment)) {
 								replacement = `<span class="${segment.className} cursor-pointer select-none" data-ip="${segment.text}" title="Click to copy IP address (${segment.text.includes(':') ? 'IPv6' : 'IPv4'})">${segment.text}</span>`;
 							}
-
-							const placeholderRegex = new RegExp(`__SPECIAL_${i}__`, 'g');
-							renderedHtml = renderedHtml.replace(
-								new RegExp(`<p>__SPECIAL_${i}__</p>`, 'g'),
-								replacement
-							);
-							renderedHtml = renderedHtml.replace(placeholderRegex, replacement);
+							
+							// Escape special regex characters in the segment text
+							const escapedText = segment.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+							const regex = new RegExp(`\\b${escapedText}\\b`, 'g');
+							html = html.replace(regex, replacement);
 						}
 					}
-
-					markdownHtml = renderedHtml;
+					
+					markdownHtml = html;
 				} else {
 					// Plain markdown without formatting
 					markdownHtml = await renderMarkdown(text);
@@ -114,6 +95,29 @@
 			updateMarkdown();
 		}
 	});
+
+	// Handle clicks on markdown-rendered content with special formatting
+	function handleMarkdownClick(event: MouseEvent) {
+		const target = event.target as HTMLElement;
+		const ip = target.getAttribute('data-ip');
+		if (ip) {
+			event.preventDefault();
+			copyIpToClipboard(ip);
+		}
+	}
+
+	// Handle hover on markdown-rendered content with tool mentions
+	function handleMarkdownHover(event: MouseEvent) {
+		const target = event.target as HTMLElement;
+		const toolName = target.getAttribute('data-tool');
+		if (toolName) {
+			handleToolHover(event, toolName);
+		}
+	}
+
+	function handleMarkdownLeave() {
+		toolTooltip = null;
+	}
 
 	function handleToolHover(event: MouseEvent, toolName: string) {
 		const toolMetadata = toolRegistry.getToolByName(toolName);
@@ -219,28 +223,7 @@
 		}
 	}
 
-	// Handle clicks on markdown-rendered content with special formatting
-	function handleMarkdownClick(event: MouseEvent) {
-		const target = event.target as HTMLElement;
-		const ip = target.getAttribute('data-ip');
-		if (ip) {
-			event.preventDefault();
-			copyIpToClipboard(ip);
-		}
-	}
 
-	// Handle hover on markdown-rendered content with tool mentions
-	function handleMarkdownHover(event: MouseEvent) {
-		const target = event.target as HTMLElement;
-		const toolName = target.getAttribute('data-tool');
-		if (toolName) {
-			handleToolHover(event, toolName);
-		}
-	}
-
-	function handleMarkdownLeave() {
-		toolTooltip = null;
-	}
 </script>
 
 <div class="relative break-words whitespace-pre-wrap {className}">
@@ -250,6 +233,7 @@
 			<div class="mb-2 h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
 			<div class="h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
 		</div>
+
 	{:else if enableMarkdown && enableFormatting}
 		<!-- Combined markdown and formatting -->
 		<div
