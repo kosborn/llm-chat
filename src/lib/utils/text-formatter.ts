@@ -29,28 +29,82 @@ const IPV6_REGEX =
 // Combined IP regex for both IPv4 and IPv6
 const IP_REGEX = new RegExp(`(${IPV4_REGEX.source})|(${IPV6_REGEX.source})`, 'g');
 
-// Get all available tool names for validation
+// Cache for tool names to prevent excessive registry calls
+let toolNamesCache: Set<string> | null = null;
+let lastCacheUpdate = 0;
+const CACHE_DURATION = 1000; // 1 second cache
+
+// Get all available tool names for validation with caching
 function getValidToolNames(): Set<string> {
 	try {
+		const now = Date.now();
+
+		// Return cached result if still valid
+		if (toolNamesCache && now - lastCacheUpdate < CACHE_DURATION) {
+			return toolNamesCache;
+		}
+
 		const tools = toolRegistry.getEnabledTools();
 		if (!tools || typeof tools !== 'object') {
-			return new Set();
+			toolNamesCache = new Set();
+		} else {
+			toolNamesCache = new Set(Object.keys(tools));
 		}
-		return new Set(Object.keys(tools));
+
+		lastCacheUpdate = now;
+		return toolNamesCache;
 	} catch (error) {
 		console.warn('Tool registry not ready, returning empty tool set:', error);
-		return new Set();
+		return toolNamesCache || new Set();
 	}
 }
 
-// Validate if a tool name is real
+// Function to invalidate cache when tools change
+export function invalidateToolCache(): void {
+	toolNamesCache = null;
+	lastCacheUpdate = 0;
+	// Also clear validation cache
+	toolValidationCache.clear();
+	// Clear parse cache as tool validation affects parsing
+	parseCache.clear();
+}
+
+// Cache for tool validation results
+const toolValidationCache = new Map<string, { isValid: boolean; timestamp: number }>();
+const VALIDATION_CACHE_DURATION = 5000; // 5 seconds for validation cache
+
+// Validate if a tool name is real with caching
 function isValidTool(toolName: string): boolean {
 	try {
 		if (!toolName || typeof toolName !== 'string') {
 			return false;
 		}
+
+		const now = Date.now();
+		const cached = toolValidationCache.get(toolName);
+
+		// Return cached result if still valid
+		if (cached && now - cached.timestamp < VALIDATION_CACHE_DURATION) {
+			return cached.isValid;
+		}
+
 		const validTools = getValidToolNames();
-		return validTools.has(toolName);
+		const isValid = validTools.has(toolName);
+
+		// Cache the result
+		toolValidationCache.set(toolName, { isValid, timestamp: now });
+
+		// Clean up old cache entries periodically
+		if (toolValidationCache.size > 100) {
+			const cutoff = now - VALIDATION_CACHE_DURATION;
+			for (const [key, value] of toolValidationCache.entries()) {
+				if (value.timestamp < cutoff) {
+					toolValidationCache.delete(key);
+				}
+			}
+		}
+
+		return isValid;
 	} catch (error) {
 		console.warn('Error validating tool name:', error);
 		return false;
@@ -138,7 +192,15 @@ export function extractIpv6(text: string): string[] {
 	}
 }
 
-// Parse text and apply formatting rules
+// Cache for parsed text to prevent excessive re-parsing
+const parseCache = new Map<string, { segments: FormatSegment[]; timestamp: number }>();
+const PARSE_CACHE_DURATION = 2000; // 2 seconds cache for parsed segments
+
+// Debounced parsing map to prevent excessive calls
+const debounceTimeouts = new Map<string, NodeJS.Timeout>();
+const DEBOUNCE_DELAY = 50; // 50ms debounce
+
+// Parse text and apply formatting rules with caching and debouncing
 export function parseFormattedText(
 	text: string,
 	rules: FormatRule[] = defaultFormatRules
@@ -147,102 +209,29 @@ export function parseFormattedText(
 		if (!text || typeof text !== 'string') return [];
 		if (!rules || !Array.isArray(rules)) return [{ text, isFormatted: false }];
 
-		const segments: FormatSegment[] = [];
-		let lastIndex = 0;
+		// Create cache key based on text and rules
+		const cacheKey = `${text}_${JSON.stringify(rules.map((r) => ({ pattern: r.pattern.source, className: r.className })))}`;
+		const now = Date.now();
+		const cached = parseCache.get(cacheKey);
 
-		// Collect all matches from all rules
-		const allMatches: Array<{
-			match: RegExpMatchArray;
-			rule: FormatRule;
-			start: number;
-			end: number;
-		}> = [];
+		// Return cached result if still valid
+		if (cached && now - cached.timestamp < PARSE_CACHE_DURATION) {
+			return cached.segments;
+		}
 
-		for (const rule of rules) {
-			try {
-				if (!rule || !rule.pattern) continue;
+		const segments = parseFormattedTextInternal(text, rules);
 
-				const regex = new RegExp(rule.pattern.source, rule.pattern.flags);
-				let match: RegExpExecArray | null;
+		// Cache the result
+		parseCache.set(cacheKey, { segments, timestamp: now });
 
-				match = regex.exec(text);
-				while (match !== null) {
-					const start = match.index ?? 0;
-					const end = start + match[0].length;
-
-					// Validate if rule has validation function
-					if (rule.validate) {
-						try {
-							if (!rule.validate(match[0])) {
-								continue;
-							}
-						} catch (validateError) {
-							console.warn('Error in rule validation:', validateError);
-							continue;
-						}
-					}
-
-					allMatches.push({
-						match,
-						rule,
-						start,
-						end
-					});
-
-					// Prevent infinite loop
-					if (regex.lastIndex === start) {
-						regex.lastIndex = start + 1;
-					}
-
-					match = regex.exec(text);
+		// Clean up old cache entries periodically
+		if (parseCache.size > 50) {
+			const cutoff = now - PARSE_CACHE_DURATION;
+			for (const [key, value] of parseCache.entries()) {
+				if (value.timestamp < cutoff) {
+					parseCache.delete(key);
 				}
-			} catch (ruleError) {
-				console.warn('Error processing rule:', ruleError);
 			}
-		}
-
-		// Sort matches by position
-		allMatches.sort((a, b) => a.start - b.start);
-
-		// Process matches and create segments
-		for (const { match, rule, start, end } of allMatches) {
-			// Skip overlapping matches
-			if (start < lastIndex) {
-				continue;
-			}
-
-			// Add unformatted text before this match
-			if (start > lastIndex) {
-				segments.push({
-					text: text.slice(lastIndex, start),
-					isFormatted: false
-				});
-			}
-
-			// Add formatted segment
-			segments.push({
-				text: match[0],
-				className: rule.className,
-				isFormatted: true
-			});
-
-			lastIndex = end;
-		}
-
-		// Add remaining unformatted text
-		if (lastIndex < text.length) {
-			segments.push({
-				text: text.slice(lastIndex),
-				isFormatted: false
-			});
-		}
-
-		// If no matches found, return the entire text as unformatted
-		if (segments.length === 0) {
-			segments.push({
-				text,
-				isFormatted: false
-			});
 		}
 
 		return segments;
@@ -250,6 +239,131 @@ export function parseFormattedText(
 		console.error('Error parsing formatted text:', error);
 		return [{ text: text || '', isFormatted: false }];
 	}
+}
+
+// Internal parsing function (non-cached)
+function parseFormattedTextInternal(text: string, rules: FormatRule[]): FormatSegment[] {
+	const segments: FormatSegment[] = [];
+	let lastIndex = 0;
+
+	// Collect all matches from all rules
+	const allMatches: Array<{
+		match: RegExpMatchArray;
+		rule: FormatRule;
+		start: number;
+		end: number;
+	}> = [];
+
+	for (const rule of rules) {
+		try {
+			if (!rule || !rule.pattern) continue;
+
+			const regex = new RegExp(rule.pattern.source, rule.pattern.flags);
+			let match: RegExpExecArray | null;
+
+			match = regex.exec(text);
+			while (match !== null) {
+				const start = match.index ?? 0;
+				const end = start + match[0].length;
+
+				// Validate if rule has validation function
+				if (rule.validate) {
+					try {
+						if (!rule.validate(match[0])) {
+							continue;
+						}
+					} catch (validateError) {
+						console.warn('Error in rule validation:', validateError);
+						continue;
+					}
+				}
+
+				allMatches.push({
+					match,
+					rule,
+					start,
+					end
+				});
+
+				// Prevent infinite loop
+				if (regex.lastIndex === start) {
+					regex.lastIndex = start + 1;
+				}
+
+				match = regex.exec(text);
+			}
+		} catch (ruleError) {
+			console.warn('Error processing rule:', ruleError);
+		}
+	}
+
+	// Sort matches by position
+	allMatches.sort((a, b) => a.start - b.start);
+
+	// Process matches and create segments
+	for (const { match, rule, start, end } of allMatches) {
+		// Skip overlapping matches
+		if (start < lastIndex) {
+			continue;
+		}
+
+		// Add unformatted text before this match
+		if (start > lastIndex) {
+			segments.push({
+				text: text.slice(lastIndex, start),
+				isFormatted: false
+			});
+		}
+
+		// Add formatted segment
+		segments.push({
+			text: match[0],
+			className: rule.className,
+			isFormatted: true
+		});
+
+		lastIndex = end;
+	}
+
+	// Add remaining unformatted text
+	if (lastIndex < text.length) {
+		segments.push({
+			text: text.slice(lastIndex),
+			isFormatted: false
+		});
+	}
+
+	// If no matches found, return the entire text as unformatted
+	if (segments.length === 0) {
+		segments.push({
+			text,
+			isFormatted: false
+		});
+	}
+
+	return segments;
+}
+
+// Debounced version of parseFormattedText for high-frequency calls
+export function parseFormattedTextDebounced(
+	text: string,
+	rules: FormatRule[] = defaultFormatRules,
+	callback: (segments: FormatSegment[]) => void
+): void {
+	// Clear existing timeout for this text
+	const existingTimeout = debounceTimeouts.get(text);
+	if (existingTimeout) {
+		clearTimeout(existingTimeout);
+	}
+
+	// Set new timeout
+	const timeout = setTimeout(() => {
+		const segments = parseFormattedText(text, rules);
+		callback(segments);
+		debounceTimeouts.delete(text);
+	}, DEBOUNCE_DELAY);
+
+	debounceTimeouts.set(text, timeout);
 }
 
 // Get CSS classes for formatted text display

@@ -53,12 +53,16 @@ class ToolRegistryManager implements ToolDiscovery {
 
 		this.tools.set(toolMetadata.name, toolMetadata);
 		console.log(`Registered tool: ${toolMetadata.name} v${toolMetadata.version}`);
+		// Notify text formatter to invalidate cache
+		this.notifyToolCacheInvalidation();
 	}
 
 	unregisterTool(name: string): void {
 		if (this.tools.has(name)) {
 			this.tools.delete(name);
 			console.log(`Unregistered tool: ${name}`);
+			// Notify text formatter to invalidate cache
+			this.notifyToolCacheInvalidation();
 		} else {
 			console.warn(`Tool '${name}' not found in registry`);
 		}
@@ -102,6 +106,8 @@ class ToolRegistryManager implements ToolDiscovery {
 		const tool = this.tools.get(name);
 		if (tool) {
 			tool.enabled = true;
+			// Notify text formatter to invalidate cache
+			this.notifyToolCacheInvalidation();
 			return true;
 		}
 		return false;
@@ -111,6 +117,8 @@ class ToolRegistryManager implements ToolDiscovery {
 		const tool = this.tools.get(name);
 		if (tool) {
 			tool.enabled = false;
+			// Notify text formatter to invalidate cache
+			this.notifyToolCacheInvalidation();
 			return true;
 		}
 		return false;
@@ -156,6 +164,19 @@ class ToolRegistryManager implements ToolDiscovery {
 		}
 
 		return stats;
+	}
+
+	private notifyToolCacheInvalidation(): void {
+		// Dynamically import to avoid circular dependency
+		import('$lib/utils/text-formatter.js')
+			.then((module) => {
+				if (module.invalidateToolCache) {
+					module.invalidateToolCache();
+				}
+			})
+			.catch((error) => {
+				console.warn('Failed to invalidate text formatter cache:', error);
+			});
 	}
 }
 

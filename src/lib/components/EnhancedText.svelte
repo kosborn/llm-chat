@@ -52,18 +52,19 @@
 					let html = await renderMarkdown(text);
 					console.log('Original text:', text);
 					console.log('Rendered HTML before replacement:', html);
-					
+
 					// Find and replace special patterns in the rendered HTML
 					const segments = parseFormattedText(text);
 					console.log('Parsed segments:', segments);
-					
+
 					for (const segment of segments) {
 						console.log('Processing segment:', segment);
-						if (segment.isFormatted && 
-							(isToolMention(segment) || isUrl(segment) || isIpAddress(segment))) {
-							
+						if (
+							segment.isFormatted &&
+							(isToolMention(segment) || isUrl(segment) || isIpAddress(segment))
+						) {
 							let replacement = '';
-							
+
 							if (isToolMention(segment)) {
 								const toolName = segment.text.slice(1);
 								replacement = `<span class="${segment.className} cursor-help border-b border-dotted border-current" data-tool="${toolName}" title="Tool: ${toolName}">${segment.text}</span>`;
@@ -72,17 +73,17 @@
 							} else if (isIpAddress(segment)) {
 								replacement = `<span class="${segment.className} cursor-pointer" data-ip="${segment.text}" title="Click to copy IP address (${segment.text.includes(':') ? 'IPv6' : 'IPv4'})">${segment.text}</span>`;
 							}
-							
+
 							console.log(`Replacing "${segment.text}" with:`, replacement);
 							console.log('HTML before this replacement:', html);
-							
+
 							// Replace all occurrences of the segment text with formatted version
 							html = html.split(segment.text).join(replacement);
-							
+
 							console.log('HTML after this replacement:', html);
 						}
 					}
-					
+
 					console.log('Final HTML:', html);
 					markdownHtml = html;
 				} else {
@@ -230,8 +231,6 @@
 			}
 		}
 	}
-
-
 </script>
 
 <div class="relative break-words whitespace-pre-wrap {className}">
@@ -241,7 +240,6 @@
 			<div class="mb-2 h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
 			<div class="h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
 		</div>
-
 	{:else if enableMarkdown && enableFormatting}
 		<!-- Combined markdown and formatting -->
 		<div
