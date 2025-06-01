@@ -35,6 +35,9 @@
 	let editingTitle = $state(false);
 	let titleInput = $state('');
 
+	// Track when title should flash after rename
+	let titleFlashing = $derived(chatStore.titleFlashChatId === chatStore.currentChat?.id);
+
 	// Per-chat provider and model selection - synced with providerStore
 	let currentProvider = $state<import('$lib/providers').ProviderId>(providerStore.currentProvider);
 	let currentModel = $state(providerStore.currentModel);
@@ -842,7 +845,14 @@
 							/>
 						{:else}
 							<div class="flex items-center gap-2">
-								<h2 class="truncate text-base font-semibold md:text-lg">
+								<h2
+									class="truncate text-base font-semibold transition-all duration-300 ease-in-out md:text-lg {titleFlashing
+										? 'scale-105 animate-pulse bg-gradient-to-r from-blue-200 to-green-200 dark:from-blue-900 dark:to-green-900'
+										: ''}"
+									class:rounded-md={titleFlashing}
+									class:px-2={titleFlashing}
+									class:py-1={titleFlashing}
+								>
 									{chatStore.currentChat.title}
 								</h2>
 								{#if autoRenamingChatId === chatStore.currentChat.id}

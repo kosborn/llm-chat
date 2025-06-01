@@ -10,6 +10,7 @@ class ChatStore {
 	currentChatId = $state<string | null>(null);
 	isLoading = $state(false);
 	error = $state<string | null>(null);
+	titleFlashChatId = $state<string | null>(null);
 
 	get currentChat(): Chat | null {
 		return this.chats.find((chat) => chat.id === this.currentChatId) || null;
@@ -284,7 +285,12 @@ class ChatStore {
 
 			if (title?.trim()) {
 				await this.updateChatTitle(chatId, title.trim());
-				notificationStore.success(`Chat renamed to "${title.trim()}"`, 2000);
+				// Trigger flash animation
+				this.titleFlashChatId = chatId;
+				// Reset flash after animation duration
+				setTimeout(() => {
+					this.titleFlashChatId = null;
+				}, 600);
 			} else if (forceRegenerate) {
 				// Check if we're offline or missing API key for better error messages
 				if (!clientChatService.canSendMessages()) {
@@ -323,6 +329,14 @@ class ChatStore {
 
 	clearError(): void {
 		this.error = null;
+	}
+
+	triggerTitleFlash(chatId: string): void {
+		this.titleFlashChatId = chatId;
+		// Clear the flash state after animation duration
+		setTimeout(() => {
+			this.titleFlashChatId = null;
+		}, 1000);
 	}
 }
 
