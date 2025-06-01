@@ -29,13 +29,20 @@ export async function POST({ request }: { request: Request }) {
 	try {
 		debugLog(`[${requestId}] Incoming chat request`);
 
-		const { messages, provider, model, mentionedTools = [] } = await request.json();
+		const {
+			messages,
+			provider,
+			model,
+			mentionedTools = [],
+			enabledTools = []
+		} = await request.json();
 
 		debugLog(`[${requestId}] Parsed request body`, {
 			messageCount: messages.length,
 			provider,
 			model,
 			mentionedTools,
+			enabledTools,
 			lastMessage: messages[messages.length - 1]
 		});
 
@@ -150,19 +157,33 @@ export async function POST({ request }: { request: Request }) {
 			);
 		}
 
-		// Handle tool mentions for temporary enabling
-		let effectiveToolsRegistry = toolsRegistry;
-		
+		// Build effective tools registry from client-provided enabled tools
+		let effectiveToolsRegistry: Record<string, any> = {};
+
+		// Start with only enabled tools from client
+		for (const toolName of enabledTools) {
+			if (toolsRegistry[toolName]) {
+				effectiveToolsRegistry[toolName] = toolsRegistry[toolName];
+			}
+		}
+
 		debugLog(`[${requestId}] Server tools before processing`, {
-			defaultToolsRegistry: Object.keys(toolsRegistry),
+			clientEnabledTools: enabledTools,
+			effectiveTools: Object.keys(effectiveToolsRegistry),
 			mentionedTools
 		});
 
 		if (mentionedTools && mentionedTools.length > 0) {
-			// Import tool mention manager dynamically to avoid circular dependencies
-			const { ToolMentionManager } = await import('$lib/utils/tool-mention-manager.js');
-			effectiveToolsRegistry = ToolMentionManager.getTemporaryToolsRegistry(mentionedTools);
-			debugLog(`[${requestId}] Using temporary tools registry for mentions`);
+			// Add mentioned tools even if they're not in the enabled list
+			for (const toolName of mentionedTools) {
+				if (toolsRegistry[toolName] && !effectiveToolsRegistry[toolName]) {
+					effectiveToolsRegistry[toolName] = toolsRegistry[toolName];
+				}
+			}
+			debugLog(`[${requestId}] Added mentioned tools to registry`, {
+				mentionedTools,
+				finalTools: Object.keys(effectiveToolsRegistry)
+			});
 		}
 
 		debugLog(`[${requestId}] Chat session initialized`, {
