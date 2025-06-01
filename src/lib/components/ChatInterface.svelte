@@ -975,14 +975,18 @@
 							<div class="relative md:hidden">
 								<button
 									onclick={() => (showMobileModelSelector = !showMobileModelSelector)}
-									class="flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs transition-colors hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600"
+									class="flex shrink-0 items-center gap-1 px-1 py-0.5 text-xs transition-colors hover:text-blue-600 dark:hover:text-blue-400"
 									title="Select AI model"
 								>
-									<span class="text-gray-600 dark:text-gray-300">{currentProvider}</span>
+									<span class="truncate text-gray-600 dark:text-gray-300">
+										{providerStore.getProviderDisplayName(currentProvider)}
+									</span>
 									<span class="text-gray-400 dark:text-gray-500">·</span>
-									<span class="text-gray-800 dark:text-gray-200">{currentModel}</span>
+									<span class="truncate text-gray-800 dark:text-gray-200">
+										{providerStore.getModelDisplayName(currentProvider, currentModel)}
+									</span>
 									<svg
-										class="ml-1 h-3 w-3 transform transition-transform {showMobileModelSelector
+										class="ml-1 h-3 w-3 shrink-0 transform transition-transform {showMobileModelSelector
 											? 'rotate-180'
 											: ''}"
 										fill="none"
