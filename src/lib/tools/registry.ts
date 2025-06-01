@@ -82,17 +82,9 @@ class ToolRegistryManager implements ToolDiscovery {
 		const enabledTools: ToolRegistry = {};
 
 		for (const [name, metadata] of this.tools.entries()) {
-			// Check persistent settings store first, fall back to metadata.enabled
-			let isEnabled = metadata.enabled !== false; // default enabled
-
-			if (toolSettingsStore) {
-				try {
-					isEnabled = toolSettingsStore.getToolSetting(name);
-				} catch (error) {
-					// Fall back to metadata.enabled if store access fails
-					console.warn(`Failed to get tool setting for ${name}:`, error);
-				}
-			}
+			// ONLY use metadata.enabled which is synced with persistent settings
+			// The metadata.enabled property is updated during initializePersistentSettings
+			const isEnabled = metadata.enabled !== false;
 
 			if (isEnabled) {
 				enabledTools[name] = metadata;
@@ -147,45 +139,67 @@ class ToolRegistryManager implements ToolDiscovery {
 	}
 
 	async enableToolPersistent(name: string): Promise<boolean> {
-		const success = this.enableTool(name);
-		if (success) {
-			try {
-				const settingsStore = await getToolSettingsStore();
-				settingsStore.setToolSetting(name, true);
-			} catch (error) {
-				console.warn('Failed to persist tool setting:', error);
-			}
+		const tool = this.tools.get(name);
+		if (!tool) return false;
+
+		// Update metadata directly (single source of truth)
+		tool.enabled = true;
+
+		// Persist to store
+		try {
+			const settingsStore = await getToolSettingsStore();
+			settingsStore.setToolSetting(name, true);
+		} catch (error) {
+			console.warn('Failed to persist tool setting:', error);
 		}
-		return success;
+
+		// Notify cache invalidation
+		this.notifyToolCacheInvalidation();
+		return true;
 	}
 
 	async disableToolPersistent(name: string): Promise<boolean> {
-		const success = this.disableTool(name);
-		if (success) {
-			try {
-				const settingsStore = await getToolSettingsStore();
-				settingsStore.setToolSetting(name, false);
-			} catch (error) {
-				console.warn('Failed to persist tool setting:', error);
-			}
+		const tool = this.tools.get(name);
+		if (!tool) return false;
+
+		// Update metadata directly (single source of truth)
+		tool.enabled = false;
+
+		// Persist to store
+		try {
+			const settingsStore = await getToolSettingsStore();
+			settingsStore.setToolSetting(name, false);
+		} catch (error) {
+			console.warn('Failed to persist tool setting:', error);
 		}
-		return success;
+
+		// Notify cache invalidation
+		this.notifyToolCacheInvalidation();
+		return true;
 	}
 
 	async initializePersistentSettings(): Promise<void> {
 		try {
 			const settingsStore = await getToolSettingsStore();
-			// Store reference for getEnabledTools to use
+			// Store reference for future use
 			toolSettingsStore = settingsStore;
 
 			const allSettings = settingsStore.getAllSettings();
 
-			// Apply persistent settings to tools
+			// Apply persistent settings directly to tool metadata
+			// This is the SINGLE SOURCE OF TRUTH for enabled/disabled state
 			for (const [name, enabled] of Object.entries(allSettings)) {
-				if (enabled) {
-					this.enableTool(name);
-				} else {
-					this.disableTool(name);
+				const tool = this.tools.get(name);
+				if (tool) {
+					tool.enabled = enabled;
+				}
+			}
+
+			// Initialize any tools not in settings (default to enabled)
+			for (const [name, tool] of this.tools.entries()) {
+				if (!(name in allSettings)) {
+					tool.enabled = true; // Default enabled
+					settingsStore.setToolSetting(name, true);
 				}
 			}
 		} catch (error) {
