@@ -51,6 +51,12 @@ curl https://api.example.com
 			enableFormatting: true
 		},
 		{
+			title: 'Problematic Case (IP in sentence)',
+			text: `tell me about the IP 1.1.1.1 please`,
+			enableMarkdown: true,
+			enableFormatting: true
+		},
+		{
 			title: 'Complex Mixed Content',
 			text: `# Network Configuration
 
@@ -82,19 +88,24 @@ nmap https://primary.example.com
 <div class="container mx-auto p-6">
 	<h1 class="mb-6 text-3xl font-bold">Enhanced Text Test Page</h1>
 	<p class="mb-8 text-gray-600 dark:text-gray-400">
-		This page demonstrates the EnhancedText component with different combinations of markdown and formatting enabled.
+		This page demonstrates the EnhancedText component with different combinations of markdown and
+		formatting enabled.
 	</p>
 
 	<div class="space-y-8">
 		{#each testCases as testCase, index (index)}
 			<div class="rounded-lg border border-gray-200 p-6 dark:border-gray-700">
 				<h2 class="mb-4 text-xl font-semibold">{testCase.title}</h2>
-				
+
 				<div class="mb-4 flex gap-4 text-sm">
-					<span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+					<span
+						class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
+					>
 						Markdown: {testCase.enableMarkdown ? 'Enabled' : 'Disabled'}
 					</span>
-					<span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-green-800 dark:bg-green-900 dark:text-green-300">
+					<span
+						class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-green-800 dark:bg-green-900 dark:text-green-300"
+					>
 						Formatting: {testCase.enableFormatting ? 'Enabled' : 'Disabled'}
 					</span>
 				</div>
@@ -102,13 +113,17 @@ nmap https://primary.example.com
 				<div class="space-y-4">
 					<div>
 						<h3 class="mb-2 font-medium">Input Text:</h3>
-						<pre class="rounded bg-gray-100 p-3 text-sm dark:bg-gray-800"><code>{testCase.text}</code></pre>
+						<pre class="rounded bg-gray-100 p-3 text-sm dark:bg-gray-800"><code
+								>{testCase.text}</code
+							></pre>
 					</div>
 
 					<div>
 						<h3 class="mb-2 font-medium">Rendered Output:</h3>
-						<div class="rounded border border-gray-200 bg-white p-4 dark:border-gray-600 dark:bg-gray-800">
-							<EnhancedText 
+						<div
+							class="rounded border border-gray-200 bg-white p-4 dark:border-gray-600 dark:bg-gray-800"
+						>
+							<EnhancedText
 								text={testCase.text}
 								enableMarkdown={testCase.enableMarkdown}
 								enableFormatting={testCase.enableFormatting}
@@ -147,7 +162,10 @@ nmap https://primary.example.com
 	</div>
 
 	<div class="mt-8 text-center">
-		<a href="/" class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+		<a
+			href="/"
+			class="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+		>
 			← Back to Chat
 		</a>
 	</div>

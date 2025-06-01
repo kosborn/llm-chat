@@ -25,35 +25,81 @@
 
 	// Process text with both markdown and formatting
 	const processedContent = $derived(() => {
-		if (!text) return { html: '', segments: [], useMarkdown: false };
-
-		// If both markdown and formatting are enabled, use segments with markdown support
-		if (enableMarkdown && enableFormatting) {
-			const segments = parseFormattedText(text);
-			return { html: '', segments, useMarkdown: true };
-		}
+		if (!text) return { html: '', segments: [] };
 
 		// If only markdown is enabled, use markdown (handled separately due to async)
 		if (enableMarkdown && !enableFormatting) {
-			return { html: markdownHtml, segments: [], useMarkdown: false };
+			return { html: markdownHtml, segments: [] };
 		}
 
-		// If only formatting is enabled, use text formatter
+		// If formatting is enabled (with or without markdown), use text formatter
 		if (enableFormatting) {
 			const segments = parseFormattedText(text);
-			return { html: '', segments, useMarkdown: false };
+			return { html: '', segments };
 		}
 
 		// Default: plain text with line breaks
-		return { html: text.replace(/\n/g, '<br>'), segments: [], useMarkdown: false };
+		return { html: text.replace(/\n/g, '<br>'), segments: [] };
 	});
 
 	// Handle async markdown rendering
 	async function updateMarkdown() {
-		if (enableMarkdown && !enableFormatting && text) {
+		if (enableMarkdown && text) {
 			isLoadingMarkdown = true;
 			try {
-				markdownHtml = await renderMarkdown(text);
+				if (enableFormatting) {
+					// For combined markdown + formatting, we need to process segments
+					// and render markdown while preserving special formatting
+					const segments = parseFormattedText(text);
+					let processedText = '';
+
+					for (const segment of segments) {
+						if (
+							segment.isFormatted &&
+							(isToolMention(segment) || isUrl(segment) || isIpAddress(segment))
+						) {
+							// Replace special segments with placeholders
+							processedText += `__SPECIAL_${segments.indexOf(segment)}__`;
+						} else {
+							processedText += segment.text;
+						}
+					}
+
+					// Render markdown on the text with placeholders
+					let renderedHtml = await renderMarkdown(processedText);
+
+					// Replace placeholders back with formatted segments
+					for (let i = 0; i < segments.length; i++) {
+						const segment = segments[i];
+						if (
+							segment.isFormatted &&
+							(isToolMention(segment) || isUrl(segment) || isIpAddress(segment))
+						) {
+							let replacement = '';
+
+							if (isToolMention(segment)) {
+								const toolName = segment.text.slice(1);
+								replacement = `<span class="${segment.className} cursor-help border-b border-dotted border-current" data-tool="${toolName}" title="Tool: ${toolName}">${segment.text}</span>`;
+							} else if (isUrl(segment)) {
+								replacement = `<a href="${segment.text}" class="${segment.className}" target="_blank" rel="noopener noreferrer">${segment.text}</a>`;
+							} else if (isIpAddress(segment)) {
+								replacement = `<span class="${segment.className} cursor-pointer select-none" data-ip="${segment.text}" title="Click to copy IP address (${segment.text.includes(':') ? 'IPv6' : 'IPv4'})">${segment.text}</span>`;
+							}
+
+							const placeholderRegex = new RegExp(`__SPECIAL_${i}__`, 'g');
+							renderedHtml = renderedHtml.replace(
+								new RegExp(`<p>__SPECIAL_${i}__</p>`, 'g'),
+								replacement
+							);
+							renderedHtml = renderedHtml.replace(placeholderRegex, replacement);
+						}
+					}
+
+					markdownHtml = renderedHtml;
+				} else {
+					// Plain markdown without formatting
+					markdownHtml = await renderMarkdown(text);
+				}
 			} catch (error) {
 				console.error('Error rendering markdown:', error);
 				markdownHtml = text.replace(/\n/g, '<br>');
@@ -64,20 +110,10 @@
 	}
 
 	$effect(() => {
-		if (enableMarkdown && !enableFormatting) {
+		if (enableMarkdown) {
 			updateMarkdown();
 		}
 	});
-
-	// Render markdown for a text segment
-	async function renderSegmentAsMarkdown(text: string): Promise<string> {
-		try {
-			return await renderMarkdown(text);
-		} catch (error) {
-			console.error('Error rendering segment markdown:', error);
-			return text.replace(/\n/g, '<br>');
-		}
-	}
 
 	function handleToolHover(event: MouseEvent, toolName: string) {
 		const toolMetadata = toolRegistry.getToolByName(toolName);
@@ -182,6 +218,29 @@
 			}
 		}
 	}
+
+	// Handle clicks on markdown-rendered content with special formatting
+	function handleMarkdownClick(event: MouseEvent) {
+		const target = event.target as HTMLElement;
+		const ip = target.getAttribute('data-ip');
+		if (ip) {
+			event.preventDefault();
+			copyIpToClipboard(ip);
+		}
+	}
+
+	// Handle hover on markdown-rendered content with tool mentions
+	function handleMarkdownHover(event: MouseEvent) {
+		const target = event.target as HTMLElement;
+		const toolName = target.getAttribute('data-tool');
+		if (toolName) {
+			handleToolHover(event, toolName);
+		}
+	}
+
+	function handleMarkdownLeave() {
+		toolTooltip = null;
+	}
 </script>
 
 <div class="relative break-words whitespace-pre-wrap {className}">
@@ -190,6 +249,27 @@
 		<div class="animate-pulse">
 			<div class="mb-2 h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
 			<div class="h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
+		</div>
+	{:else if enableMarkdown && enableFormatting}
+		<!-- Combined markdown and formatting -->
+		<div
+			role="presentation"
+			onclick={handleMarkdownClick}
+			onmouseenter={handleMarkdownHover}
+			onmouseleave={handleMarkdownLeave}
+			onkeydown={(e) => {
+				if (e.key === 'Enter' || e.key === ' ') {
+					const target = e.target as HTMLElement;
+					const ip = target.getAttribute('data-ip');
+					if (ip) {
+						e.preventDefault();
+						copyIpToClipboard(ip);
+					}
+				}
+			}}
+		>
+			<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+			{@html markdownHtml}
 		</div>
 	{:else if processedContent().html}
 		<!-- Markdown or plain HTML content -->
@@ -243,16 +323,6 @@
 				<span class={segment.className}>
 					{segment.text}
 				</span>
-			{:else if processedContent().useMarkdown}
-				<!-- Plain text with markdown rendering -->
-				{#await renderSegmentAsMarkdown(segment.text)}
-					<span class="animate-pulse">...</span>
-				{:then markdownContent}
-					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
-					{@html markdownContent}
-				{:catch}
-					{segment.text}
-				{/await}
 			{:else}
 				<!-- Plain text -->
 				{segment.text}
