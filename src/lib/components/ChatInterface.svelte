@@ -847,11 +847,9 @@
 							<div class="flex items-center gap-2">
 								<h2
 									class="truncate text-base font-semibold transition-all duration-300 ease-in-out md:text-lg {titleFlashing
-										? 'scale-105 animate-pulse bg-gradient-to-r from-blue-200 to-green-200 dark:from-blue-900 dark:to-green-900'
+										? 'bg-gradient-to-r from-blue-100 to-green-100 dark:from-blue-900/30 dark:to-green-900/30'
 										: ''}"
-									class:rounded-md={titleFlashing}
-									class:px-2={titleFlashing}
-									class:py-1={titleFlashing}
+									class:rounded-sm={titleFlashing}
 								>
 									{chatStore.currentChat.title}
 								</h2>
