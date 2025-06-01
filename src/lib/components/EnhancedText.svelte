@@ -70,7 +70,7 @@
 							} else if (isUrl(segment)) {
 								replacement = `<a href="${segment.text}" class="${segment.className}" target="_blank" rel="noopener noreferrer">${segment.text}</a>`;
 							} else if (isIpAddress(segment)) {
-								replacement = `<span class="${segment.className} cursor-pointer select-none" data-ip="${segment.text}" title="Click to copy IP address (${segment.text.includes(':') ? 'IPv6' : 'IPv4'})">${segment.text}</span>`;
+								replacement = `<span class="${segment.className} cursor-pointer" data-ip="${segment.text}" title="Click to copy IP address (${segment.text.includes(':') ? 'IPv6' : 'IPv4'})">${segment.text}</span>`;
 							}
 							
 							console.log(`Replacing "${segment.text}" with:`, replacement);
@@ -296,7 +296,7 @@
 				<span
 					class="{segment.className} {copiedIp === segment.text
 						? 'animate-pulse bg-green-200/50 dark:bg-green-800/50'
-						: ''} select-none"
+						: ''}"
 					onclick={() => copyIpToClipboard(segment.text)}
 					role="button"
 					tabindex="0"
