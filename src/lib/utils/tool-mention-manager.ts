@@ -1,4 +1,4 @@
-import { extractToolMentions } from '$lib/utils/text-formatter-manager.js';
+import { extractToolMentions } from '$lib/utils/text-formatter.js';
 import { toolRegistry } from '$lib/tools/registry.js';
 import { toolSettingsStore } from '$lib/stores/tool-settings-store.svelte.js';
 
@@ -46,8 +46,7 @@ export class ToolMentionManager {
 	/**
 	 * Get tools registry with temporarily enabled tools for server-side use
 	 */
-	static getTemporaryToolsRegistry(mentionedTools: string[]): Record<string, any> {
-		const originalSettings = toolSettingsStore.getAllSettings();
+	static getTemporaryToolsRegistry(mentionedTools: string[]): Record<string, unknown> {
 		const tempSettings = toolSettingsStore.createTemporaryRegistry(mentionedTools);
 
 		// Apply temporary settings
@@ -55,7 +54,7 @@ export class ToolMentionManager {
 
 		// Get enabled tools
 		const enabledTools = toolRegistry.getEnabledTools();
-		const toolsForRegistry: Record<string, any> = {};
+		const toolsForRegistry: Record<string, unknown> = {};
 
 		for (const [name, metadata] of Object.entries(enabledTools)) {
 			toolsForRegistry[name] = metadata.tool;

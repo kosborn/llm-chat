@@ -12,6 +12,7 @@
 		getTokenCountColor
 	} from '$lib/utils/simple-token-counter';
 	import { getProviderDisplayName } from '$lib/utils/cost-calculator.js';
+	import { extractToolMentions } from '$lib/utils/text-formatter.js';
 
 	interface Props {
 		message: ChatMessage;
@@ -27,6 +28,15 @@
 
 	// Token counting
 	const tokenCount = $derived(() => (message.content ? countTokens(message.content) : 0));
+
+	// Tool mention analysis
+	const mentionedTools = $derived(() =>
+		message.content ? extractToolMentions(message.content) : []
+	);
+	const hasToolMentions = $derived(() => mentionedTools().length > 0);
+	const hasToolInvocations = $derived(
+		() => message.toolInvocations && message.toolInvocations.length > 0
+	);
 
 	onMount(() => {
 		// Auto-scroll to bottom when new messages arrive
@@ -57,7 +67,7 @@
 	function getProviderIcon(provider?: string): string {
 		if (!provider) return '💬';
 
-		const providerConfig = providerStore.getProvider(provider as any);
+		const providerConfig = providerStore.getProvider(provider as import('$lib/providers').ProviderId);
 		return providerConfig?.icon || '🤖';
 	}
 
@@ -102,6 +112,16 @@
 			{#if isStreaming}
 				<span class="text-xs text-blue-500 dark:text-blue-400">
 					<span class="inline-block animate-pulse">●</span> typing...
+				</span>
+			{/if}
+			{#if hasToolMentions() && message.role === 'user'}
+				<span class="text-xs text-amber-600 dark:text-amber-400" title="Tool mentions detected">
+					🔧 {mentionedTools().length}
+				</span>
+			{/if}
+			{#if hasToolInvocations() && message.role === 'assistant'}
+				<span class="text-xs text-green-600 dark:text-green-400" title="Tools executed">
+					⚡ {message.toolInvocations?.length}
 				</span>
 			{/if}
 			{#if message.apiMetadata && message.role === 'assistant'}

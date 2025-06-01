@@ -1,5 +1,9 @@
 <script lang="ts">
-	import { parseFormattedText, type FormatRule, type FormatSegment } from '$lib/utils/text-formatter-manager';
+	import {
+		parseFormattedText,
+		type FormatRule,
+		type FormatSegment
+	} from '$lib/utils/text-formatter-manager';
 	import { toolRegistry } from '$lib/tools/registry.js';
 	import type { ToolMetadata } from '$lib/tools/types.js';
 

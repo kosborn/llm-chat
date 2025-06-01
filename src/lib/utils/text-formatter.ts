@@ -49,13 +49,7 @@ function initializeStaticToolCache(): void {
 	}
 }
 
-// Get all available tool names for validation - static cache
-function getValidToolNames(): Set<string> {
-	if (!staticCacheInitialized) {
-		initializeStaticToolCache();
-	}
-	return staticValidToolsSet;
-}
+
 
 // Function to invalidate cache when tools change
 export function invalidateToolCache(): void {
@@ -67,20 +61,9 @@ export function invalidateToolCache(): void {
 	initializeStaticToolCache();
 }
 
-// Ultra-fast tool validation using static set
-function isValidTool(toolName: string): boolean {
-	if (!toolName || typeof toolName !== 'string') {
-		return false;
-	}
 
-	if (!staticCacheInitialized) {
-		initializeStaticToolCache();
-	}
 
-	return staticValidToolsSet.has(toolName);
-}
-
-// Create optimized tool rule that pre-compiles valid tools
+// Create optimized tool rule that pre-compiles valid tools (only highlights enabled tools)
 function createOptimizedToolRule(): FormatRule {
 	// Pre-initialize tool cache for immediate validation
 	if (!staticCacheInitialized) {
@@ -92,7 +75,7 @@ function createOptimizedToolRule(): FormatRule {
 		className: 'text-blue-800 dark:text-blue-200',
 		validate: (match: string) => {
 			const toolName = match.slice(1); // Remove @ symbol
-			// Direct set lookup - no function call overhead
+			// Direct set lookup - only highlight enabled tools
 			return staticValidToolsSet.has(toolName);
 		}
 	};
@@ -113,8 +96,27 @@ export const defaultFormatRules: FormatRule[] = [
 	}
 ];
 
-// Helper to extract tool mentions from text
+// Helper to extract tool mentions from text (all valid tools, even if disabled)
 export function extractToolMentions(text: string): string[] {
+	try {
+		if (!text || typeof text !== 'string') return [];
+
+		const matches = text.match(TOOL_REGEX) || [];
+		return matches
+			.map((match) => match.slice(1)) // Remove @ symbol
+			.filter((toolName) => {
+				// Check if tool exists in registry (regardless of enabled state)
+				const allTools = toolRegistry.getAllTools();
+				return toolName in allTools;
+			});
+	} catch (error) {
+		console.error('Error extracting tool mentions:', error);
+		return [];
+	}
+}
+
+// Helper to extract enabled tool mentions from text (for formatting only)
+export function extractEnabledToolMentions(text: string): string[] {
 	try {
 		if (!text || typeof text !== 'string') return [];
 
@@ -128,7 +130,7 @@ export function extractToolMentions(text: string): string[] {
 			.map((match) => match.slice(1)) // Remove @ symbol
 			.filter((toolName) => staticValidToolsSet.has(toolName));
 	} catch (error) {
-		console.error('Error extracting tool mentions:', error);
+		console.error('Error extracting enabled tool mentions:', error);
 		return [];
 	}
 }
@@ -368,7 +370,7 @@ export function createToolRule(className?: string): FormatRule {
 		className: className || 'text-blue-800 dark:text-blue-200',
 		validate: (match: string) => {
 			const toolName = match.slice(1);
-			// Direct set lookup - no function call overhead
+			// Direct set lookup - only highlight enabled tools for formatting
 			return staticValidToolsSet.has(toolName);
 		}
 	};
@@ -440,6 +442,7 @@ export function createOptimizedDefaultRules(): FormatRule[] {
 			className: 'text-blue-800 dark:text-blue-200',
 			validate: (match: string) => {
 				const toolName = match.slice(1);
+				// Only highlight enabled tools in formatting
 				return staticValidToolsSet.has(toolName);
 			}
 		},

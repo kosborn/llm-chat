@@ -63,7 +63,7 @@ class TextFormatterManager {
 			},
 			{
 				pattern: this.TOOL_REGEX,
-				className: 'text-blue-800 dark:text-blue-200',
+				className: 'text-blue-800 dark:text-blue-200 font-medium',
 				validate: (match: string) => {
 					const toolName = match.slice(1);
 					return this.isValidTool(toolName);
@@ -71,7 +71,7 @@ class TextFormatterManager {
 			},
 			{
 				pattern: this.TOOL_REGEX,
-				className: 'text-gray-500 dark:text-gray-400 line-through opacity-75',
+				className: 'text-amber-600 dark:text-amber-400 opacity-75 italic',
 				validate: (match: string) => {
 					const toolName = match.slice(1);
 					return this.isDisabledTool(toolName);
@@ -309,9 +309,23 @@ class TextFormatterManager {
 			const matches = text.match(this.TOOL_REGEX) || [];
 			return matches
 				.map((match) => match.slice(1)) // Remove @ symbol
-				.filter((toolName) => this.isValidTool(toolName));
+				.filter((toolName) => this.allToolsSet.has(toolName)); // All valid tools, even disabled ones
 		} catch (error) {
 			console.error('Error extracting tool mentions:', error);
+			return [];
+		}
+	}
+
+	public extractEnabledToolMentions(text: string): string[] {
+		if (!text || typeof text !== 'string') return [];
+
+		try {
+			const matches = text.match(this.TOOL_REGEX) || [];
+			return matches
+				.map((match) => match.slice(1)) // Remove @ symbol
+				.filter((toolName) => this.isValidTool(toolName)); // Only enabled tools
+		} catch (error) {
+			console.error('Error extracting enabled tool mentions:', error);
 			return [];
 		}
 	}
@@ -364,6 +378,10 @@ export function parseFormattedText(text: string, rules?: FormatRule[]): FormatSe
 
 export function extractToolMentions(text: string): string[] {
 	return textFormatterManager.extractToolMentions(text);
+}
+
+export function extractEnabledToolMentions(text: string): string[] {
+	return textFormatterManager.extractEnabledToolMentions(text);
 }
 
 export function extractUrls(text: string): string[] {
