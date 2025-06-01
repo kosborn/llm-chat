@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { slide, fade } from 'svelte/transition';
+	import { fly, fade } from 'svelte/transition';
 	import { nanoid } from 'nanoid';
 	import { parseDataStreamPart } from 'ai';
 	import type { ChatMessage, ToolInvocation } from '../../app.d.ts';
@@ -636,7 +636,7 @@
 	{#if mobileStore.sidebarVisible}
 		<div
 			class="fixed top-0 left-0 z-50 flex h-full w-80 flex-col border-r border-gray-200 bg-gray-50 md:hidden dark:border-gray-700 dark:bg-gray-900"
-			transition:slide={{ duration: 300, axis: 'x' }}
+			transition:fly={{ x: -320, duration: 300 }}
 		>
 			<!-- Sidebar Navigation -->
 			<div class="border-b border-gray-200 p-2 dark:border-gray-700">
