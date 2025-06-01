@@ -96,9 +96,12 @@
 	function isIpAddress(segment: FormatSegment): boolean {
 		if (!segment.isFormatted) return false;
 		// Check if it matches IPv4 pattern
-		const ipPattern =
+		const ipv4Pattern =
 			/^\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b$/;
-		return ipPattern.test(segment.text);
+		// Check if it matches IPv6 pattern
+		const ipv6Pattern =
+			/^\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b|\b(?:[0-9a-fA-F]{1,4}:)*::(?:[0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4}\b|\b::1\b|\b::\b$/;
+		return ipv4Pattern.test(segment.text) || ipv6Pattern.test(segment.text);
 	}
 
 	async function copyIpToClipboard(ip: string) {
@@ -209,7 +212,7 @@
 					onclick={() => copyIpToClipboard(segment.text)}
 					role="button"
 					tabindex="0"
-					title="Click to copy IP address"
+					title="Click to copy IP address ({segment.text.includes(':') ? 'IPv6' : 'IPv4'})"
 					onkeydown={(e) => {
 						if (e.key === 'Enter' || e.key === ' ') {
 							e.preventDefault();

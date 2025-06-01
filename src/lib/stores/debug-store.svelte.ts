@@ -15,7 +15,8 @@ interface DebugMessage {
 		| 'message_update'
 		| 'final_response'
 		| 'outbound_message'
-		| 'test';
+		| 'test'
+		| 'ip_test';
 	data: unknown;
 	metadata?: {
 		chatId?: string;

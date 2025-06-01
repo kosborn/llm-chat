@@ -3,7 +3,7 @@
 
 	let isOpen = $state(false);
 	let autoScroll = $state(true);
-	let messagesContainer: HTMLDivElement = $state();
+	let messagesContainer: HTMLDivElement | undefined = $state();
 	let selectedTypes = $state<Set<string>>(new Set());
 	let hiddenTypes = $state<Set<string>>(new Set(['message_update']));
 	let showFilterMenu = $state(false);
@@ -50,7 +50,8 @@
 			message_update: 'bg-cyan-100 text-cyan-800 dark:bg-cyan-900 dark:text-cyan-200',
 			final_response: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
 			outbound_message: 'bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-200',
-			test: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200'
+			test: 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200',
+			ip_test: 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200'
 		};
 		return colors[type] || 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200';
 	}
@@ -127,6 +128,47 @@
 			newHiddenTypes.add(type);
 		}
 		hiddenTypes = newHiddenTypes;
+	}
+
+	function addIpTestMessages() {
+		const testMessages = [
+			{
+				type: 'ip_test',
+				content: 'IPv4 Examples: 192.168.1.1, 10.0.0.1, 172.16.254.1, 8.8.8.8, 255.255.255.255',
+				note: 'Standard IPv4 addresses'
+			},
+			{
+				type: 'ip_test',
+				content: 'IPv6 Examples: 2001:db8:85a3:0:0:8a2e:370:7334, fe80::1, ::1, ::',
+				note: 'Standard IPv6 addresses'
+			},
+			{
+				type: 'ip_test',
+				content: 'IPv6 Compressed: 2001:db8::1, fe80::8a2e:370:7334, ::ffff:192.0.2.1',
+				note: 'Compressed IPv6 notation'
+			},
+			{
+				type: 'ip_test',
+				content:
+					'Mixed Content: Connect to 192.168.1.100 or use IPv6 2001:db8::8a2e:370:7334 for better performance. Also try https://example.com and use @terminal tool.',
+				note: 'Mixed IPs, URLs, and tool mentions'
+			},
+			{
+				type: 'ip_test',
+				content:
+					'Edge Cases: 0.0.0.0, 127.0.0.1, 192.168.0.255, 2001:0db8:85a3:0000:0000:8a2e:0370:7334',
+				note: 'Special and edge case IPs'
+			}
+		];
+
+		testMessages.forEach((msg, index) => {
+			debugStore.log('ip_test' as any, {
+				message: msg.content,
+				note: msg.note,
+				timestamp: Date.now() + index,
+				testId: `ip-test-${index + 1}`
+			});
+		});
 	}
 
 	$effect(() => {
@@ -251,6 +293,13 @@
 							Enable
 						</button>
 					{/if}
+					<button
+						onclick={addIpTestMessages}
+						class="rounded px-2 py-1 text-xs text-blue-600 hover:bg-blue-100 dark:text-blue-400 dark:hover:bg-blue-900"
+						title="Add IP address test messages to verify formatting"
+					>
+						Test IPs
+					</button>
 				</div>
 			</div>
 
@@ -309,6 +358,15 @@
 								>
 									Errors
 								</button>
+								<button
+									onclick={() => {
+										selectedTypes = new Set(['ip_test']);
+										showFilterMenu = false;
+									}}
+									class="rounded bg-orange-100 px-2 py-1 text-xs text-orange-800 hover:bg-orange-200 dark:bg-orange-900 dark:text-orange-200 dark:hover:bg-orange-800"
+								>
+									IP Tests
+								</button>
 							</div>
 						</div>
 
@@ -334,7 +392,7 @@
 								</div>
 							</div>
 							<div class="grid grid-cols-2 gap-1">
-								{#each getUniqueMessageTypes() as type}
+								{#each getUniqueMessageTypes() as type (type)}
 									<label class="flex items-center gap-1 text-xs">
 										<input
 											type="checkbox"
@@ -362,7 +420,7 @@
 								<div class="grid grid-cols-2 gap-1">
 									{#each debugStore
 										.getUniqueMessageTypes()
-										.filter((type) => hiddenTypes.has(type)) as type}
+										.filter((type) => hiddenTypes.has(type)) as type (type)}
 										<label class="flex items-center gap-1 text-xs opacity-60">
 											<input
 												type="checkbox"
@@ -453,9 +511,35 @@
 
 							<!-- Message Content -->
 							<div class="max-h-64 overflow-auto">
-								<pre class="text-xs text-gray-700 dark:text-gray-300"><code
-										>{JSON.stringify(message, null, 2)}</code
-									></pre>
+								{#if message.type === 'ip_test'}
+									<!-- Special rendering for IP test messages -->
+									<div class="space-y-2">
+										<div class="text-sm text-gray-800 dark:text-gray-200">
+											<strong>Test Message:</strong>
+											{(message.data as any)?.message || 'No message'}
+										</div>
+										{#if (message.data as any)?.note}
+											<div class="text-xs text-gray-600 dark:text-gray-400">
+												<strong>Note:</strong>
+												{(message.data as any).note}
+											</div>
+										{/if}
+										<details class="mt-2">
+											<summary
+												class="cursor-pointer text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+											>
+												View Raw JSON
+											</summary>
+											<pre class="mt-2 text-xs text-gray-700 dark:text-gray-300"><code
+													>{JSON.stringify(message, null, 2)}</code
+												></pre>
+										</details>
+									</div>
+								{:else}
+									<pre class="text-xs text-gray-700 dark:text-gray-300"><code
+											>{JSON.stringify(message, null, 2)}</code
+										></pre>
+								{/if}
 							</div>
 						</div>
 					{/each}

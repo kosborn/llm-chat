@@ -19,8 +19,15 @@ const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 const TOOL_REGEX = /@(\w+)/g;
 
 // IP address regex - matches IPv4 addresses
-const IP_REGEX =
+const IPV4_REGEX =
 	/\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g;
+
+// IPv6 address regex - matches various IPv6 formats
+const IPV6_REGEX =
+	/\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b|\b(?:[0-9a-fA-F]{1,4}:)*::(?:[0-9a-fA-F]{1,4}:)*[0-9a-fA-F]{1,4}\b|\b::1\b|\b::\b/g;
+
+// Combined IP regex for both IPv4 and IPv6
+const IP_REGEX = new RegExp(`(${IPV4_REGEX.source})|(${IPV6_REGEX.source})`, 'g');
 
 // Get all available tool names for validation
 function getValidToolNames(): Set<string> {
@@ -105,6 +112,28 @@ export function extractIps(text: string): string[] {
 		return text.match(IP_REGEX) || [];
 	} catch (error) {
 		console.error('Error extracting IP addresses:', error);
+		return [];
+	}
+}
+
+// Helper to extract IPv4 addresses specifically
+export function extractIpv4(text: string): string[] {
+	try {
+		if (!text || typeof text !== 'string') return [];
+		return text.match(IPV4_REGEX) || [];
+	} catch (error) {
+		console.error('Error extracting IPv4 addresses:', error);
+		return [];
+	}
+}
+
+// Helper to extract IPv6 addresses specifically
+export function extractIpv6(text: string): string[] {
+	try {
+		if (!text || typeof text !== 'string') return [];
+		return text.match(IPV6_REGEX) || [];
+	} catch (error) {
+		console.error('Error extracting IPv6 addresses:', error);
 		return [];
 	}
 }
@@ -255,6 +284,24 @@ export function createIpRule(className?: string): FormatRule {
 		className:
 			className ||
 			'text-orange-600 dark:text-orange-400 cursor-pointer hover:text-orange-800 dark:hover:text-orange-300 transition-colors'
+	};
+}
+
+export function createIpv4Rule(className?: string): FormatRule {
+	return {
+		pattern: IPV4_REGEX,
+		className:
+			className ||
+			'text-orange-600 dark:text-orange-400 cursor-pointer hover:text-orange-800 dark:hover:text-orange-300 transition-colors'
+	};
+}
+
+export function createIpv6Rule(className?: string): FormatRule {
+	return {
+		pattern: IPV6_REGEX,
+		className:
+			className ||
+			'text-amber-600 dark:text-amber-400 cursor-pointer hover:text-amber-800 dark:hover:text-amber-300 transition-colors'
 	};
 }
 
