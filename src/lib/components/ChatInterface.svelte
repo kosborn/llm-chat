@@ -628,120 +628,126 @@
 	{/if}
 
 	<!-- Sidebar -->
-	<div
-		class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900
-		       {mobileStore.sidebarVisible
-			? 'fixed top-0 left-0 z-50 h-full translate-x-0 transform transition-transform duration-300 ease-in-out md:static md:h-auto'
-			: 'fixed top-0 left-0 z-50 h-full -translate-x-full transform transition-transform duration-300 ease-in-out md:static md:h-auto'}
-		       {mobileStore.desktopSidebarVisible ? 'md:flex' : 'md:hidden'}"
-	>
-		<!-- Sidebar Navigation -->
-		<div class="border-b border-gray-200 p-2 dark:border-gray-700">
-			<div class="flex rounded-lg bg-gray-200 p-1 dark:bg-gray-800">
+	{#if mobileStore.sidebarVisible || mobileStore.desktopSidebarVisible}
+		<div
+			class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900
+			       {mobileStore.sidebarVisible
+				? 'fixed top-0 left-0 z-50 h-full translate-x-0 transform transition-transform duration-300 ease-in-out md:static md:h-auto'
+				: 'fixed top-0 left-0 z-50 h-full -translate-x-full transform transition-transform duration-300 ease-in-out md:static md:h-auto'}
+			       {mobileStore.desktopSidebarVisible ? 'md:flex' : 'md:hidden'}"
+		>
+			<!-- Sidebar Navigation -->
+			<div class="border-b border-gray-200 p-2 dark:border-gray-700">
+				<div class="flex rounded-lg bg-gray-200 p-1 dark:bg-gray-800">
+					<button
+						onclick={() => (sidebarMode = 'chats')}
+						class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {sidebarMode ===
+						'chats'
+							? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
+							: 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'}"
+					>
+						Chats ({chatStore.chats.length})
+					</button>
+					<button
+						onclick={() => (sidebarMode = 'archived')}
+						class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {sidebarMode ===
+						'archived'
+							? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
+							: 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'}"
+					>
+						Archived ({chatStore.archivedChats.length})
+					</button>
+				</div>
+			</div>
+
+			<!-- Close Buttons -->
+			<div class="flex justify-end p-2">
+				<!-- Mobile Close Button -->
 				<button
-					onclick={() => (sidebarMode = 'chats')}
-					class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {sidebarMode ===
-					'chats'
-						? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
-						: 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'}"
+					onclick={() => mobileStore.closeSidebar()}
+					class="rounded-md p-2 text-gray-500 hover:bg-gray-100 md:hidden dark:hover:bg-gray-800"
+					aria-label="Close sidebar"
 				>
-					Chats ({chatStore.chats.length})
+					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M6 18L18 6M6 6l12 12"
+						></path>
+					</svg>
 				</button>
+				<!-- Desktop Close Button -->
 				<button
-					onclick={() => (sidebarMode = 'archived')}
-					class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {sidebarMode ===
-					'archived'
-						? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
-						: 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'}"
+					onclick={() => mobileStore.closeDesktopSidebar()}
+					class="hidden rounded-md p-2 text-gray-500 hover:bg-gray-100 md:block dark:hover:bg-gray-800"
+					aria-label="Close sidebar"
+					title="Close sidebar"
 				>
-					Archived ({chatStore.archivedChats.length})
+					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M15 19l-7-7 7-7"
+						></path>
+					</svg>
 				</button>
 			</div>
-		</div>
 
-		<!-- Close Buttons -->
-		<div class="flex justify-end p-2">
-			<!-- Mobile Close Button -->
-			<button
-				onclick={() => mobileStore.closeSidebar()}
-				class="rounded-md p-2 text-gray-500 hover:bg-gray-100 md:hidden dark:hover:bg-gray-800"
-				aria-label="Close sidebar"
-			>
-				<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M6 18L18 6M6 6l12 12"
-					></path>
-				</svg>
-			</button>
-			<!-- Desktop Close Button -->
-			<button
-				onclick={() => mobileStore.closeDesktopSidebar()}
-				class="hidden rounded-md p-2 text-gray-500 hover:bg-gray-100 md:block dark:hover:bg-gray-800"
-				aria-label="Close sidebar"
-				title="Close sidebar"
-			>
-				<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"
-					></path>
-				</svg>
-			</button>
-		</div>
+			<!-- Sidebar Content -->
+			<div class="flex-1 overflow-hidden">
+				{#if sidebarMode === 'chats'}
+					<ChatSidebar
+						chats={chatStore.chats}
+						currentChatId={chatStore.currentChatId}
+						isLoading={chatStore.isLoading}
+						{autoRenamingChatId}
+						on:newChat={() => {
+							handleNewChat();
+							mobileStore.closeSidebar();
+						}}
+						on:selectChat={(e) => {
+							handleSelectChat(e);
+							mobileStore.closeSidebar();
+						}}
+						on:archiveChat={handleArchiveChat}
+						on:renameChat={handleRenameChat}
+					/>
+				{:else}
+					<ArchivedChats
+						archivedChats={chatStore.archivedChats}
+						isLoading={chatStore.isLoading}
+						on:unarchiveChat={handleUnarchiveChat}
+						on:deleteChat={handleDeleteChat}
+						on:selectChat={(e) => {
+							handleSelectArchivedChat(e);
+							mobileStore.closeSidebar();
+						}}
+					/>
+				{/if}
+			</div>
 
-		<!-- Sidebar Content -->
-		<div class="flex-1 overflow-hidden">
-			{#if sidebarMode === 'chats'}
-				<ChatSidebar
-					chats={chatStore.chats}
-					currentChatId={chatStore.currentChatId}
-					isLoading={chatStore.isLoading}
-					{autoRenamingChatId}
-					on:newChat={() => {
-						handleNewChat();
-						mobileStore.closeSidebar();
-					}}
-					on:selectChat={(e) => {
-						handleSelectChat(e);
-						mobileStore.closeSidebar();
-					}}
-					on:archiveChat={handleArchiveChat}
-					on:renameChat={handleRenameChat}
-				/>
-			{:else}
-				<ArchivedChats
-					archivedChats={chatStore.archivedChats}
-					isLoading={chatStore.isLoading}
-					on:unarchiveChat={handleUnarchiveChat}
-					on:deleteChat={handleDeleteChat}
-					on:selectChat={(e) => {
-						handleSelectArchivedChat(e);
-						mobileStore.closeSidebar();
-					}}
-				/>
-			{/if}
+			<!-- Footer -->
+			<div class="border-t border-gray-200 p-4 text-center dark:border-gray-700">
+				<p class="text-xs text-gray-500 dark:text-gray-400">AI Tool Chat v1.0</p>
+			</div>
 		</div>
-
-		<!-- Footer -->
-		<div class="border-t border-gray-200 p-4 text-center dark:border-gray-700">
-			<p class="text-xs text-gray-500 dark:text-gray-400">AI Tool Chat v1.0</p>
-		</div>
-	</div>
+	{/if}
 
 	<div class="relative flex min-w-0 flex-1 flex-col overflow-hidden">
 		<!-- Desktop Sidebar Toggle Button (when sidebar is hidden) -->
 		{#if !mobileStore.desktopSidebarVisible}
 			<button
+				class="fixed top-2 left-2 z-10 hidden rounded-md bg-white p-2 shadow-md hover:bg-gray-50 md:flex md:items-center md:gap-2 dark:bg-gray-800 dark:hover:bg-gray-700"
 				onclick={() => mobileStore.openDesktopSidebar()}
-				class="absolute top-4 left-4 z-30 hidden items-center gap-2 rounded-md border border-gray-200 bg-white p-2 text-sm font-medium shadow-lg transition-colors hover:bg-gray-50 md:flex dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
-				aria-label="Open sidebar"
+				aria-label="Show sidebar"
 			>
 				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"
 					></path>
 				</svg>
-				<span>Chats</span>
+				<span class="text-sm">Show Sidebar</span>
 			</button>
 		{/if}
 		{#if chatStore.error}
