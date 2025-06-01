@@ -332,7 +332,8 @@
 								1. Visit <a
 									href={currentProvider.signupUrl}
 									target="_blank"
-									class="text-blue-600 hover:underline dark:text-blue-400">{currentProvider.signupUrl}</a
+									class="text-blue-600 hover:underline dark:text-blue-400"
+									>{currentProvider.signupUrl}</a
 								>
 							</p>
 							<p>2. Sign in or create an account</p>

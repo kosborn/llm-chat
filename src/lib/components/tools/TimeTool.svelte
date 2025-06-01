@@ -17,7 +17,7 @@
 		{#if toolInvocation.args && Object.keys(toolInvocation.args).length > 0}
 			<div>
 				<span class="font-medium text-gray-700 dark:text-gray-300">Input:</span>
-				<code class="rounded bg-gray-100 px-2 py-1 dark:bg-gray-800 ml-2"
+				<code class="ml-2 rounded bg-gray-100 px-2 py-1 dark:bg-gray-800"
 					>{JSON.stringify(toolInvocation.args)}</code
 				>
 			</div>

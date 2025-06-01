@@ -7,6 +7,7 @@
 	import { providerStore } from '$lib/stores/provider-store.svelte.js';
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
 	import { offlineQueueStore } from '$lib/stores/offline-queue-store.svelte.js';
+	import { mobileStore } from '$lib/stores/mobile-store.svelte.js';
 
 	const { children } = $props();
 
@@ -15,6 +16,7 @@
 	let checkingServer = $state(false);
 	let lastCheckTime = 0;
 	let checkInterval: NodeJS.Timeout | null = null;
+	let mobileHeaderVisible = $state(false);
 
 	onMount(() => {
 		checkServerAvailability();
@@ -98,8 +100,66 @@
 	}
 </script>
 
-<!-- Navigation Header -->
-<nav class="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+<!-- Mobile Header Toggle Button (Always visible on mobile) -->
+{#if mobileStore.isMobile}
+	<div
+		class="fixed top-0 right-0 left-0 z-50 border-b border-gray-200 bg-white p-2 dark:border-gray-700 dark:bg-gray-800"
+	>
+		<div class="flex items-center justify-between">
+			<button
+				onclick={() => (mobileHeaderVisible = !mobileHeaderVisible)}
+				class="flex items-center gap-2 rounded-md p-2 text-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+				aria-label="Toggle menu"
+			>
+				<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M4 6h16M4 12h16M4 18h16"
+					></path>
+				</svg>
+				<span class="text-sm font-medium text-gray-900 dark:text-white">Menu</span>
+			</button>
+
+			<!-- Status Indicator on Mobile -->
+			<div class="flex items-center gap-2">
+				<button
+					onclick={() => (showApiConfig = true)}
+					class="flex items-center gap-1 rounded-md p-2 text-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+					title={getStatusText()}
+					aria-label="Status: {getStatusText()} - Click to configure"
+				>
+					<div class="h-2 w-2 rounded-full {getStatusColor()}"></div>
+					{getStatusIcon()}
+				</button>
+
+				{#if offlineQueueStore.hasQueuedMessages()}
+					<div class="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+						<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+							></path>
+						</svg>
+						<span>{offlineQueueStore.getQueueCount()}</span>
+					</div>
+				{/if}
+			</div>
+		</div>
+	</div>
+{/if}
+
+<!-- Navigation Header (Hidden on mobile by default) -->
+<nav
+	class="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 {mobileStore.isMobile
+		? mobileHeaderVisible
+			? 'fixed top-12 right-0 left-0 z-40'
+			: 'hidden'
+		: ''}"
+>
 	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 		<div class="flex h-16 justify-between">
 			<div class="flex items-center">
@@ -116,6 +176,7 @@
 					'/'
 						? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
 						: 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'}"
+					onclick={() => mobileStore.isMobile && (mobileHeaderVisible = false)}
 				>
 					Chat
 				</a>
@@ -125,44 +186,48 @@
 					'/tools'
 						? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
 						: 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'}"
+					onclick={() => mobileStore.isMobile && (mobileHeaderVisible = false)}
 				>
 					Tools
 				</a>
 
-				<!-- Status Indicator -->
-				<div class="flex items-center gap-2">
-					<!-- Clickable Status Icon -->
-					<button
-						onclick={() => (showApiConfig = true)}
-						class="flex items-center gap-1 rounded-md p-2 text-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-						title={getStatusText()}
-						aria-label="Status: {getStatusText()} - Click to configure"
-					>
-						<div class="h-2 w-2 rounded-full {getStatusColor()}"></div>
-						{getStatusIcon()}
-					</button>
+				<!-- Status Indicator (Desktop) -->
+				{#if !mobileStore.isMobile}
+					<div class="flex items-center gap-2">
+						<button
+							onclick={() => (showApiConfig = true)}
+							class="flex items-center gap-1 rounded-md p-2 text-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+							title={getStatusText()}
+							aria-label="Status: {getStatusText()} - Click to configure"
+						>
+							<div class="h-2 w-2 rounded-full {getStatusColor()}"></div>
+							{getStatusIcon()}
+						</button>
 
-					<!-- Queue Status -->
-					{#if offlineQueueStore.hasQueuedMessages()}
-						<div class="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
-							<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									stroke-width="2"
-									d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-								></path>
-							</svg>
-							<span>{offlineQueueStore.getQueueCount()} pending</span>
-						</div>
-					{/if}
-				</div>
+						<!-- Queue Status -->
+						{#if offlineQueueStore.hasQueuedMessages()}
+							<div class="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+								<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										stroke-width="2"
+										d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+									></path>
+								</svg>
+								<span>{offlineQueueStore.getQueueCount()} pending</span>
+							</div>
+						{/if}
+					</div>
+				{/if}
 			</div>
 		</div>
 	</div>
 </nav>
 
-{@render children()}
+<div class={mobileStore.isMobile ? 'pt-12' : ''}>
+	{@render children()}
+</div>
 <Toast />
 
 {#if showApiConfig}

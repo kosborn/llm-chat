@@ -3,7 +3,7 @@
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
 	import { providerStore } from '$lib/stores/provider-store.svelte.js';
 	import { offlineQueueStore } from '$lib/stores/offline-queue-store.svelte.js';
-	import { clientChatService } from '$lib/services/client-chat.js';
+	import { mobileStore } from '$lib/stores/mobile-store.svelte.js';
 	import {
 		countTokens,
 		formatTokenCount,
@@ -228,7 +228,7 @@
 </script>
 
 <div class="border-t border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800">
-	<form onsubmit={handleSubmit} class="flex items-end gap-3">
+	<form onsubmit={handleSubmit} class="flex items-end {mobileStore.isMobile ? 'gap-2' : 'gap-3'}">
 		<div class="flex-1">
 			<FormattedTextInput
 				bind:this={formattedTextInput}
@@ -246,14 +246,18 @@
 		<button
 			type="submit"
 			{disabled}
-			class="flex min-w-[80px] items-center justify-center gap-2 rounded-lg bg-blue-600 px-6 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+			class="flex {mobileStore.isMobile
+				? 'min-w-[60px] px-3 py-3'
+				: 'min-w-[80px] px-6 py-3'} items-center justify-center gap-2 rounded-lg bg-blue-600 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
 		>
 			{#if disabled}
 				<div
 					class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"
 				></div>
 			{:else}
-				<span>Send</span>
+				{#if !mobileStore.isMobile}
+					<span>Send</span>
+				{/if}
 				<svg
 					width="16"
 					height="16"
@@ -268,8 +272,10 @@
 	</form>
 
 	<div class="mt-2 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-		<div class="flex items-center gap-4">
-			<span>Press Enter to send, Shift+Enter for new line</span>
+		<div class="flex items-center {mobileStore.isMobile ? 'gap-2' : 'gap-4'}">
+			{#if !mobileStore.isMobile}
+				<span>Press Enter to send, Shift+Enter for new line</span>
+			{/if}
 			{#if inputValue.trim()}
 				<span class="font-mono {getTokenCountColor(tokenCount())}">
 					{formatTokenCount(tokenCount())}

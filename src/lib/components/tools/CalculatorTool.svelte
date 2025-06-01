@@ -9,7 +9,9 @@
 
 	let { toolInvocation, onTechnicalView }: Props = $props();
 
-	let data = $derived(toolInvocation.result?.data?.data || toolInvocation.result?.data || toolInvocation.result);
+	let data = $derived(
+		toolInvocation.result?.data?.data || toolInvocation.result?.data || toolInvocation.result
+	);
 </script>
 
 {#if toolInvocation.state !== 'result'}
@@ -27,12 +29,13 @@
 		<div class="space-y-2 text-sm">
 			<div>
 				<span class="font-medium text-gray-700 dark:text-gray-300">Input:</span>
-				<code class="rounded bg-gray-100 px-2 py-1 dark:bg-gray-800 ml-2"
+				<code class="ml-2 rounded bg-gray-100 px-2 py-1 dark:bg-gray-800"
 					>{toolInvocation.args?.expression || 'Unknown expression'}</code
 				>
 			</div>
 			<div class="text-red-600 dark:text-red-400">
-				<span class="font-medium">Error:</span> {data.error}
+				<span class="font-medium">Error:</span>
+				{data.error}
 			</div>
 		</div>
 	</ToolResultCard>
@@ -47,7 +50,7 @@
 		<div class="space-y-2 text-sm">
 			<div>
 				<span class="font-medium text-gray-700 dark:text-gray-300">Expression:</span>
-				<code class="rounded bg-gray-100 px-2 py-1 dark:bg-gray-800 ml-2"
+				<code class="ml-2 rounded bg-gray-100 px-2 py-1 dark:bg-gray-800"
 					>{toolInvocation.args?.expression || data?.expression || 'Unknown'}</code
 				>
 			</div>

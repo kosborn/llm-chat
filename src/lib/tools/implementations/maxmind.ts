@@ -46,7 +46,9 @@ async function executeMaxmind(params: Record<string, unknown>) {
 
 		if (!response.ok) {
 			if (response.status === 401) {
-				throw new Error('Invalid MaxMind API key or insufficient permissions (API key should be in format: account:password)');
+				throw new Error(
+					'Invalid MaxMind API key or insufficient permissions (API key should be in format: account:password)'
+				);
 			} else if (response.status === 402) {
 				throw new Error('Insufficient funds or permission required');
 			} else if (response.status === 404) {

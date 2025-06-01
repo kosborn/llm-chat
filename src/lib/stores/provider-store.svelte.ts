@@ -1,6 +1,10 @@
 import { providerManager } from '$lib/providers/provider-manager.js';
 import type { ProviderId } from '$lib/providers/index.js';
-import type { ProviderStatus, ModelSelection, ProviderCapabilities } from '$lib/providers/provider-manager.js';
+import type {
+	ProviderStatus,
+	ModelSelection,
+	ProviderCapabilities
+} from '$lib/providers/provider-manager.js';
 
 class ProviderStore {
 	private _status = $state<ProviderStatus | null>(null);
@@ -14,7 +18,7 @@ class ProviderStore {
 	}
 
 	// === Reactive State ===
-	
+
 	get status() {
 		return this._status;
 	}
@@ -73,7 +77,7 @@ class ProviderStore {
 
 	async setModel(model: string) {
 		const currentProvider = providerManager.getCurrentProvider();
-		
+
 		if (!providerManager.isValidModelForProvider(currentProvider, model)) {
 			this._error = `Model ${model} is not valid for provider ${currentProvider}`;
 			return;
@@ -155,7 +159,12 @@ class ProviderStore {
 
 	// === Cost Calculation ===
 
-	calculateCost(provider: ProviderId, model: string, inputTokens: number, outputTokens: number): number {
+	calculateCost(
+		provider: ProviderId,
+		model: string,
+		inputTokens: number,
+		outputTokens: number
+	): number {
 		return providerManager.calculateCost(provider, model, inputTokens, outputTokens);
 	}
 

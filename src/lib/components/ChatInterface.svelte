@@ -17,6 +17,7 @@
 	import DebugInterface from './DebugInterface.svelte';
 	import ApiKeyConfig from './ApiKeyConfig.svelte';
 	import StatusBar from './StatusBar.svelte';
+	import { mobileStore } from '$lib/stores/mobile-store.svelte.js';
 
 	import PWAInstallPrompt from './PWAInstallPrompt.svelte';
 
@@ -28,6 +29,7 @@
 	let showApiConfig = $state(false);
 	let showPwaPrompt = $state(false);
 	let sidebarMode = $state<'chats' | 'archived'>('chats');
+	let sidebarVisible = $state(!mobileStore.isMobile);
 
 	let editingTitle = $state(false);
 	let titleInput = $state('');
@@ -612,9 +614,22 @@
 </script>
 
 <div class="flex h-full bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+	<!-- Mobile Sidebar Overlay -->
+	{#if mobileStore.isMobile && sidebarVisible}
+		<div
+			class="bg-opacity-50 fixed inset-0 z-40 bg-black"
+			onclick={() => (sidebarVisible = false)}
+		></div>
+	{/if}
+
 	<!-- Sidebar -->
 	<div
-		class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900"
+		class="flex flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900
+		{mobileStore.isMobile
+			? sidebarVisible
+				? 'fixed top-0 left-0 z-50 h-full w-80'
+				: 'hidden'
+			: 'w-80'}"
 	>
 		<!-- Sidebar Navigation -->
 		<div class="border-b border-gray-200 p-2 dark:border-gray-700">
@@ -640,6 +655,26 @@
 			</div>
 		</div>
 
+		<!-- Mobile Close Button -->
+		{#if mobileStore.isMobile}
+			<div class="flex justify-end p-2">
+				<button
+					onclick={() => (sidebarVisible = false)}
+					class="rounded-md p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+					aria-label="Close sidebar"
+				>
+					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M6 18L18 6M6 6l12 12"
+						></path>
+					</svg>
+				</button>
+			</div>
+		{/if}
+
 		<!-- Sidebar Content -->
 		<div class="flex-1 overflow-hidden">
 			{#if sidebarMode === 'chats'}
@@ -648,8 +683,14 @@
 					currentChatId={chatStore.currentChatId}
 					isLoading={chatStore.isLoading}
 					{autoRenamingChatId}
-					on:newChat={handleNewChat}
-					on:selectChat={handleSelectChat}
+					on:newChat={() => {
+						handleNewChat();
+						if (mobileStore.isMobile) sidebarVisible = false;
+					}}
+					on:selectChat={(e) => {
+						handleSelectChat(e);
+						if (mobileStore.isMobile) sidebarVisible = false;
+					}}
 					on:archiveChat={handleArchiveChat}
 					on:renameChat={handleRenameChat}
 				/>
@@ -659,7 +700,10 @@
 					isLoading={chatStore.isLoading}
 					on:unarchiveChat={handleUnarchiveChat}
 					on:deleteChat={handleDeleteChat}
-					on:selectChat={handleSelectArchivedChat}
+					on:selectChat={(e) => {
+						handleSelectArchivedChat(e);
+						if (mobileStore.isMobile) sidebarVisible = false;
+					}}
 				/>
 			{/if}
 		</div>
@@ -670,7 +714,25 @@
 		</div>
 	</div>
 
-	<div class="flex flex-1 flex-col">
+	<div class="relative flex flex-1 flex-col">
+		<!-- Mobile Sidebar Toggle Button -->
+		{#if mobileStore.isMobile && !sidebarVisible}
+			<button
+				onclick={() => (sidebarVisible = true)}
+				class="absolute top-4 left-4 z-30 flex items-center gap-2 rounded-md border border-gray-200 bg-white p-2 text-sm font-medium shadow-lg transition-colors hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+				aria-label="Open sidebar"
+			>
+				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M4 6h16M4 12h16M4 18h16"
+					></path>
+				</svg>
+				Chats
+			</button>
+		{/if}
 		{#if chatStore.error}
 			<div
 				class="m-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-700 dark:bg-red-900/30"
@@ -691,18 +753,30 @@
 
 		{#if !chatStore.currentChat}
 			<!-- Welcome Screen -->
-			<div class="flex flex-1 items-center justify-center p-8">
-				<div class="max-w-2xl text-center">
+			<div
+				class="flex flex-1 items-center justify-center p-8 {mobileStore.isMobile && !sidebarVisible
+					? 'pt-20'
+					: ''}"
+			>
+				<div class="max-w-2xl text-center {mobileStore.isMobile ? 'px-4' : ''}">
 					<h1
-						class="mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-4xl font-bold text-transparent"
+						class="mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text {mobileStore.isMobile
+							? 'text-2xl'
+							: 'text-4xl'} font-bold text-transparent"
 					>
 						AI Tool Chat
 					</h1>
-					<p class="mb-8 text-xl text-gray-600 dark:text-gray-400">
-						Chat with AI and use powerful tools to enhance your conversations
+					<p
+						class="mb-8 {mobileStore.isMobile
+							? 'text-lg'
+							: 'text-xl'} text-gray-600 dark:text-gray-400"
+					>
+						Chat with AI and use powerful tools to get things done
 					</p>
 
-					<div class="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+					<div
+						class="mb-8 grid grid-cols-1 gap-6 {mobileStore.isMobile ? 'gap-4' : 'md:grid-cols-2'}"
+					>
 						<div
 							class="rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-700 dark:bg-blue-900/30"
 						>
@@ -774,7 +848,12 @@
 			/>
 
 			<!-- Chat Header -->
-			<div class="border-b border-gray-200 p-4 dark:border-gray-700">
+			<div
+				class="border-b border-gray-200 p-4 dark:border-gray-700 {mobileStore.isMobile &&
+				!sidebarVisible
+					? 'pt-20'
+					: ''}"
+			>
 				<div class="flex items-center justify-between">
 					<div class="min-w-0 flex-1">
 						{#if editingTitle}
@@ -783,13 +862,17 @@
 								onkeydown={handleTitleKeydown}
 								onblur={saveTitle}
 								class="w-full max-w-md rounded border border-gray-300 bg-white px-2 py-1
-									   text-lg font-semibold focus:border-transparent focus:ring-2
+									   {mobileStore.isMobile
+									? 'text-base'
+									: 'text-lg'} font-semibold focus:border-transparent focus:ring-2
 									   focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
 								placeholder="Chat title"
 							/>
 						{:else}
 							<div class="flex items-center gap-2">
-								<h2 class="truncate text-lg font-semibold">{chatStore.currentChat.title}</h2>
+								<h2 class="truncate {mobileStore.isMobile ? 'text-base' : 'text-lg'} font-semibold">
+									{chatStore.currentChat.title}
+								</h2>
 								{#if autoRenamingChatId === chatStore.currentChat.id}
 									<div
 										class="flex items-center gap-1 text-xs text-blue-500 dark:text-blue-400"
@@ -886,7 +969,11 @@
 								{/if}
 							</div>
 						{/if}
-						<p class="text-sm text-gray-500 dark:text-gray-400">
+						<p
+							class="{mobileStore.isMobile
+								? 'text-xs'
+								: 'text-sm'} text-gray-500 dark:text-gray-400"
+						>
 							{chatStore.currentChat.messages.length} messages
 						</p>
 					</div>
@@ -894,7 +981,12 @@
 			</div>
 
 			<!-- Messages -->
-			<div bind:this={messagesContainer} class="flex-1 space-y-4 overflow-y-auto p-4">
+			<div
+				bind:this={messagesContainer}
+				class="flex-1 space-y-4 overflow-y-auto p-4 {mobileStore.isMobile && !sidebarVisible
+					? 'pt-16'
+					: ''}"
+			>
 				{#if chatStore.currentChat.messages.length === 0}
 					<div class="py-12 text-center text-gray-500 dark:text-gray-400">
 						<div class="mb-4 text-4xl">💬</div>

@@ -81,7 +81,7 @@ class ProviderManager {
 	clearAllApiKeys(): void {
 		this.apiKeyStorage.clear();
 		if (browser) {
-			Object.keys(PROVIDERS).forEach(provider => {
+			Object.keys(PROVIDERS).forEach((provider) => {
 				localStorage.removeItem(`apiKey_${provider}`);
 			});
 		}
@@ -107,7 +107,7 @@ class ProviderManager {
 		}
 
 		this.currentProvider = provider;
-		
+
 		if (model) {
 			if (this.isValidModelForProvider(provider, model)) {
 				this.currentModel = model;
@@ -135,7 +135,7 @@ class ProviderManager {
 	getCurrentSelection(): ModelSelection {
 		const provider = getProvider(this.currentProvider)!;
 		const model = this.getModelConfig(this.currentProvider, this.currentModel)!;
-		
+
 		return {
 			provider: this.currentProvider,
 			model: this.currentModel,
@@ -173,7 +173,7 @@ class ProviderManager {
 
 	getModelConfig(provider: ProviderId, model: string): ModelConfig | undefined {
 		const providerConfig = getProvider(provider);
-		return providerConfig?.models.find(m => m.id === model);
+		return providerConfig?.models.find((m) => m.id === model);
 	}
 
 	getModelDisplayName(provider: ProviderId, model: string): string {
@@ -182,7 +182,7 @@ class ProviderManager {
 	}
 
 	isValidModelForProvider(provider: ProviderId, model: string): boolean {
-		return this.getAvailableModels(provider).some(m => m.id === model);
+		return this.getAvailableModels(provider).some((m) => m.id === model);
 	}
 
 	getDefaultModelForProvider(provider: ProviderId): string {
@@ -231,7 +231,7 @@ class ProviderManager {
 	}
 
 	getClientAvailableProviders(): ProviderId[] {
-		return Array.from(this.apiKeyStorage.keys()).filter(provider => 
+		return Array.from(this.apiKeyStorage.keys()).filter((provider) =>
 			this.hasValidApiKey(provider)
 		);
 	}
@@ -348,7 +348,10 @@ class ProviderManager {
 
 		// If a specific provider was requested
 		if (requestedProvider) {
-			if (serverProviders.includes(requestedProvider) || clientProviders.includes(requestedProvider)) {
+			if (
+				serverProviders.includes(requestedProvider) ||
+				clientProviders.includes(requestedProvider)
+			) {
 				return requestedProvider;
 			}
 		}
@@ -375,20 +378,25 @@ class ProviderManager {
 		const allAvailable = [
 			...this.getServerAvailableProviders(),
 			...this.getClientAvailableProviders()
-		].filter(p => p !== currentProvider);
+		].filter((p) => p !== currentProvider);
 
 		return this.selectBestProvider() || (allAvailable.length > 0 ? allAvailable[0] : null);
 	}
 
 	// === Cost Calculation ===
 
-	calculateCost(provider: ProviderId, model: string, inputTokens: number, outputTokens: number): number {
+	calculateCost(
+		provider: ProviderId,
+		model: string,
+		inputTokens: number,
+		outputTokens: number
+	): number {
 		const modelConfig = this.getModelConfig(provider, model);
 		if (!modelConfig) return 0;
 
 		const inputCost = (inputTokens / 1000) * modelConfig.inputCostPer1kTokens;
 		const outputCost = (outputTokens / 1000) * modelConfig.outputCostPer1kTokens;
-		
+
 		return inputCost + outputCost;
 	}
 
@@ -402,7 +410,7 @@ class ProviderManager {
 		const providerConfig = getProvider(provider);
 		if (!providerConfig) return false;
 		return providerConfig.models.every(
-			model => model.inputCostPer1kTokens === 0 && model.outputCostPer1kTokens === 0
+			(model) => model.inputCostPer1kTokens === 0 && model.outputCostPer1kTokens === 0
 		);
 	}
 
@@ -411,7 +419,7 @@ class ProviderManager {
 	private loadFromLocalStorage(): void {
 		try {
 			// Load API keys
-			Object.keys(PROVIDERS).forEach(provider => {
+			Object.keys(PROVIDERS).forEach((provider) => {
 				const apiKey = localStorage.getItem(`apiKey_${provider}`);
 				if (apiKey) {
 					this.apiKeyStorage.set(provider as ProviderId, apiKey);
@@ -442,7 +450,9 @@ class ProviderManager {
 		const clientProviders = this.getClientAvailableProviders();
 
 		if (serverProviders.length === 0 && clientProviders.length === 0) {
-			errors.push('No providers available. Configure at least one API key or ensure server has API keys.');
+			errors.push(
+				'No providers available. Configure at least one API key or ensure server has API keys.'
+			);
 		}
 
 		if (!this.isValidProvider(this.currentProvider)) {
@@ -450,7 +460,9 @@ class ProviderManager {
 		}
 
 		if (!this.isValidModelForProvider(this.currentProvider, this.currentModel)) {
-			errors.push(`Current model "${this.currentModel}" is not valid for provider "${this.currentProvider}".`);
+			errors.push(
+				`Current model "${this.currentModel}" is not valid for provider "${this.currentProvider}".`
+			);
 		}
 
 		return {

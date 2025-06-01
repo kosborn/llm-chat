@@ -27,7 +27,9 @@ class ClientChatService {
 		}
 
 		// Use provider manager to determine best provider/model
-		const requestedProvider = provider ? (provider as ProviderId) : providerManager.getCurrentProvider();
+		const requestedProvider = provider
+			? (provider as ProviderId)
+			: providerManager.getCurrentProvider();
 		const requestedModel = model || providerManager.getCurrentModel();
 
 		// Check if we can send with this configuration
@@ -42,7 +44,11 @@ class ClientChatService {
 		// Try server-side first if available
 		if (status.isServerAvailable) {
 			try {
-				const serverResponse = await this.tryServerSide(messages, requestedProvider, requestedModel);
+				const serverResponse = await this.tryServerSide(
+					messages,
+					requestedProvider,
+					requestedModel
+				);
 				if (serverResponse.success) {
 					return serverResponse;
 				}
@@ -206,8 +212,6 @@ class ClientChatService {
 		}
 	}
 
-
-
 	async generateTitle(
 		userMessage: string,
 		assistantMessage: string,
@@ -220,7 +224,9 @@ class ClientChatService {
 		}
 
 		// Use provider manager to determine best provider/model
-		const requestedProvider = provider ? (provider as ProviderId) : providerManager.getCurrentProvider();
+		const requestedProvider = provider
+			? (provider as ProviderId)
+			: providerManager.getCurrentProvider();
 		const requestedModel = model || providerManager.getCurrentModel();
 
 		// Check if we can send with this configuration
@@ -242,12 +248,20 @@ class ClientChatService {
 					return serverTitle;
 				}
 			} catch (error) {
-				console.log('Server-side title generation unavailable, falling back to client-side:', error);
+				console.log(
+					'Server-side title generation unavailable, falling back to client-side:',
+					error
+				);
 			}
 		}
 
 		// Fallback to client-side
-		return this.generateTitleClientSide(userMessage, assistantMessage, requestedProvider, requestedModel);
+		return this.generateTitleClientSide(
+			userMessage,
+			assistantMessage,
+			requestedProvider,
+			requestedModel
+		);
 	}
 
 	private async tryServerSideTitle(
@@ -379,7 +393,7 @@ class ClientChatService {
 		queuedCount: number;
 	}> {
 		const status = await providerManager.getProviderStatus();
-		
+
 		return {
 			canSend: status.canSend,
 			hasApiKey: status.hasApiKey,

@@ -9,7 +9,9 @@
 
 	let { toolInvocation, onTechnicalView }: Props = $props();
 
-	let data = $derived(toolInvocation.result?.data?.data || toolInvocation.result?.data || toolInvocation.result);
+	let data = $derived(
+		toolInvocation.result?.data?.data || toolInvocation.result?.data || toolInvocation.result
+	);
 </script>
 
 <ToolResultCard
