@@ -1,4 +1,5 @@
 import { marked } from 'marked';
+import { debugConsole } from './console.js';
 
 // Configure marked with safe defaults
 marked.setOptions({
@@ -88,7 +89,7 @@ async function loadPrism() {
 				languageImports.map((lang) => import(/* @vite-ignore */ lang).catch(() => {}))
 			);
 		} catch (error) {
-			console.warn('Failed to load Prism.js:', error);
+			debugConsole.warn('Failed to load Prism.js:', error);
 		}
 	}
 }
@@ -109,7 +110,7 @@ function highlightCode(code: string, language: string): string {
 		// Fallback to plain text highlighting
 		return Prism.util?.encode ? Prism.util.encode(code) : escapeHtml(code);
 	} catch (error) {
-		console.warn('Syntax highlighting failed for language:', language, error);
+		debugConsole.warn('Syntax highlighting failed for language:', language, error);
 		return escapeHtml(code);
 	}
 }
@@ -197,7 +198,7 @@ renderer.listitem = (token) => {
 // Override table rendering
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 renderer.table = function (token: any) {
-	console.log('Table token structure:', JSON.stringify(token, null, 2));
+	debugConsole.log('Table token structure:', JSON.stringify(token, null, 2));
 	const { header, rows } = token;
 
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -232,7 +233,7 @@ renderer.tablerow = (token: any) => {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 renderer.tablecell = function (token: any) {
-	console.log('Table cell token:', JSON.stringify(token, null, 2));
+	debugConsole.log('Table cell token:', JSON.stringify(token, null, 2));
 	const { tokens, header, align } = token;
 	const tag = header ? 'th' : 'td';
 	const baseClassName = header
@@ -240,7 +241,7 @@ renderer.tablecell = function (token: any) {
 		: 'px-4 py-3 text-gray-700 dark:text-gray-300';
 	const alignClass = align ? ` text-${align}` : ' text-left';
 	const content = this.parser.parseInline(tokens);
-	console.log('Rendered cell content:', content);
+	debugConsole.log('Rendered cell content:', content);
 	return `<${tag} class="${baseClassName}${alignClass}">${content}</${tag}>`;
 };
 
@@ -284,7 +285,7 @@ export async function renderMarkdown(text: string): Promise<string> {
 
 		return html;
 	} catch (error) {
-		console.error('Error rendering markdown:', error);
+		debugConsole.error('Error rendering markdown:', error);
 		// Return the original text as a fallback with line breaks
 		return text.replace(/\n/g, '<br>');
 	}

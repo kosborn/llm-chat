@@ -50,6 +50,9 @@ class DebugStore {
 
 	toggle(): void {
 		this.isEnabled = !this.isEnabled;
+		if (this.isEnabled) {
+			console.log('🐛 Debug mode enabled - Console logging is now active');
+		}
 		if (!this.isEnabled) {
 			this.clear();
 		}
@@ -61,6 +64,7 @@ class DebugStore {
 
 	enable(): void {
 		this.isEnabled = true;
+		console.log('🐛 Debug mode enabled - Console logging is now active');
 	}
 
 	disable(): void {
