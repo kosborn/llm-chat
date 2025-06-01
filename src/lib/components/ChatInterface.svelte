@@ -632,9 +632,10 @@
 		<div
 			class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900
 			       {mobileStore.sidebarVisible
-				? 'fixed top-0 left-0 z-50 h-full translate-x-0 transform transition-transform duration-300 ease-in-out md:static md:h-auto'
-				: 'fixed top-0 left-0 z-50 h-full -translate-x-full transform transition-transform duration-300 ease-in-out md:static md:h-auto'}
-			       {mobileStore.desktopSidebarVisible ? 'md:flex' : 'md:hidden'}"
+				? 'fixed top-0 left-0 z-50 h-full translate-x-0 transform transition-transform duration-300 ease-in-out'
+				: 'fixed top-0 left-0 z-50 h-full -translate-x-full transform transition-transform duration-300 ease-in-out'}
+			       {mobileStore.desktopSidebarVisible ? 'md:static md:h-auto md:translate-x-0' : 'md:hidden'}
+			       md:flex"
 		>
 			<!-- Sidebar Navigation -->
 			<div class="border-b border-gray-200 p-2 dark:border-gray-700">
