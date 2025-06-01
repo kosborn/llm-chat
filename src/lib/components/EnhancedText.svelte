@@ -50,11 +50,15 @@
 				if (enableFormatting) {
 					// Render markdown first, then post-process for special formatting
 					let html = await renderMarkdown(text);
+					console.log('Original text:', text);
+					console.log('Rendered HTML before replacement:', html);
 					
 					// Find and replace special patterns in the rendered HTML
 					const segments = parseFormattedText(text);
+					console.log('Parsed segments:', segments);
 					
 					for (const segment of segments) {
+						console.log('Processing segment:', segment);
 						if (segment.isFormatted && 
 							(isToolMention(segment) || isUrl(segment) || isIpAddress(segment))) {
 							
@@ -69,13 +73,17 @@
 								replacement = `<span class="${segment.className} cursor-pointer select-none" data-ip="${segment.text}" title="Click to copy IP address (${segment.text.includes(':') ? 'IPv6' : 'IPv4'})">${segment.text}</span>`;
 							}
 							
-							// Escape special regex characters in the segment text
-							const escapedText = segment.text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-							const regex = new RegExp(`\\b${escapedText}\\b`, 'g');
-							html = html.replace(regex, replacement);
+							console.log(`Replacing "${segment.text}" with:`, replacement);
+							console.log('HTML before this replacement:', html);
+							
+							// Replace all occurrences of the segment text with formatted version
+							html = html.split(segment.text).join(replacement);
+							
+							console.log('HTML after this replacement:', html);
 						}
 					}
 					
+					console.log('Final HTML:', html);
 					markdownHtml = html;
 				} else {
 					// Plain markdown without formatting

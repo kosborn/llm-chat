@@ -3,6 +3,12 @@
 
 	const testCases = [
 		{
+			title: 'Problematic Case (IP in sentence)',
+			text: `tell me about the IP 1.1.1.1 please`,
+			enableMarkdown: true,
+			enableFormatting: true
+		},
+		{
 			title: 'Markdown Only',
 			text: `# Heading 1
 ## Heading 2
@@ -47,12 +53,6 @@ curl https://api.example.com
 \`\`\`
 
 *This text is italic* and contains @terminal tool mention.`,
-			enableMarkdown: true,
-			enableFormatting: true
-		},
-		{
-			title: 'Problematic Case (IP in sentence)',
-			text: `tell me about the IP 1.1.1.1 please`,
 			enableMarkdown: true,
 			enableFormatting: true
 		},
