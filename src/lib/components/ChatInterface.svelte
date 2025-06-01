@@ -630,10 +630,10 @@
 	<!-- Sidebar -->
 	{#if mobileStore.sidebarVisible || mobileStore.desktopSidebarVisible}
 		<div
-			class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900
+			class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 transition-transform duration-300 ease-in-out dark:border-gray-700 dark:bg-gray-900
 			       {mobileStore.sidebarVisible
-				? 'fixed top-0 left-0 z-50 h-full translate-x-0 transform transition-transform duration-300 ease-in-out'
-				: 'fixed top-0 left-0 z-50 h-full -translate-x-full transform transition-transform duration-300 ease-in-out'}
+				? 'fixed top-0 left-0 z-50 h-full translate-x-0'
+				: 'fixed top-0 left-0 z-50 h-full -translate-x-full'}
 			       {mobileStore.desktopSidebarVisible ? 'md:static md:h-auto md:translate-x-0' : 'md:hidden'}
 			       md:flex"
 		>
@@ -661,41 +661,6 @@
 				</div>
 			</div>
 
-			<!-- Close Buttons -->
-			<div class="flex justify-end p-2">
-				<!-- Mobile Close Button -->
-				<button
-					onclick={() => mobileStore.closeSidebar()}
-					class="rounded-md p-2 text-gray-500 hover:bg-gray-100 md:hidden dark:hover:bg-gray-800"
-					aria-label="Close sidebar"
-				>
-					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M6 18L18 6M6 6l12 12"
-						></path>
-					</svg>
-				</button>
-				<!-- Desktop Close Button -->
-				<button
-					onclick={() => mobileStore.closeDesktopSidebar()}
-					class="hidden rounded-md p-2 text-gray-500 hover:bg-gray-100 md:block dark:hover:bg-gray-800"
-					aria-label="Close sidebar"
-					title="Close sidebar"
-				>
-					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M15 19l-7-7 7-7"
-						></path>
-					</svg>
-				</button>
-			</div>
-
 			<!-- Sidebar Content -->
 			<div class="flex-1 overflow-hidden">
 				{#if sidebarMode === 'chats'}
@@ -714,6 +679,8 @@
 						}}
 						on:archiveChat={handleArchiveChat}
 						on:renameChat={handleRenameChat}
+						on:closeSidebar={() => mobileStore.closeSidebar()}
+						on:closeDesktopSidebar={() => mobileStore.closeDesktopSidebar()}
 					/>
 				{:else}
 					<ArchivedChats

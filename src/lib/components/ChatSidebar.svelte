@@ -18,6 +18,8 @@
 		newChat: Record<string, never>;
 		archiveChat: { chatId: string };
 		renameChat: { chatId: string; title: string };
+		closeSidebar: Record<string, never>;
+		closeDesktopSidebar: Record<string, never>;
 	}>();
 
 	let editingChatId = $state<string | null>(null);
@@ -25,6 +27,14 @@
 
 	function handleNewChat() {
 		dispatch('newChat', {});
+	}
+
+	function handleCloseSidebar() {
+		dispatch('closeSidebar', {});
+	}
+
+	function handleCloseDesktopSidebar() {
+		dispatch('closeDesktopSidebar', {});
 	}
 
 	function handleSelectChat(chatId: string) {
@@ -269,8 +279,42 @@
 		{/if}
 	</div>
 
-	<!-- New Chat Button at Bottom -->
+	<!-- Close Buttons and New Chat Button at Bottom -->
 	<div class="border-t border-gray-200 p-4 dark:border-gray-700">
+		<!-- Close Buttons Row -->
+		<div class="mb-3 flex gap-2">
+			<!-- Mobile Close Button -->
+			<button
+				onclick={handleCloseSidebar}
+				class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-gray-100 md:hidden dark:hover:bg-gray-800"
+				aria-label="Close sidebar"
+			>
+				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M6 18L18 6M6 6l12 12"
+					></path>
+				</svg>
+				Close
+			</button>
+			<!-- Desktop Close Button -->
+			<button
+				onclick={handleCloseDesktopSidebar}
+				class="hidden items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-gray-100 md:flex dark:hover:bg-gray-800"
+				aria-label="Close sidebar"
+				title="Close sidebar"
+			>
+				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"
+					></path>
+				</svg>
+				Hide Sidebar
+			</button>
+		</div>
+
+		<!-- New Chat Button -->
 		<button
 			onclick={handleNewChat}
 			disabled={isLoading}
