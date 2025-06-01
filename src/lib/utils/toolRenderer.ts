@@ -7,6 +7,7 @@ import CalculatorTool from '../components/tools/CalculatorTool.svelte';
 import TimeTool from '../components/tools/TimeTool.svelte';
 import RandomTool from '../components/tools/RandomTool.svelte';
 import UrlTool from '../components/tools/UrlTool.svelte';
+import MaxmindTool from '../components/tools/MaxmindTool.svelte';
 import DefaultTool from '../components/tools/DefaultTool.svelte';
 
 // Map tool names to their corresponding components
@@ -15,7 +16,8 @@ const toolComponentMap: Record<string, ComponentType> = {
 	calculator: CalculatorTool,
 	time: TimeTool,
 	random: RandomTool,
-	url: UrlTool
+	url: UrlTool,
+	maxmind: MaxmindTool
 };
 
 /**
