@@ -82,7 +82,19 @@ class ToolRegistryManager implements ToolDiscovery {
 		const enabledTools: ToolRegistry = {};
 
 		for (const [name, metadata] of this.tools.entries()) {
-			if (metadata.enabled !== false) {
+			// Check persistent settings store first, fall back to metadata.enabled
+			let isEnabled = metadata.enabled !== false; // default enabled
+
+			if (toolSettingsStore) {
+				try {
+					isEnabled = toolSettingsStore.getToolSetting(name);
+				} catch (error) {
+					// Fall back to metadata.enabled if store access fails
+					console.warn(`Failed to get tool setting for ${name}:`, error);
+				}
+			}
+
+			if (isEnabled) {
 				enabledTools[name] = metadata;
 			}
 		}
@@ -163,6 +175,9 @@ class ToolRegistryManager implements ToolDiscovery {
 	async initializePersistentSettings(): Promise<void> {
 		try {
 			const settingsStore = await getToolSettingsStore();
+			// Store reference for getEnabledTools to use
+			toolSettingsStore = settingsStore;
+
 			const allSettings = settingsStore.getAllSettings();
 
 			// Apply persistent settings to tools
@@ -201,21 +216,14 @@ class ToolRegistryManager implements ToolDiscovery {
 	}
 
 	getToolStats() {
+		const enabledTools = this.getEnabledTools();
 		const stats = {
 			total: this.tools.size,
-			enabled: 0,
-			disabled: 0,
+			enabled: Object.keys(enabledTools).length,
+			disabled: this.tools.size - Object.keys(enabledTools).length,
 			categories: this.getAvailableCategories().length,
 			tags: this.getAvailableTags().length
 		};
-
-		for (const tool of this.tools.values()) {
-			if (tool.enabled !== false) {
-				stats.enabled++;
-			} else {
-				stats.disabled++;
-			}
-		}
 
 		return stats;
 	}
@@ -238,16 +246,41 @@ class ToolRegistryManager implements ToolDiscovery {
 export const toolRegistry = new ToolRegistryManager();
 
 // Legacy compatibility - export tools in the old format for existing code
-export const toolsRegistry = (() => {
-	const tools: Record<string, unknown> = {};
-	const enabledTools = toolRegistry.getEnabledTools();
-
-	for (const [name, metadata] of Object.entries(enabledTools)) {
-		tools[name] = metadata.tool;
+// Make this dynamic so it reflects current enabled state
+export const toolsRegistry = new Proxy({} as Record<string, unknown>, {
+	get(target, prop) {
+		if (typeof prop === 'string') {
+			const enabledTools = toolRegistry.getEnabledTools();
+			const metadata = enabledTools[prop];
+			return metadata?.tool;
+		}
+		return undefined;
+	},
+	ownKeys(target) {
+		const enabledTools = toolRegistry.getEnabledTools();
+		return Object.keys(enabledTools);
+	},
+	has(target, prop) {
+		if (typeof prop === 'string') {
+			const enabledTools = toolRegistry.getEnabledTools();
+			return prop in enabledTools;
+		}
+		return false;
+	},
+	getOwnPropertyDescriptor(target, prop) {
+		if (typeof prop === 'string') {
+			const enabledTools = toolRegistry.getEnabledTools();
+			if (prop in enabledTools) {
+				return {
+					enumerable: true,
+					configurable: true,
+					value: enabledTools[prop].tool
+				};
+			}
+		}
+		return undefined;
 	}
-
-	return tools;
-})();
+});
 
 // Helper functions for backward compatibility
 export const getAvailableTools = () => {
