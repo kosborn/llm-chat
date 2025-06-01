@@ -612,11 +612,11 @@
 	});
 </script>
 
-<div class="flex h-full bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
+<div class="flex h-full overflow-hidden bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100">
 	<!-- Mobile Sidebar Overlay -->
 	{#if mobileStore.sidebarVisible}
 		<div
-			class="bg-opacity-50 fixed inset-0 z-40 bg-black md:hidden"
+			class="bg-opacity-50 fixed inset-0 z-40 bg-black transition-opacity duration-300 md:hidden"
 			onclick={() => mobileStore.closeSidebar()}
 			onkeydown={(e) => e.key === 'Escape' && mobileStore.closeSidebar()}
 			role="button"
@@ -627,9 +627,9 @@
 
 	<!-- Sidebar -->
 	<div
-		class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900 {mobileStore.sidebarVisible
-			? 'fixed top-0 left-0 z-50 h-full md:static md:h-auto'
-			: 'hidden md:flex'}"
+		class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 transition-transform duration-300 ease-in-out dark:border-gray-700 dark:bg-gray-900 {mobileStore.sidebarVisible
+			? 'fixed top-0 left-0 z-50 h-full translate-x-0 transform md:static md:h-auto md:transform-none'
+			: 'fixed top-0 left-0 z-50 h-full -translate-x-full transform md:static md:flex md:h-auto md:transform-none'}"
 	>
 		<!-- Sidebar Navigation -->
 		<div class="border-b border-gray-200 p-2 dark:border-gray-700">
@@ -712,25 +712,7 @@
 		</div>
 	</div>
 
-	<div class="relative flex flex-1 flex-col">
-		<!-- Mobile Sidebar Toggle Button -->
-		{#if !mobileStore.sidebarVisible}
-			<button
-				onclick={() => mobileStore.openSidebar()}
-				class="absolute top-4 left-4 z-30 flex items-center gap-2 rounded-md border border-gray-200 bg-white p-2 text-sm font-medium shadow-lg transition-colors hover:bg-gray-50 md:hidden dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
-				aria-label="Open sidebar"
-			>
-				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M4 6h16M4 12h16M4 18h16"
-					></path>
-				</svg>
-				Chats
-			</button>
-		{/if}
+	<div class="relative flex min-w-0 flex-1 flex-col overflow-hidden">
 		{#if chatStore.error}
 			<div
 				class="m-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-700 dark:bg-red-900/30"
@@ -751,7 +733,7 @@
 
 		{#if !chatStore.currentChat}
 			<!-- Welcome Screen -->
-			<div class="flex flex-1 items-center justify-center p-8 pt-20 md:pt-8">
+			<div class="flex flex-1 items-center justify-center p-8">
 				<div class="max-w-2xl px-4 text-center md:px-0">
 					<h1
 						class="mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-2xl font-bold text-transparent md:text-4xl"
@@ -835,7 +817,7 @@
 			/>
 
 			<!-- Chat Header -->
-			<div class="border-b border-gray-200 p-4 pt-20 md:pt-4 dark:border-gray-700">
+			<div class="border-b border-gray-200 p-4 dark:border-gray-700">
 				<div class="flex items-center justify-between">
 					<div class="min-w-0 flex-1">
 						{#if editingTitle}
@@ -955,7 +937,7 @@
 			</div>
 
 			<!-- Messages -->
-			<div bind:this={messagesContainer} class="flex-1 space-y-4 overflow-y-auto p-4 pt-16 md:pt-4">
+			<div bind:this={messagesContainer} class="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
 				{#if chatStore.currentChat.messages.length === 0}
 					<div class="py-12 text-center text-gray-500 dark:text-gray-400">
 						<div class="mb-4 text-4xl">💬</div>

@@ -100,14 +100,42 @@
 	}
 </script>
 
-<!-- Mobile Header Toggle Button (Always visible on mobile) -->
-<div
-	class="fixed top-0 right-0 left-0 z-50 border-b border-gray-200 bg-white p-2 md:hidden dark:border-gray-700 dark:bg-gray-800"
+<!-- Mobile Header -->
+<header
+	class="fixed top-0 right-0 left-0 z-50 border-b border-gray-200 bg-white md:hidden dark:border-gray-700 dark:bg-gray-800"
 >
-	<div class="flex items-center justify-between">
+	<div class="flex h-14 items-center justify-between px-4">
+		<!-- Left side: Sidebar toggle and Chats button -->
+		<div class="flex items-center gap-2">
+			<button
+				onclick={() => mobileStore.toggleSidebar()}
+				class="rounded-md p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+				aria-label="Toggle sidebar"
+			>
+				<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						stroke-width="2"
+						d="M4 6h16M4 12h16M4 18h16"
+					></path>
+				</svg>
+			</button>
+			<button
+				onclick={() => mobileStore.openSidebar()}
+				class="rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+			>
+				Chats
+			</button>
+		</div>
+
+		<!-- Center: App title -->
+		<h1 class="truncate text-lg font-semibold text-gray-900 dark:text-white">AI Tool Chat</h1>
+
+		<!-- Right side: Menu toggle -->
 		<button
 			onclick={() => (mobileHeaderVisible = !mobileHeaderVisible)}
-			class="flex items-center gap-2 rounded-md p-2 text-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+			class="rounded-md p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
 			aria-label="Toggle menu"
 		>
 			<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -115,46 +143,69 @@
 					stroke-linecap="round"
 					stroke-linejoin="round"
 					stroke-width="2"
-					d="M4 6h16M4 12h16M4 18h16"
+					d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
 				></path>
 			</svg>
-			<span class="text-sm font-medium text-gray-900 dark:text-white">Menu</span>
 		</button>
-
-		<!-- Status Indicator on Mobile -->
-		<div class="flex items-center gap-2">
-			<button
-				onclick={() => (showApiConfig = true)}
-				class="flex items-center gap-1 rounded-md p-2 text-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-				title={getStatusText()}
-				aria-label="Status: {getStatusText()} - Click to configure"
-			>
-				<div class="h-2 w-2 rounded-full {getStatusColor()}"></div>
-				{getStatusIcon()}
-			</button>
-
-			{#if offlineQueueStore.hasQueuedMessages()}
-				<div class="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
-					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-						></path>
-					</svg>
-					<span>{offlineQueueStore.getQueueCount()}</span>
-				</div>
-			{/if}
-		</div>
 	</div>
-</div>
 
-<!-- Navigation Header (Hidden on mobile by default) -->
+	<!-- Mobile menu dropdown -->
+	{#if mobileHeaderVisible}
+		<div class="border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
+			<div class="space-y-1 px-4 py-2">
+				<a
+					href="/"
+					class="block rounded-md px-3 py-2 text-sm font-medium transition-colors {$page.url
+						.pathname === '/'
+						? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+						: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}"
+					onclick={() => (mobileHeaderVisible = false)}
+				>
+					Chat
+				</a>
+				<a
+					href="/tools"
+					class="block rounded-md px-3 py-2 text-sm font-medium transition-colors {$page.url
+						.pathname === '/tools'
+						? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+						: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}"
+					onclick={() => (mobileHeaderVisible = false)}
+				>
+					Tools
+				</a>
+				<button
+					onclick={() => {
+						showApiConfig = true;
+						mobileHeaderVisible = false;
+					}}
+					class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
+				>
+					<div class="h-2 w-2 rounded-full {getStatusColor()}"></div>
+					<span>{getStatusText()}</span>
+				</button>
+				{#if offlineQueueStore.hasQueuedMessages()}
+					<div
+						class="flex items-center gap-2 px-3 py-2 text-xs text-orange-600 dark:text-orange-400"
+					>
+						<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+							></path>
+						</svg>
+						<span>{offlineQueueStore.getQueueCount()} messages queued</span>
+					</div>
+				{/if}
+			</div>
+		</div>
+	{/if}
+</header>
+
+<!-- Desktop Navigation -->
 <nav
-	class="border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800 {mobileHeaderVisible
-		? 'fixed top-12 right-0 left-0 z-40 md:static md:top-auto'
-		: 'hidden md:block'}"
+	class="hidden border-b border-gray-200 bg-white md:block dark:border-gray-700 dark:bg-gray-800"
 >
 	<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 		<div class="flex h-16 justify-between">
@@ -172,7 +223,6 @@
 					'/'
 						? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
 						: 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'}"
-					onclick={() => (mobileHeaderVisible = false)}
 				>
 					Chat
 				</a>
@@ -182,13 +232,12 @@
 					'/tools'
 						? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
 						: 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'}"
-					onclick={() => (mobileHeaderVisible = false)}
 				>
 					Tools
 				</a>
 
 				<!-- Status Indicator (Desktop) -->
-				<div class="hidden items-center gap-2 md:flex">
+				<div class="flex items-center gap-2">
 					<button
 						onclick={() => (showApiConfig = true)}
 						class="flex items-center gap-1 rounded-md p-2 text-lg transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -219,7 +268,7 @@
 	</div>
 </nav>
 
-<div class="pt-12 md:pt-0">
+<div class="pt-14 md:pt-0">
 	{@render children()}
 </div>
 <Toast />
