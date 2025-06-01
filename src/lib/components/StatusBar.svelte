@@ -110,7 +110,9 @@
 		providerStore.getProviderDisplayName(provider);
 </script>
 
-<div class="border-b border-gray-200 bg-white px-4 py-2 dark:border-gray-700 dark:bg-gray-900">
+<div
+	class="hidden border-b border-gray-200 bg-white px-4 py-2 md:block dark:border-gray-700 dark:bg-gray-900"
+>
 	<div class="flex items-center justify-between">
 		<!-- Left side: Model Selector and Status -->
 		<div class="flex items-center gap-4">

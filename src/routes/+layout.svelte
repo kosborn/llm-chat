@@ -129,8 +129,8 @@
 			</button>
 		</div>
 
-		<!-- Center: App title -->
-		<h1 class="truncate text-lg font-semibold text-gray-900 dark:text-white">AI Tool Chat</h1>
+		<!-- Center: Empty space for cleaner look -->
+		<div class="flex-1"></div>
 
 		<!-- Right side: Menu toggle -->
 		<button

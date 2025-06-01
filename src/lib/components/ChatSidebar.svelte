@@ -114,34 +114,6 @@
 </script>
 
 <div class="flex h-full flex-col">
-	<!-- Header -->
-	<div class="border-b border-gray-200 p-4 dark:border-gray-700">
-		<button
-			onclick={handleNewChat}
-			disabled={isLoading}
-			class="flex w-full items-center justify-center gap-2 rounded-lg
-				   bg-blue-600 px-4 py-3 font-medium
-				   text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-		>
-			<svg
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				xmlns="http://www.w3.org/2000/svg"
-			>
-				<path
-					d="M12 5V19M5 12H19"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				/>
-			</svg>
-			New Chat
-		</button>
-	</div>
-
 	<!-- Chat List -->
 	<div class="flex-1 overflow-y-auto">
 		{#if isLoading && chats.length === 0}
@@ -295,5 +267,33 @@
 				{/each}
 			</div>
 		{/if}
+	</div>
+
+	<!-- New Chat Button at Bottom -->
+	<div class="border-t border-gray-200 p-4 dark:border-gray-700">
+		<button
+			onclick={handleNewChat}
+			disabled={isLoading}
+			class="flex w-full items-center justify-center gap-2 rounded-lg
+				   bg-blue-600 px-4 py-3 font-medium
+				   text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+		>
+			<svg
+				width="16"
+				height="16"
+				viewBox="0 0 24 24"
+				fill="none"
+				xmlns="http://www.w3.org/2000/svg"
+			>
+				<path
+					d="M12 5V19M5 12H19"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+			</svg>
+			New Chat
+		</button>
 	</div>
 </div>

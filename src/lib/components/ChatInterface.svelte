@@ -17,6 +17,7 @@
 	import DebugInterface from './DebugInterface.svelte';
 	import ApiKeyConfig from './ApiKeyConfig.svelte';
 	import StatusBar from './StatusBar.svelte';
+	import ModelSelector from './ModelSelector.svelte';
 	import { mobileStore } from '$lib/stores/mobile-store.svelte.js';
 
 	import PWAInstallPrompt from './PWAInstallPrompt.svelte';
@@ -627,9 +628,10 @@
 
 	<!-- Sidebar -->
 	<div
-		class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 transition-transform duration-300 ease-in-out dark:border-gray-700 dark:bg-gray-900 {mobileStore.sidebarVisible
-			? 'fixed top-0 left-0 z-50 h-full translate-x-0 transform md:static md:h-auto md:transform-none'
-			: 'fixed top-0 left-0 z-50 h-full -translate-x-full transform md:static md:flex md:h-auto md:transform-none'}"
+		class="fixed top-0 left-0 z-50 flex h-full w-80 flex-col
+		       border-r border-gray-200 bg-gray-50
+		       transition-transform duration-300 ease-in-out md:static md:h-auto md:transform-none dark:border-gray-700 dark:bg-gray-900
+		       {mobileStore.sidebarVisible ? 'translate-x-0 transform' : '-translate-x-full transform'}"
 	>
 		<!-- Sidebar Navigation -->
 		<div class="border-b border-gray-200 p-2 dark:border-gray-700">
@@ -934,6 +936,24 @@
 						</p>
 					</div>
 				</div>
+			</div>
+
+			<!-- Mobile Model Selector -->
+			<div class="border-b border-gray-200 p-2 md:hidden dark:border-gray-700">
+				<ModelSelector
+					provider={currentProvider}
+					model={currentModel}
+					onProviderChange={(newProvider) => {
+						currentProvider = newProvider;
+						providerStore.setProvider(newProvider);
+					}}
+					onModelChange={(newModel) => {
+						currentModel = newModel;
+						providerStore.setModel(newModel);
+					}}
+					disabled={isStreaming}
+					compact={true}
+				/>
 			</div>
 
 			<!-- Messages -->
