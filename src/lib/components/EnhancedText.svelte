@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { renderMarkdown } from '$lib/utils/markdown.js';
-	import { onMount } from 'svelte';
 	import { parseFormattedText, type FormatSegment } from '$lib/utils/text-formatter.js';
 	import { toolRegistry } from '$lib/tools/registry.js';
 	import type { ToolMetadata } from '$lib/tools/types.js';

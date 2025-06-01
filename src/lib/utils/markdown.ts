@@ -3,8 +3,7 @@ import { marked } from 'marked';
 // Configure marked with safe defaults
 marked.setOptions({
 	breaks: true,
-	gfm: true,
-	mangle: false
+	gfm: true
 });
 
 // Language mapping for better recognition
@@ -133,7 +132,8 @@ function escapeHtml(text: string): string {
 const renderer = new marked.Renderer();
 
 // Override link rendering to add target="_blank" for external links
-renderer.link = ({ href, title, tokens }) => {
+renderer.link = (token) => {
+	const { href, title, tokens } = token;
 	const text = tokens.map((token) => token.raw).join('');
 	const isExternal = href?.startsWith('http') || href?.startsWith('//');
 	const target = isExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
@@ -142,50 +142,45 @@ renderer.link = ({ href, title, tokens }) => {
 };
 
 // Override code rendering for syntax highlighting
-renderer.code = ({ text, lang }) => {
+renderer.code = (token) => {
+	const { text, lang } = token;
 	const language = lang || 'text';
 	const normalizedLang = normalizeLanguage(language);
 	const highlightedCode = highlightCode(text, language);
 
-	return `<div class="code-block-wrapper my-4">
-		<div class="code-block-header flex items-center justify-between bg-gray-200 dark:bg-gray-700 px-4 py-2 rounded-t-lg border-b border-gray-300 dark:border-gray-600">
-			<span class="text-xs font-medium text-gray-600 dark:text-gray-300 uppercase tracking-wide">${language}</span>
-			<button 
-				class="copy-code-btn text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors px-2 py-1 rounded bg-gray-100 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500"
-				onclick="copyToClipboard(this)"
-				data-code="${escapeHtml(text)}"
-				title="Copy code"
-			>
-				Copy
-			</button>
-		</div>
-		<pre class="bg-gray-100 dark:bg-gray-800 rounded-b-lg p-4 overflow-x-auto border border-gray-300 dark:border-gray-600 border-t-0"><code class="language-${normalizedLang} text-sm block">${highlightedCode}</code></pre>
-	</div>`;
+	return `<pre class="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 overflow-x-auto border border-gray-300 dark:border-gray-600 my-4"><code class="language-${normalizedLang} text-sm block">${highlightedCode}</code></pre>`;
 };
 
 // Override inline code rendering
-renderer.codespan = ({ text }) => {
+renderer.codespan = (token) => {
+	const { text } = token;
 	return `<code class="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded text-sm font-mono text-pink-600 dark:text-pink-400 border border-gray-300 dark:border-gray-600">${text}</code>`;
 };
 
 // Override blockquote rendering
-renderer.blockquote = ({ tokens }) => {
-	const quote = tokens.map((token) => token.raw).join('');
+renderer.blockquote = function (token) {
+	const { tokens } = token;
+	const quote = this.parser.parse(tokens);
 	return `<blockquote class="border-l-4 border-blue-500 dark:border-blue-400 pl-4 my-4 italic text-gray-700 dark:text-gray-300 bg-blue-50 dark:bg-blue-900/20 py-2 rounded-r">${quote}</blockquote>`;
 };
 
 // Override list rendering
-renderer.list = ({ ordered, start, items }) => {
+renderer.list = function (token) {
+	const { ordered, start, items } = token;
 	const tag = ordered ? 'ol' : 'ul';
 	const startAttr = ordered && start !== 1 ? ` start="${start}"` : '';
 	const className = ordered
 		? 'list-decimal list-inside space-y-1 my-3 pl-4'
 		: 'list-disc list-inside space-y-1 my-3 pl-4';
 
-	return `<${tag}${startAttr} class="${className}">${items}</${tag}>`;
+	// Render each list item using the parser
+	const renderedItems = items.map((item) => this.listitem(item)).join('');
+
+	return `<${tag}${startAttr} class="${className}">${renderedItems}</${tag}>`;
 };
 
-renderer.listitem = ({ text, task, checked }) => {
+renderer.listitem = (token) => {
+	const { text, task, checked } = token;
 	if (task) {
 		const checkboxState = checked ? 'checked' : '';
 		const checkboxClass = checked
@@ -200,7 +195,8 @@ renderer.listitem = ({ text, task, checked }) => {
 };
 
 // Override table rendering
-renderer.table = ({ header, rows }) => {
+renderer.table = (token) => {
+	const { header, rows } = token;
 	return `<div class="overflow-x-auto my-4 rounded-lg border border-gray-300 dark:border-gray-600">
 		<table class="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
 			${header}
@@ -211,11 +207,13 @@ renderer.table = ({ header, rows }) => {
 	</div>`;
 };
 
-renderer.tablerow = ({ text }) => {
+renderer.tablerow = (token) => {
+	const { text } = token;
 	return `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">${text}</tr>`;
 };
 
-renderer.tablecell = ({ text, header, align }) => {
+renderer.tablecell = (token) => {
+	const { text, header, align } = token;
 	const tag = header ? 'th' : 'td';
 	const baseClassName = header
 		? 'px-4 py-3 bg-gray-50 dark:bg-gray-700 font-semibold text-gray-900 dark:text-gray-100'
@@ -225,8 +223,9 @@ renderer.tablecell = ({ text, header, align }) => {
 };
 
 // Override heading rendering
-renderer.heading = ({ tokens, depth }) => {
-	const text = tokens.map((token) => token.raw).join('');
+renderer.heading = function (token) {
+	const { tokens, depth } = token;
+	const text = this.parser.parseInline(tokens);
 	const sizes = {
 		1: 'text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4 mt-6',
 		2: 'text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3 mt-5',
@@ -241,8 +240,9 @@ renderer.heading = ({ tokens, depth }) => {
 };
 
 // Override paragraph rendering
-renderer.paragraph = ({ tokens }) => {
-	const text = tokens.map((token) => token.raw).join('');
+renderer.paragraph = function (token) {
+	const { tokens } = token;
+	const text = this.parser.parseInline(tokens);
 	return `<p class="text-gray-700 dark:text-gray-300 mb-4 leading-relaxed">${text}</p>`;
 };
 
@@ -259,29 +259,6 @@ export async function renderMarkdown(text: string): Promise<string> {
 		await loadPrism();
 
 		const html = marked.parse(text) as string;
-
-		// Add global copy function to window if not already present
-		if (typeof window !== 'undefined' && !(window as any).copyToClipboard) {
-			(window as any).copyToClipboard = (button: HTMLButtonElement) => {
-				const code = button.getAttribute('data-code');
-				if (code && navigator.clipboard) {
-					navigator.clipboard
-						.writeText(code)
-						.then(() => {
-							const originalText = button.textContent;
-							button.textContent = 'Copied!';
-							button.classList.add('text-green-600', 'dark:text-green-400');
-							setTimeout(() => {
-								button.textContent = originalText;
-								button.classList.remove('text-green-600', 'dark:text-green-400');
-							}, 2000);
-						})
-						.catch((err) => {
-							console.error('Failed to copy code:', err);
-						});
-				}
-			};
-		}
 
 		return html;
 	} catch (error) {
