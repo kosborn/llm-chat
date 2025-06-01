@@ -19,9 +19,10 @@ const maxmindParameters = z.object({
 async function executeMaxmind(params: Record<string, unknown>) {
 	const { ip } = maxmindParameters.parse(params);
 
+	// MaxMind API requires an API key in the format "account:password" for basic authentication
 	const apiKey = process.env.MAXMIND_API_KEY;
 	if (!apiKey) {
-		throw new Error('MAXMIND_API_KEY environment variable is required');
+		throw new Error('MAXMIND_API_KEY environment variable is required (format: account:password)');
 	}
 
 	// Validate IP address format
@@ -37,14 +38,15 @@ async function executeMaxmind(params: Record<string, unknown>) {
 		const response = await fetch(`https://geoip.maxmind.com/geoip/v2.1/insights/${ip}`, {
 			method: 'GET',
 			headers: {
-				Authorization: `Basic ${Buffer.from(`${apiKey}:`).toString('base64')}`,
+				// Using the API key directly as it should already be in the format "account:password"
+				Authorization: `Basic ${Buffer.from(apiKey).toString('base64')}`,
 				Accept: 'application/json'
 			}
 		});
 
 		if (!response.ok) {
 			if (response.status === 401) {
-				throw new Error('Invalid MaxMind API key or insufficient permissions');
+				throw new Error('Invalid MaxMind API key or insufficient permissions (API key should be in format: account:password)');
 			} else if (response.status === 402) {
 				throw new Error('Insufficient funds or permission required');
 			} else if (response.status === 404) {
