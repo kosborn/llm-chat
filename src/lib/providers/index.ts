@@ -31,7 +31,7 @@ export const PROVIDERS: Record<string, Provider> = {
 		apiKeyPrefix: 'gsk_',
 		signupUrl: 'https://console.groq.com',
 		docsUrl: 'https://console.groq.com/docs',
-		defaultModel: 'llama-3.3-70b-versatile',
+		defaultModel: 'meta-llama/llama-4-scout-17b-16e-instruct',
 		icon: '🚀',
 		priority: 1,
 		models: [

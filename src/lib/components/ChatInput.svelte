@@ -27,7 +27,7 @@
 		disabled = false,
 		placeholder = 'Type a message...',
 		provider = 'groq',
-		model = 'llama-3.3-70b-versatile'
+		model = 'meta-llama/llama-4-scout-17b-16e-instruct'
 	}: Props = $props();
 
 	const dispatch = createEventDispatcher<{
