@@ -13,6 +13,7 @@
 	import FormattedTextInput from './FormattedTextInput.svelte';
 	import { createOptimizedDefaultRules } from '$lib/utils/text-formatter-manager';
 	import { ToolMentionManager } from '$lib/utils/tool-mention-manager.js';
+	import { debugConsole } from '$lib/utils/console.js';
 
 	import type { ToolMetadata } from '$lib/tools/types.js';
 	import type { ProviderId } from '$lib/providers/index.js';
@@ -104,7 +105,7 @@
 				textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
 			}
 		} catch (error) {
-			console.error('Error in autoResize:', error);
+			debugConsole.error('Error in autoResize:', error);
 		}
 	}
 
@@ -113,7 +114,7 @@
 			autoResize();
 			checkForToolSelector();
 		} catch (error) {
-			console.error('Error in handleInput:', error);
+			debugConsole.error('Error in handleInput:', error);
 		}
 	}
 
@@ -162,12 +163,12 @@
 
 					hideToolSelector();
 				} catch (innerError) {
-					console.error('Error in checkForToolSelector timeout:', innerError);
+					debugConsole.error('Error in checkForToolSelector timeout:', innerError);
 					hideToolSelector();
 				}
 			}, 100); // 100ms debounce
 		} catch (error) {
-			console.error('Error in checkForToolSelector:', error);
+			debugConsole.error('Error in checkForToolSelector:', error);
 			hideToolSelector();
 		}
 	}
@@ -185,7 +186,7 @@
 				y: textareaRect.top - 5 // Position just above textarea for bottom-anchored popup
 			};
 		} catch (error) {
-			console.error('Error updating tool selector position:', error);
+			debugConsole.error('Error updating tool selector position:', error);
 		}
 	}
 
@@ -228,7 +229,7 @@
 			hideToolSelector();
 			autoResize();
 		} catch (error) {
-			console.error('Error handling tool selection:', error);
+			debugConsole.error('Error handling tool selection:', error);
 			hideToolSelector();
 		}
 	}
@@ -242,7 +243,7 @@
 				}>);
 			}
 		} catch (error) {
-			console.error('Error in tab completion:', error);
+			debugConsole.error('Error in tab completion:', error);
 		}
 	}
 
@@ -259,7 +260,7 @@
 					autoResize();
 				}
 			} catch (error) {
-				console.error('Error in effect autoResize:', error);
+				debugConsole.error('Error in effect autoResize:', error);
 			}
 		}
 	});

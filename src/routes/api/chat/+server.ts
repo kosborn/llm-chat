@@ -10,13 +10,14 @@ import {
 	getRequiredEnvironmentVariables
 } from '$lib/providers/server.js';
 import { getDefaultModelForProvider } from '$lib/providers/index.js';
+import { debugConsole } from '$lib/utils/console.js';
 
 // Debug logging utility for server-side debugging
 const DEBUG_MODE = process.env.NODE_ENV === 'development';
 
 function debugLog(message: string, data?: any) {
 	if (DEBUG_MODE) {
-		console.log(
+		debugConsole.log(
 			`[DEBUG] ${new Date().toISOString()} - ${message}`,
 			data ? JSON.stringify(data, null, 2) : ''
 		);
@@ -336,7 +337,7 @@ export async function POST({ request }: { request: Request }) {
 			timestamp: new Date().toISOString()
 		});
 
-		console.error('Chat API error:', error);
+		debugConsole.error('Chat API error:', error);
 		return new Response(JSON.stringify({ error: 'Internal server error' }), {
 			status: 500,
 			headers: { 'Content-Type': 'application/json' }

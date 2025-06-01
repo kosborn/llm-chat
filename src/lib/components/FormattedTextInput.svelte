@@ -6,6 +6,7 @@
 	} from '$lib/utils/text-formatter-manager';
 	import { toolRegistry } from '$lib/tools/registry.js';
 	import type { ToolMetadata } from '$lib/tools/types.js';
+	import { debugConsole } from '$lib/utils/console.js';
 
 	interface Props {
 		value: string;
@@ -59,7 +60,7 @@
 				const result = parseFormattedText(value, rules);
 				segments = Array.isArray(result) ? result : [];
 			} catch (error) {
-				console.error('Error parsing text:', error);
+				debugConsole.error('Error parsing text:', error);
 				segments = [];
 			}
 			return;
@@ -71,7 +72,7 @@
 				const result = parseFormattedText(value, rules);
 				segments = Array.isArray(result) ? result : [];
 			} catch (error) {
-				console.error('Error parsing text:', error);
+				debugConsole.error('Error parsing text:', error);
 				segments = [];
 			}
 		}, 150); // 150ms debounce for longer text
@@ -120,7 +121,7 @@
 			const allTools = toolRegistry.getAllTools();
 			return allTools[toolName] || null;
 		} catch (error) {
-			console.warn('Error getting tool data:', error);
+			debugConsole.warn('Error getting tool data:', error);
 			return null;
 		}
 	}
@@ -194,7 +195,7 @@
 			const enabledTools = toolRegistry.getEnabledTools();
 			return !!enabledTools[toolName];
 		} catch (error) {
-			console.warn('Error checking tool enabled status:', error);
+			debugConsole.warn('Error checking tool enabled status:', error);
 			return false;
 		}
 	}

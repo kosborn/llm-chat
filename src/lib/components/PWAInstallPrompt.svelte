@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { debugConsole } from '$lib/utils/console.js';
 
 	interface Props {
 		isOpen: boolean;
@@ -52,13 +53,13 @@
 
 		try {
 			const result = await deferredPrompt.prompt();
-			console.log('Install prompt result:', result);
+			debugConsole.log('Install prompt result:', result);
 
 			if (result.outcome === 'accepted') {
 				showPrompt = false;
 			}
 		} catch (error) {
-			console.error('Install prompt error:', error);
+			debugConsole.error('Install prompt error:', error);
 		} finally {
 			isInstalling = false;
 			deferredPrompt = null;

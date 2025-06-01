@@ -1,5 +1,6 @@
 import { browser } from '$app/environment';
 import { toolRegistry } from '$lib/tools/registry.js';
+import { debugConsole } from '../utils/console.js';
 
 interface ToolSettings {
 	[toolName: string]: boolean;
@@ -26,7 +27,7 @@ class ToolSettingsStore {
 			this.syncWithRegistry();
 			this.initialized = true;
 		} catch (error) {
-			console.warn('Failed to load tool settings from localStorage:', error);
+			debugConsole.warn('Failed to load tool settings from localStorage:', error);
 			this.settings = {};
 			this.initialized = true;
 		}
@@ -38,7 +39,7 @@ class ToolSettingsStore {
 		try {
 			localStorage.setItem(ToolSettingsStore.STORAGE_KEY, JSON.stringify(this.settings));
 		} catch (error) {
-			console.warn('Failed to save tool settings to localStorage:', error);
+			debugConsole.warn('Failed to save tool settings to localStorage:', error);
 		}
 	}
 
@@ -112,7 +113,7 @@ class ToolSettingsStore {
 			}
 			return false;
 		} catch (error) {
-			console.warn('Failed to import tool settings:', error);
+			debugConsole.warn('Failed to import tool settings:', error);
 			return false;
 		}
 	}

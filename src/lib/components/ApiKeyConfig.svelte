@@ -3,6 +3,7 @@
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
 	import { onMount } from 'svelte';
 	import type { ProviderId } from '$lib/providers/index.js';
+	import { debugConsole } from '$lib/utils/console.js';
 
 	interface Props {
 		isOpen: boolean;
@@ -50,7 +51,7 @@
 		try {
 			serverAvailable = await providerStore.checkServerAvailability();
 		} catch (error) {
-			console.log('Server availability check failed:', error);
+			debugConsole.log('Server availability check failed:', error);
 			serverAvailable = false;
 		} finally {
 			checkingServer = false;

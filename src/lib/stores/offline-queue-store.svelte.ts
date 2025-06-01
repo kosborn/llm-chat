@@ -1,6 +1,7 @@
 import { browser } from '$app/environment';
 import { nanoid } from 'nanoid';
 import type { ChatMessage } from '../../app.d.ts';
+import { debugConsole } from '../utils/console.js';
 
 interface QueuedMessage {
 	id: string;
@@ -29,7 +30,7 @@ class OfflineQueueStore {
 				this.queue = JSON.parse(stored);
 			}
 		} catch (error) {
-			console.warn('Failed to load offline queue from storage:', error);
+			debugConsole.warn('Failed to load offline queue from storage:', error);
 			this.queue = [];
 		}
 	}
@@ -40,7 +41,7 @@ class OfflineQueueStore {
 		try {
 			localStorage.setItem('ai-chat-offline-queue', JSON.stringify(this.queue));
 		} catch (error) {
-			console.error('Failed to save offline queue to storage:', error);
+			debugConsole.error('Failed to save offline queue to storage:', error);
 		}
 	}
 
@@ -63,7 +64,7 @@ class OfflineQueueStore {
 		this.queue = [...this.queue, queuedMessage];
 		this.saveToStorage();
 
-		console.log(`Added message to offline queue. Queue size: ${this.queue.length}`);
+		debugConsole.log(`Added message to offline queue. Queue size: ${this.queue.length}`);
 	}
 
 	removeFromQueue(id: string): void {
@@ -82,7 +83,7 @@ class OfflineQueueStore {
 		}
 
 		this.isProcessing = true;
-		console.log(`Processing ${this.queue.length} queued messages...`);
+		debugConsole.log(`Processing ${this.queue.length} queued messages...`);
 
 		try {
 			// Import notification store for user feedback
@@ -98,7 +99,7 @@ class OfflineQueueStore {
 					this.removeFromQueue(queuedMessage.id);
 					successCount++;
 				} catch (error) {
-					console.error('Failed to send queued message:', error);
+					debugConsole.error('Failed to send queued message:', error);
 
 					// Increment retry count
 					const index = this.queue.findIndex((item) => item.id === queuedMessage.id);
@@ -112,7 +113,7 @@ class OfflineQueueStore {
 							// Remove message after max retries
 							this.removeFromQueue(queuedMessage.id);
 							failureCount++;
-							console.warn(
+							debugConsole.warn(
 								`Giving up on message ${queuedMessage.id} after ${updatedMessage.maxRetries} retries`
 							);
 						} else {
@@ -163,7 +164,7 @@ class OfflineQueueStore {
 		}
 
 		// If successful, the message has been sent
-		console.log('Successfully sent queued message:', queuedMessage.id);
+		debugConsole.log('Successfully sent queued message:', queuedMessage.id);
 	}
 
 	getQueueCount(): number {

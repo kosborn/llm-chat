@@ -8,6 +8,7 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { browser } from '$app/environment';
 import type { ModelConfig, Provider, ProviderId } from './index.js';
 import { PROVIDERS, getAllProviders, getProvider } from './index.js';
+import { debugConsole } from '../utils/console.js';
 
 export interface ProviderStatus {
 	canSend: boolean;
@@ -438,7 +439,7 @@ class ProviderManager {
 				this.currentModel = savedModel;
 			}
 		} catch (error) {
-			console.warn('Failed to load provider settings from localStorage:', error);
+			debugConsole.warn('Failed to load provider settings from localStorage:', error);
 		}
 	}
 

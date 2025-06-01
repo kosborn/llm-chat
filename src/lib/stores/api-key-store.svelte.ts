@@ -8,6 +8,7 @@ import {
 	getProviderIds,
 	type ProviderId
 } from '$lib/providers';
+import { debugConsole } from '$lib/utils/console.js';
 
 interface ApiKeys {
 	[key: string]: string | undefined;
@@ -38,7 +39,7 @@ class ApiKeyStore {
 				this.provider = storedProvider;
 			}
 		} catch (error) {
-			console.warn('Failed to load API keys from storage:', error);
+			debugConsole.warn('Failed to load API keys from storage:', error);
 		}
 	}
 
@@ -60,7 +61,7 @@ class ApiKeyStore {
 			localStorage.setItem('ai-chat-api-keys', JSON.stringify(this.apiKeys));
 			localStorage.setItem('ai-chat-provider', provider);
 		} catch (error) {
-			console.error('Failed to save API key:', error);
+			debugConsole.error('Failed to save API key:', error);
 		}
 	}
 

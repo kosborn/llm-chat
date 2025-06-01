@@ -21,6 +21,7 @@
 	import { ToolMentionManager } from '$lib/utils/tool-mention-manager.js';
 	import ModelSelector from './ModelSelector.svelte';
 	import { mobileStore } from '$lib/stores/mobile-store.svelte.js';
+	import { debugConsole } from '$lib/utils/console.js';
 
 	import PWAInstallPrompt from './PWAInstallPrompt.svelte';
 
@@ -51,9 +52,9 @@
 		if ('serviceWorker' in navigator) {
 			try {
 				await navigator.serviceWorker.register('/service-worker.js');
-				console.log('Service Worker registered');
+				debugConsole.log('Service Worker registered');
 			} catch (error) {
-				console.error('Service Worker registration failed:', error);
+				debugConsole.error('Service Worker registration failed:', error);
 			}
 		}
 
@@ -94,7 +95,7 @@
 				chatInputComponent?.focus();
 			}, 100);
 		} catch (error) {
-			console.error('Failed to create new chat:', error);
+			debugConsole.error('Failed to create new chat:', error);
 		}
 	}
 
@@ -114,7 +115,7 @@
 		try {
 			await chatStore.archiveChat(event.detail.chatId);
 		} catch (error) {
-			console.error('Failed to archive chat:', error);
+			debugConsole.error('Failed to archive chat:', error);
 		}
 	}
 
@@ -124,7 +125,7 @@
 			// Switch back to main chats view after unarchiving
 			sidebarMode = 'chats';
 		} catch (error) {
-			console.error('Failed to unarchive chat:', error);
+			debugConsole.error('Failed to unarchive chat:', error);
 		}
 	}
 
@@ -132,7 +133,7 @@
 		try {
 			await chatStore.deleteChat(event.detail.chatId);
 		} catch (error) {
-			console.error('Failed to delete chat:', error);
+			debugConsole.error('Failed to delete chat:', error);
 		}
 	}
 
@@ -145,7 +146,7 @@
 			// Switch to main chats view
 			sidebarMode = 'chats';
 		} catch (error) {
-			console.error('Failed to select archived chat:', error);
+			debugConsole.error('Failed to select archived chat:', error);
 		}
 	}
 
@@ -153,7 +154,7 @@
 		try {
 			await chatStore.updateChatTitle(event.detail.chatId, event.detail.title);
 		} catch (error) {
-			console.error('Failed to rename chat:', error);
+			debugConsole.error('Failed to rename chat:', error);
 		}
 	}
 
@@ -173,7 +174,7 @@
 			await chatStore.updateChatTitle(chatStore.currentChat.id, titleInput.trim());
 			editingTitle = false;
 		} catch (error) {
-			console.error('Failed to save title:', error);
+			debugConsole.error('Failed to save title:', error);
 		}
 	}
 
@@ -205,7 +206,7 @@
 			autoRenamingChatId = chatStore.currentChat.id;
 			await chatStore.autoRenameChat(chatStore.currentChat.id, true);
 		} catch (error) {
-			console.error('Failed to regenerate title:', error);
+			debugConsole.error('Failed to regenerate title:', error);
 			if (error instanceof Error && error.message === 'API_KEY_MISSING') {
 				showApiConfig = true;
 			} else {
@@ -248,7 +249,7 @@
 		}
 
 		if (!chatStore.currentChatId) {
-			console.error('No chat available');
+			debugConsole.error('No chat available');
 			return;
 		}
 
@@ -480,7 +481,7 @@
 								}
 								// Types 'f', 'd' are other metadata events
 							} catch (parseError) {
-								console.warn('Failed to parse data stream line:', line, parseError);
+								debugConsole.warn('Failed to parse data stream line:', line, parseError);
 								debugStore.logError(parseError, {
 									chatId: chatStore.currentChatId,
 									messageId: assistantMessageId
@@ -515,7 +516,7 @@
 
 				// Add API metadata to the message after streaming is complete
 				if (apiMetadata || Object.keys(finalUsage).length > 0) {
-					console.log('[DEBUG] Processing API metadata:', { apiMetadata, finalUsage });
+					debugConsole.log('[DEBUG] Processing API metadata:', { apiMetadata, finalUsage });
 
 					// Import cost calculator dynamically to avoid circular dependencies
 					const { calculateCost } = await import('$lib/utils/cost-calculator.js');
@@ -566,7 +567,7 @@
 				}
 			}
 		} catch (error) {
-			console.error('Failed to send message:', error);
+			debugConsole.error('Failed to send message:', error);
 			debugStore.logError(error, {
 				chatId: chatStore.currentChatId
 			});

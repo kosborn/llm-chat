@@ -1,4 +1,5 @@
 import type { ToolRegistry, ToolMetadata, ToolDiscovery } from './types.js';
+import { debugConsole } from '../utils/console.js';
 
 // Import all tool implementations
 import { weatherTool } from './implementations/weather.js';
@@ -58,11 +59,11 @@ class ToolRegistryManager implements ToolDiscovery {
 
 	registerTool(toolMetadata: ToolMetadata): void {
 		if (this.tools.has(toolMetadata.name)) {
-			console.warn(`Tool '${toolMetadata.name}' is already registered. Overwriting...`);
+			debugConsole.warn(`Tool '${toolMetadata.name}' is already registered. Overwriting...`);
 		}
 
 		this.tools.set(toolMetadata.name, toolMetadata);
-		console.log(`Registered tool: ${toolMetadata.name} v${toolMetadata.version}`);
+		debugConsole.log(`Registered tool: ${toolMetadata.name} v${toolMetadata.version}`);
 		// Notify text formatter to invalidate cache
 		this.notifyToolCacheInvalidation();
 	}
@@ -70,11 +71,11 @@ class ToolRegistryManager implements ToolDiscovery {
 	unregisterTool(name: string): void {
 		if (this.tools.has(name)) {
 			this.tools.delete(name);
-			console.log(`Unregistered tool: ${name}`);
+			debugConsole.log(`Unregistered tool: ${name}`);
 			// Notify text formatter to invalidate cache
 			this.notifyToolCacheInvalidation();
 		} else {
-			console.warn(`Tool '${name}' not found in registry`);
+			debugConsole.warn(`Tool '${name}' not found in registry`);
 		}
 	}
 
@@ -150,7 +151,7 @@ class ToolRegistryManager implements ToolDiscovery {
 			const settingsStore = await getToolSettingsStore();
 			settingsStore.setToolSetting(name, true);
 		} catch (error) {
-			console.warn('Failed to persist tool setting:', error);
+			debugConsole.warn('Failed to persist tool setting:', error);
 		}
 
 		// Notify cache invalidation
@@ -170,7 +171,7 @@ class ToolRegistryManager implements ToolDiscovery {
 			const settingsStore = await getToolSettingsStore();
 			settingsStore.setToolSetting(name, false);
 		} catch (error) {
-			console.warn('Failed to persist tool setting:', error);
+			debugConsole.warn('Failed to persist tool setting:', error);
 		}
 
 		// Notify cache invalidation
@@ -203,7 +204,7 @@ class ToolRegistryManager implements ToolDiscovery {
 				}
 			}
 		} catch (error) {
-			console.warn('Failed to initialize persistent tool settings:', error);
+			debugConsole.warn('Failed to initialize persistent tool settings:', error);
 		}
 	}
 
@@ -251,7 +252,7 @@ class ToolRegistryManager implements ToolDiscovery {
 				}
 			})
 			.catch((error) => {
-				console.warn('Failed to invalidate text formatter cache:', error);
+				debugConsole.warn('Failed to invalidate text formatter cache:', error);
 			});
 	}
 }

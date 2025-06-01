@@ -1,5 +1,7 @@
 import { browser } from '$app/environment';
 
+import { debugConsole } from '../utils/console.js';
+
 class NetworkStore {
 	isOnline = $state(true);
 	isOffline = $state(false);
@@ -32,7 +34,7 @@ class NetworkStore {
 	private handleOnline(): void {
 		this.isOnline = true;
 		this.isOffline = false;
-		console.log('Network: Back online');
+		debugConsole.log('Network: Back online');
 
 		// Dispatch custom event for other components
 		window.dispatchEvent(new CustomEvent('network-online'));
@@ -41,7 +43,7 @@ class NetworkStore {
 	private handleOffline(): void {
 		this.isOnline = false;
 		this.isOffline = true;
-		console.log('Network: Gone offline');
+		debugConsole.log('Network: Gone offline');
 
 		// Dispatch custom event for other components
 		window.dispatchEvent(new CustomEvent('network-offline'));

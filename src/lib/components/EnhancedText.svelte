@@ -3,6 +3,7 @@
 	import { parseFormattedText, type FormatSegment } from '$lib/utils/text-formatter-manager.js';
 	import { toolRegistry } from '$lib/tools/registry.js';
 	import type { ToolMetadata } from '$lib/tools/types.js';
+	import { debugConsole } from '$lib/utils/console.js';
 
 	interface Props {
 		text: string;
@@ -50,15 +51,15 @@
 				if (enableFormatting) {
 					// Render markdown first, then post-process for special formatting
 					let html = await renderMarkdown(text);
-					console.log('Original text:', text);
-					console.log('Rendered HTML before replacement:', html);
+					debugConsole.log('Original text:', text);
+					debugConsole.log('Rendered HTML before replacement:', html);
 
 					// Find and replace special patterns in the rendered HTML
 					const segments = parseFormattedText(text);
-					console.log('Parsed segments:', segments);
+					debugConsole.log('Parsed segments:', segments);
 
 					for (const segment of segments) {
-						console.log('Processing segment:', segment);
+						debugConsole.log('Processing segment:', segment);
 						if (
 							segment.isFormatted &&
 							(isToolMention(segment) || isUrl(segment) || isIpAddress(segment))
@@ -78,24 +79,24 @@
 								replacement = `<span class="${segment.className} cursor-pointer" data-ip="${segment.text}" title="Click to copy IP address (${segment.text.includes(':') ? 'IPv6' : 'IPv4'})">${segment.text}</span>`;
 							}
 
-							console.log(`Replacing "${segment.text}" with:`, replacement);
-							console.log('HTML before this replacement:', html);
+							debugConsole.log(`Replacing "${segment.text}" with:`, replacement);
+							debugConsole.log('HTML before this replacement:', html);
 
 							// Replace all occurrences of the segment text with formatted version
 							html = html.split(segment.text).join(replacement);
 
-							console.log('HTML after this replacement:', html);
+							debugConsole.log('HTML after this replacement:', html);
 						}
 					}
 
-					console.log('Final HTML:', html);
+					debugConsole.log('Final HTML:', html);
 					markdownHtml = html;
 				} else {
 					// Plain markdown without formatting
 					markdownHtml = await renderMarkdown(text);
 				}
 			} catch (error) {
-				console.error('Error rendering markdown:', error);
+				debugConsole.error('Error rendering markdown:', error);
 				markdownHtml = text.replace(/\n/g, '<br>');
 			} finally {
 				isLoadingMarkdown = false;
@@ -149,7 +150,7 @@
 			const enabledTools = toolRegistry.getEnabledTools();
 			return !!enabledTools[toolName];
 		} catch (error) {
-			console.warn('Error checking tool enabled status:', error);
+			debugConsole.warn('Error checking tool enabled status:', error);
 			return false;
 		}
 	}
@@ -184,18 +185,18 @@
 	}
 
 	async function copyIpToClipboard(ip: string) {
-		console.log('Attempting to copy IP:', ip);
-		console.log('Clipboard API available:', !!navigator.clipboard);
-		console.log('Secure context:', window.isSecureContext);
+		debugConsole.log('Attempting to copy IP:', ip);
+		debugConsole.log('Clipboard API available:', !!navigator.clipboard);
+		debugConsole.log('Secure context:', window.isSecureContext);
 
 		try {
 			// Try modern clipboard API first
 			if (navigator.clipboard && window.isSecureContext) {
-				console.log('Using modern clipboard API');
+				debugConsole.log('Using modern clipboard API');
 				await navigator.clipboard.writeText(ip);
-				console.log('Modern clipboard API succeeded');
+				debugConsole.log('Modern clipboard API succeeded');
 			} else {
-				console.log('Using fallback clipboard method');
+				debugConsole.log('Using fallback clipboard method');
 				// Fallback for older browsers or non-secure contexts
 				const textArea = document.createElement('textarea');
 				textArea.value = ip;
@@ -207,21 +208,21 @@
 				textArea.select();
 				const success = document.execCommand('copy');
 				document.body.removeChild(textArea);
-				console.log('Fallback clipboard method result:', success);
+				debugConsole.log('Fallback clipboard method result:', success);
 			}
 
 			copiedIp = ip;
-			console.log('Copy successful, setting animation');
+			debugConsole.log('Copy successful, setting animation');
 			// Clear the animation after 1 second
 			setTimeout(() => {
 				copiedIp = null;
-				console.log('Animation cleared');
+				debugConsole.log('Animation cleared');
 			}, 1000);
 		} catch (error) {
-			console.error('Failed to copy IP to clipboard:', error);
+			debugConsole.error('Failed to copy IP to clipboard:', error);
 			// Try fallback method even if modern API failed
 			try {
-				console.log('Attempting fallback after error');
+				debugConsole.log('Attempting fallback after error');
 				const textArea = document.createElement('textarea');
 				textArea.value = ip;
 				textArea.style.position = 'fixed';
@@ -232,7 +233,7 @@
 				textArea.select();
 				const success = document.execCommand('copy');
 				document.body.removeChild(textArea);
-				console.log('Fallback after error result:', success);
+				debugConsole.log('Fallback after error result:', success);
 
 				if (success) {
 					copiedIp = ip;
@@ -241,7 +242,7 @@
 					}, 1000);
 				}
 			} catch (fallbackError) {
-				console.error('All clipboard methods failed:', fallbackError);
+				debugConsole.error('All clipboard methods failed:', fallbackError);
 			}
 		}
 	}

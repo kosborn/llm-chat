@@ -4,6 +4,7 @@ import { networkStore } from '$lib/stores/network-store.svelte.js';
 import { debugStore } from '$lib/stores/debug-store.svelte.js';
 import { ToolMentionManager } from '$lib/utils/tool-mention-manager.js';
 import { toolRegistry } from '$lib/tools/registry.js';
+import { debugConsole } from '$lib/utils/console.js';
 import type { ChatMessage, ApiUsageMetadata } from '../../app.d.ts';
 import type { ProviderId } from '$lib/providers/index.js';
 
@@ -57,7 +58,7 @@ class ClientChatService {
 					return serverResponse;
 				}
 			} catch (error) {
-				console.log('Server-side unavailable, falling back to client-side:', error);
+				debugConsole.log('Server-side unavailable, falling back to client-side:', error);
 			}
 		}
 
@@ -110,7 +111,7 @@ class ClientChatService {
 		const wasFallback = response.headers.get('X-Fallback') === 'true';
 
 		if (wasFallback) {
-			console.log(`Server used fallback: ${actualProvider}/${actualModel}`);
+			debugConsole.log(`Server used fallback: ${actualProvider}/${actualModel}`);
 		}
 
 		return {
@@ -177,18 +178,18 @@ class ClientChatService {
 
 			// Get current enabled tools for this request
 			const enabledTools = toolRegistry.getEnabledTools();
-			console.log('=== CLIENT CHAT TOOLS DEBUG ===');
-			console.log('Enabled tools from registry:', Object.keys(enabledTools));
+			debugConsole.log('=== CLIENT CHAT TOOLS DEBUG ===');
+			debugConsole.log('Enabled tools from registry:', Object.keys(enabledTools));
 
 			const toolsForRequest: Record<string, any> = {};
 
 			for (const [name, metadata] of Object.entries(enabledTools)) {
 				toolsForRequest[name] = metadata.tool;
-				console.log(`Adding tool to LLM request: ${name}`);
+				debugConsole.log(`Adding tool to LLM request: ${name}`);
 			}
 
-			console.log('FINAL TOOLS FOR LLM:', Object.keys(toolsForRequest));
-			console.log('=== END TOOLS DEBUG ===');
+			debugConsole.log('FINAL TOOLS FOR LLM:', Object.keys(toolsForRequest));
+			debugConsole.log('=== END TOOLS DEBUG ===');
 
 			const result = streamText({
 				model: modelInstance,
@@ -230,7 +231,7 @@ class ClientChatService {
 			if (mentionedTools && mentionedTools.length > 0) {
 				ToolMentionManager.restoreOriginalSettings();
 			}
-			console.error('Client chat error:', error);
+			debugConsole.error('Client chat error:', error);
 
 			// Provide more specific error messages
 			let errorMessage = 'Failed to send message';
@@ -291,7 +292,7 @@ class ClientChatService {
 					return serverTitle;
 				}
 			} catch (error) {
-				console.log(
+				debugConsole.log(
 					'Server-side title generation unavailable, falling back to client-side:',
 					error
 				);
@@ -396,7 +397,7 @@ class ClientChatService {
 
 			return title.trim() || null;
 		} catch (error) {
-			console.error('Client-side title generation error:', error);
+			debugConsole.error('Client-side title generation error:', error);
 			return null;
 		}
 	}

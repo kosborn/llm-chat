@@ -3,6 +3,7 @@ import { chatStorage } from './chat-storage.js';
 import { notificationStore } from './notification-store.svelte.js';
 import { cloneForState, serialize } from '../utils/serialization.js';
 import { clientChatService } from '../services/client-chat.js';
+import { debugConsole } from '../utils/console.js';
 
 class ChatStore {
 	chats = $state<Chat[]>([]);
@@ -305,7 +306,7 @@ class ChatStore {
 			}
 		} catch (err) {
 			if (forceRegenerate) {
-				console.error('Title generation error:', err);
+				debugConsole.error('Title generation error:', err);
 				// Provide specific error messages based on the error type
 				if (err instanceof Error) {
 					if (err.message.includes('503') || err.message.includes('Server error')) {
@@ -323,7 +324,7 @@ class ChatStore {
 					notificationStore.error('Failed to generate title. Please try again.');
 				}
 			}
-			console.warn('Auto-rename failed:', err);
+			debugConsole.warn('Auto-rename failed:', err);
 		}
 	}
 

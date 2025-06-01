@@ -197,15 +197,20 @@ renderer.listitem = (token) => {
 // Override table rendering
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 renderer.table = function (token: any) {
+	console.log('Table token structure:', JSON.stringify(token, null, 2));
 	const { header, rows } = token;
+
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const headerHtml = header.map((cell: any) => this.tablecell(cell)).join('');
+
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	const rowsHtml = rows
-		.map((row: any) =>
-			row.map((cell: any) => this.tablecell(cell)).join('')
-		)
-		.join('</tr><tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">');
+		.map((row: any) => {
+			// eslint-disable-next-line @typescript-eslint/no-explicit-any
+			const cellsHtml = row.map((cell: any) => this.tablecell(cell)).join('');
+			return `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">${cellsHtml}</tr>`;
+		})
+		.join('');
 
 	return `<div class="overflow-x-auto my-4 rounded-lg border border-gray-300 dark:border-gray-600">
 		<table class="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
@@ -213,7 +218,7 @@ renderer.table = function (token: any) {
 				<tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">${headerHtml}</tr>
 			</thead>
 			<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-				<tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">${rowsHtml}</tr>
+				${rowsHtml}
 			</tbody>
 		</table>
 	</div>`;
@@ -227,6 +232,7 @@ renderer.tablerow = (token: any) => {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 renderer.tablecell = function (token: any) {
+	console.log('Table cell token:', JSON.stringify(token, null, 2));
 	const { tokens, header, align } = token;
 	const tag = header ? 'th' : 'td';
 	const baseClassName = header
@@ -234,6 +240,7 @@ renderer.tablecell = function (token: any) {
 		: 'px-4 py-3 text-gray-700 dark:text-gray-300';
 	const alignClass = align ? ` text-${align}` : ' text-left';
 	const content = this.parser.parseInline(tokens);
+	console.log('Rendered cell content:', content);
 	return `<${tag} class="${baseClassName}${alignClass}">${content}</${tag}>`;
 };
 

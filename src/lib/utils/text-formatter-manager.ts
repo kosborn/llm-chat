@@ -1,4 +1,5 @@
 import { toolRegistry } from '$lib/tools/registry.js';
+import { debugConsole } from './console.js';
 
 export interface FormatRule {
 	pattern: RegExp;
@@ -101,7 +102,7 @@ class TextFormatterManager {
 			this.toolsCacheInitialized = true;
 			this.lastToolsUpdate = Date.now();
 		} catch (error) {
-			console.warn('Failed to initialize tools cache:', error);
+			debugConsole.warn('Failed to initialize tools cache:', error);
 			this.validToolsSet = new Set();
 			this.allToolsSet = new Set();
 		}
@@ -233,7 +234,7 @@ class TextFormatterManager {
 								continue;
 							}
 						} catch (validateError) {
-							console.warn('Error in rule validation:', validateError);
+							debugConsole.warn('Error in rule validation:', validateError);
 							continue;
 						}
 					}
@@ -251,7 +252,7 @@ class TextFormatterManager {
 					}
 				}
 			} catch (ruleError) {
-				console.warn('Error processing rule:', ruleError);
+				debugConsole.warn('Error processing rule:', ruleError);
 			}
 		}
 
@@ -311,7 +312,7 @@ class TextFormatterManager {
 				.map((match) => match.slice(1)) // Remove @ symbol
 				.filter((toolName) => this.allToolsSet.has(toolName)); // All valid tools, even disabled ones
 		} catch (error) {
-			console.error('Error extracting tool mentions:', error);
+			debugConsole.error('Error extracting tool mentions:', error);
 			return [];
 		}
 	}
@@ -325,7 +326,7 @@ class TextFormatterManager {
 				.map((match) => match.slice(1)) // Remove @ symbol
 				.filter((toolName) => this.isValidTool(toolName)); // Only enabled tools
 		} catch (error) {
-			console.error('Error extracting enabled tool mentions:', error);
+			debugConsole.error('Error extracting enabled tool mentions:', error);
 			return [];
 		}
 	}
@@ -336,7 +337,7 @@ class TextFormatterManager {
 		try {
 			return text.match(this.URL_REGEX) || [];
 		} catch (error) {
-			console.error('Error extracting URLs:', error);
+			debugConsole.error('Error extracting URLs:', error);
 			return [];
 		}
 	}
@@ -347,7 +348,7 @@ class TextFormatterManager {
 		try {
 			return text.match(this.IP_REGEX) || [];
 		} catch (error) {
-			console.error('Error extracting IP addresses:', error);
+			debugConsole.error('Error extracting IP addresses:', error);
 			return [];
 		}
 	}

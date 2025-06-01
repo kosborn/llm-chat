@@ -1,4 +1,5 @@
 import { cloneForState } from '../utils/serialization.js';
+import { debugConsole } from '../utils/console.js';
 
 interface DebugMessage {
 	id: string;
@@ -159,7 +160,7 @@ class DebugStore {
 		},
 		metadata?: DebugMessage['metadata']
 	): void {
-		console.log('[DEBUG] Logging API metadata:', apiMetadata);
+		debugConsole.log('[DEBUG] Logging API metadata:', apiMetadata);
 		this.log('api_metadata', apiMetadata, {
 			...metadata,
 			model: apiMetadata.model,

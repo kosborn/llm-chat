@@ -10,6 +10,7 @@
 	import { mobileStore } from '$lib/stores/mobile-store.svelte.js';
 	import { browser } from '$app/environment';
 	import { initializePersistentSettings } from '$lib/tools/registry.js';
+	import { debugConsole } from '$lib/utils/console.js';
 
 	const { children } = $props();
 
@@ -72,7 +73,7 @@
 		try {
 			serverAvailable = await providerStore.checkServerAvailability();
 		} catch (error) {
-			console.log('Server availability check failed:', error);
+			debugConsole.log('Server availability check failed:', error);
 			serverAvailable = false;
 		} finally {
 			checkingServer = false;

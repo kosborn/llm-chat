@@ -5,6 +5,7 @@
 	import ModelSelector from './ModelSelector.svelte';
 	import type { ProviderId } from '$lib/providers/index.js';
 	import type { ProviderStatus } from '$lib/providers/provider-manager.js';
+	import { debugConsole } from '$lib/utils/console.js';
 
 	interface Props {
 		provider?: ProviderId;
@@ -31,7 +32,7 @@
 			const status = await providerStore.getProviderStatus(targetProvider, targetModel);
 			providerStatus = status;
 		} catch (error) {
-			console.warn('Failed to load provider status:', error);
+			debugConsole.warn('Failed to load provider status:', error);
 			providerStatus = {
 				canSend: false,
 				hasApiKey: false,
@@ -89,7 +90,7 @@
 				}
 			);
 		} catch (error) {
-			console.warn('Failed to get API metrics:', error);
+			debugConsole.warn('Failed to get API metrics:', error);
 			return {
 				totalRequests: 0,
 				totalTokens: 0,

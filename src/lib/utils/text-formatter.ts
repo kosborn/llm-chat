@@ -1,4 +1,5 @@
 import { toolRegistry } from '$lib/tools/registry.js';
+import { debugConsole } from './console.js';
 
 export interface FormatRule {
 	pattern: RegExp;
@@ -44,7 +45,7 @@ function initializeStaticToolCache(): void {
 		}
 		staticCacheInitialized = true;
 	} catch (error) {
-		console.warn('Failed to initialize tool cache:', error);
+		debugConsole.warn('Failed to initialize tool cache:', error);
 		staticValidToolsSet = new Set();
 	}
 }
@@ -106,7 +107,7 @@ export function extractToolMentions(text: string): string[] {
 				return toolName in allTools;
 			});
 	} catch (error) {
-		console.error('Error extracting tool mentions:', error);
+		debugConsole.error('Error extracting tool mentions:', error);
 		return [];
 	}
 }
@@ -126,7 +127,7 @@ export function extractEnabledToolMentions(text: string): string[] {
 			.map((match) => match.slice(1)) // Remove @ symbol
 			.filter((toolName) => staticValidToolsSet.has(toolName));
 	} catch (error) {
-		console.error('Error extracting enabled tool mentions:', error);
+		debugConsole.error('Error extracting enabled tool mentions:', error);
 		return [];
 	}
 }
@@ -137,7 +138,7 @@ export function extractUrls(text: string): string[] {
 		if (!text || typeof text !== 'string') return [];
 		return text.match(URL_REGEX) || [];
 	} catch (error) {
-		console.error('Error extracting URLs:', error);
+		debugConsole.error('Error extracting URLs:', error);
 		return [];
 	}
 }
@@ -148,7 +149,7 @@ export function extractIps(text: string): string[] {
 		if (!text || typeof text !== 'string') return [];
 		return text.match(IP_REGEX) || [];
 	} catch (error) {
-		console.error('Error extracting IP addresses:', error);
+		debugConsole.error('Error extracting IP addresses:', error);
 		return [];
 	}
 }
@@ -159,7 +160,7 @@ export function extractIpv4(text: string): string[] {
 		if (!text || typeof text !== 'string') return [];
 		return text.match(IPV4_REGEX) || [];
 	} catch (error) {
-		console.error('Error extracting IPv4 addresses:', error);
+		debugConsole.error('Error extracting IPv4 addresses:', error);
 		return [];
 	}
 }
@@ -170,7 +171,7 @@ export function extractIpv6(text: string): string[] {
 		if (!text || typeof text !== 'string') return [];
 		return text.match(IPV6_REGEX) || [];
 	} catch (error) {
-		console.error('Error extracting IPv6 addresses:', error);
+		debugConsole.error('Error extracting IPv6 addresses:', error);
 		return [];
 	}
 }
@@ -219,7 +220,7 @@ export function parseFormattedText(
 
 		return segments;
 	} catch (error) {
-		console.error('Error parsing formatted text:', error);
+		debugConsole.error('Error parsing formatted text:', error);
 		return [{ text: text || '', isFormatted: false }];
 	}
 }
@@ -256,7 +257,7 @@ function parseFormattedTextInternal(text: string, rules: FormatRule[]): FormatSe
 							continue;
 						}
 					} catch (validateError) {
-						console.warn('Error in rule validation:', validateError);
+						debugConsole.warn('Error in rule validation:', validateError);
 						continue;
 					}
 				}
@@ -276,7 +277,7 @@ function parseFormattedTextInternal(text: string, rules: FormatRule[]): FormatSe
 				match = regex.exec(text);
 			}
 		} catch (ruleError) {
-			console.warn('Error processing rule:', ruleError);
+			debugConsole.warn('Error processing rule:', ruleError);
 		}
 	}
 
