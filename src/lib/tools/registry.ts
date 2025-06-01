@@ -81,16 +81,25 @@ class ToolRegistryManager implements ToolDiscovery {
 	getEnabledTools(): ToolRegistry {
 		const enabledTools: ToolRegistry = {};
 
+		console.log('=== TOOL REGISTRY getEnabledTools DEBUG ===');
+		console.log('Total tools in registry:', this.tools.size);
+
 		for (const [name, metadata] of this.tools.entries()) {
 			// ONLY use metadata.enabled which is synced with persistent settings
 			// The metadata.enabled property is updated during initializePersistentSettings
 			const isEnabled = metadata.enabled !== false;
+			console.log(`Tool ${name}: metadata.enabled=${metadata.enabled}, isEnabled=${isEnabled}`);
 
 			if (isEnabled) {
 				enabledTools[name] = metadata;
+				console.log(`  -> INCLUDED in enabled tools`);
+			} else {
+				console.log(`  -> EXCLUDED from enabled tools`);
 			}
 		}
 
+		console.log('Final enabled tools:', Object.keys(enabledTools));
+		console.log('=== END TOOL REGISTRY DEBUG ===');
 		return enabledTools;
 	}
 
@@ -180,17 +189,20 @@ class ToolRegistryManager implements ToolDiscovery {
 
 	async initializePersistentSettings(): Promise<void> {
 		try {
+			console.log('=== INITIALIZING PERSISTENT SETTINGS ===');
 			const settingsStore = await getToolSettingsStore();
 			// Store reference for future use
 			toolSettingsStore = settingsStore;
 
 			const allSettings = settingsStore.getAllSettings();
+			console.log('Loaded settings from store:', allSettings);
 
 			// Apply persistent settings directly to tool metadata
 			// This is the SINGLE SOURCE OF TRUTH for enabled/disabled state
 			for (const [name, enabled] of Object.entries(allSettings)) {
 				const tool = this.tools.get(name);
 				if (tool) {
+					console.log(`Setting tool ${name}: enabled=${enabled} (was ${tool.enabled})`);
 					tool.enabled = enabled;
 				}
 			}
@@ -198,14 +210,22 @@ class ToolRegistryManager implements ToolDiscovery {
 			// Initialize any tools not in settings (default to enabled)
 			for (const [name, tool] of this.tools.entries()) {
 				if (!(name in allSettings)) {
+					console.log(`Tool ${name} not in settings, defaulting to enabled`);
 					tool.enabled = true; // Default enabled
 					settingsStore.setToolSetting(name, true);
 				}
 			}
+
+			console.log('Final tool states after initialization:');
+			for (const [name, tool] of this.tools.entries()) {
+				console.log(`  ${name}: enabled=${tool.enabled}`);
+			}
+			console.log('=== END PERSISTENT SETTINGS INIT ===');
 		} catch (error) {
 			console.warn('Failed to initialize persistent tool settings:', error);
 		}
 	}
+</edits>
 
 	getAvailableCategories(): string[] {
 		const categories = new Set<string>();
@@ -266,18 +286,23 @@ export const toolsRegistry = new Proxy({} as Record<string, unknown>, {
 		if (typeof prop === 'string') {
 			const enabledTools = toolRegistry.getEnabledTools();
 			const metadata = enabledTools[prop];
+			console.log(`toolsRegistry.get(${prop}): found=${!!metadata}`);
 			return metadata?.tool;
 		}
 		return undefined;
 	},
 	ownKeys(target) {
 		const enabledTools = toolRegistry.getEnabledTools();
-		return Object.keys(enabledTools);
+		const keys = Object.keys(enabledTools);
+		console.log(`toolsRegistry.ownKeys(): returning [${keys.join(', ')}]`);
+		return keys;
 	},
 	has(target, prop) {
 		if (typeof prop === 'string') {
 			const enabledTools = toolRegistry.getEnabledTools();
-			return prop in enabledTools;
+			const hasKey = prop in enabledTools;
+			console.log(`toolsRegistry.has(${prop}): ${hasKey}`);
+			return hasKey;
 		}
 		return false;
 	},
@@ -285,11 +310,14 @@ export const toolsRegistry = new Proxy({} as Record<string, unknown>, {
 		if (typeof prop === 'string') {
 			const enabledTools = toolRegistry.getEnabledTools();
 			if (prop in enabledTools) {
+				console.log(`toolsRegistry.getOwnPropertyDescriptor(${prop}): found`);
 				return {
 					enumerable: true,
 					configurable: true,
 					value: enabledTools[prop].tool
 				};
+			} else {
+				console.log(`toolsRegistry.getOwnPropertyDescriptor(${prop}): not found`);
 			}
 		}
 		return undefined;

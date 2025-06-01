@@ -176,11 +176,18 @@ class ClientChatService {
 
 			// Get current enabled tools for this request
 			const enabledTools = toolRegistry.getEnabledTools();
+			console.log('=== CLIENT CHAT TOOLS DEBUG ===');
+			console.log('Enabled tools from registry:', Object.keys(enabledTools));
+			
 			const toolsForRequest: Record<string, any> = {};
 
 			for (const [name, metadata] of Object.entries(enabledTools)) {
 				toolsForRequest[name] = metadata.tool;
+				console.log(`Adding tool to LLM request: ${name}`);
 			}
+			
+			console.log('FINAL TOOLS FOR LLM:', Object.keys(toolsForRequest));
+			console.log('=== END TOOLS DEBUG ===');
 
 			const result = streamText({
 				model: modelInstance,

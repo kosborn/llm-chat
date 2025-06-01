@@ -152,10 +152,17 @@ export async function POST({ request }: { request: Request }) {
 
 		// Handle tool mentions for temporary enabling
 		let effectiveToolsRegistry = toolsRegistry;
+		
+		debugLog(`[${requestId}] Server tools before processing`, {
+			defaultToolsRegistry: Object.keys(toolsRegistry),
+			mentionedTools
+		});
+
 		if (mentionedTools && mentionedTools.length > 0) {
 			// Import tool mention manager dynamically to avoid circular dependencies
 			const { ToolMentionManager } = await import('$lib/utils/tool-mention-manager.js');
 			effectiveToolsRegistry = ToolMentionManager.getTemporaryToolsRegistry(mentionedTools);
+			debugLog(`[${requestId}] Using temporary tools registry for mentions`);
 		}
 
 		debugLog(`[${requestId}] Chat session initialized`, {
