@@ -51,7 +51,7 @@ Example workflow:
 
 ### Format Rules
 
-The system uses a flexible regex-based formatting system defined in `src/lib/utils/text-formatter.ts`:
+The system uses a flexible regex-based formatting system defined in `src/lib/utils/text-formatter-manager.ts`:
 
 ```typescript
 export const defaultFormatRules: FormatRule[] = [
@@ -74,7 +74,7 @@ export const defaultFormatRules: FormatRule[] = [
 You can extend the formatting system by creating custom rules:
 
 ```typescript
-import { createCustomRule } from '$lib/utils/text-formatter';
+import { createCustomRule } from '$lib/utils/text-formatter-manager';
 
 const customRule = createCustomRule(
 	/\*\*(.*?)\*\*/g, // Bold text pattern
@@ -85,9 +85,10 @@ const customRule = createCustomRule(
 
 ### Components
 
-- **FormattedTextInput**: Enhanced textarea with rich text overlay
-- **ToolSelector**: Popup tool selection with filtering and keyboard navigation
-- **FormattedText**: Display component for formatted text
+- **FormattedTextInput.svelte**: Enhanced textarea with rich text overlay
+- **ToolSelector.svelte**: Popup tool selection with filtering and keyboard navigation
+- **FormattedText.svelte**: Display component for formatted text
+- **ChatInput.svelte**: Enhanced chat input with tool shortcuts and formatting
 
 ## Styling
 

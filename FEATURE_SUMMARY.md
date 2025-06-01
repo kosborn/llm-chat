@@ -196,7 +196,7 @@ Try @calculator for math or visit https://calculator.net
 
 ## Files Created
 
-1. `src/lib/utils/text-formatter.ts` - Core text formatting engine with regex-based rules
+1. `src/lib/utils/text-formatter-manager.ts` - Core text formatting engine with regex-based rules
 2. `src/lib/components/FormattedTextInput.svelte` - Rich text input component
 3. `src/lib/components/FormattedText.svelte` - Formatted text display component
 4. `src/lib/utils/text-formatter.test.ts` - Comprehensive test suite for formatting
@@ -216,7 +216,7 @@ Try @calculator for math or visit https://calculator.net
 The formatting system supports custom rules:
 
 ```typescript
-import { createCustomRule } from '$lib/utils/text-formatter';
+import { createCustomRule } from '$lib/utils/text-formatter-manager';
 
 const boldRule = createCustomRule(
 	/\*\*(.*?)\*\*/g, // Pattern for **bold**

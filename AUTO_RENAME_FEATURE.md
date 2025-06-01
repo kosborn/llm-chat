@@ -39,7 +39,7 @@ The auto-rename feature automatically generates descriptive titles for chat conv
 
 ### API Endpoint
 
-- **Route**: `/api/chat/generate-title`
+- **Route**: `/api/generate-title`
 - **Method**: POST
 - **Input**: User message and assistant response content
 - **Output**: Generated title (max 50 characters)

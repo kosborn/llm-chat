@@ -72,23 +72,29 @@ Access the Tools Interface via:
 
 General-purpose tools for common tasks:
 
-- **Calculator**: Mathematical calculations
-- **Weather**: Weather information lookup
+- **Calculator**: Mathematical calculations and computations
 - **Time**: Time and date operations
-- **Text Processor**: Text manipulation and analysis
+- **Random Generator**: Generate random numbers, strings, and choices
+
+### 🌐 Web
+
+Web-related tools and services:
+
+- **Weather**: Weather information lookup for any location
+- **URL Tools**: URL validation and processing
 
 ### 📊 Data
 
 Data processing and formatting tools:
 
 - **JSON Formatter**: JSON validation, formatting, and manipulation
-- **URL Tools**: URL validation and processing
+- **Text Processor**: Text manipulation and analysis operations
 
-### 🎲 Entertainment
+### 🌍 Network
 
-Fun and creative tools:
+Network and geolocation tools:
 
-- **Random Generator**: Generate random numbers, strings, and choices
+- **MaxMind**: IP geolocation and network information lookup
 
 ## Tool Information
 

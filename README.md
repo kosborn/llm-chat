@@ -19,7 +19,10 @@ A modern chat application built with SvelteKit 5 and Vercel's AI SDK, featuring 
 - **Calculator** 🧮: Perform mathematical calculations and computations
 - **Time Tool** 🕐: Get current time for any timezone
 - **Random Tool** 🎲: Generate random numbers or pick from choices
-- **URL Tool** 🔗: Shorten or expand URLs (mock implementation)
+- **URL Tool** 🔗: Process and validate URLs
+- **Text Processor** 📝: Text transformation and analysis operations
+- **JSON Formatter** 📋: Format, validate, and manipulate JSON data
+- **MaxMind Tool** 🌍: IP geolocation and network information lookup
 
 ## Prerequisites
 
@@ -79,20 +82,46 @@ src/
 │   ├── components/
 │   │   ├── ChatInterface.svelte    # Main chat interface
 │   │   ├── ChatMessage.svelte      # Individual message component
-│   │   ├── ChatInput.svelte        # Message input component
-│   │   └── ChatSidebar.svelte      # Chat list sidebar
+│   │   ├── ChatInput.svelte        # Message input with tool shortcuts
+│   │   ├── ChatSidebar.svelte      # Chat list sidebar
+│   │   ├── ArchivedChats.svelte    # Archived chats management
+│   │   ├── ToolSelector.svelte     # Tool selection dropdown
+│   │   ├── ToolsExplorer.svelte    # Tools interface explorer
+│   │   ├── ToolRenderer.svelte     # Tool result rendering
+│   │   ├── FormattedTextInput.svelte # Rich text input with formatting
+│   │   └── FormattedText.svelte    # Formatted text display
 │   ├── stores/
 │   │   ├── chat-storage.ts         # IndexedDB storage layer
-│   │   └── chat-store.svelte.ts    # Svelte 5 rune-based state management
+│   │   ├── chat-store.svelte.ts    # Svelte 5 rune-based state management
+│   │   └── tool-settings-store.svelte.ts # Tool configuration management
 │   ├── tools/
-│   │   └── index.ts                # Custom AI tools registry
-│   └── utils/
-│       └── markdown.ts             # Markdown rendering utilities
+│   │   ├── index.ts                # Main tools entry point
+│   │   ├── registry.ts             # Tool discovery and registration
+│   │   ├── types.ts                # Tool type definitions
+│   │   └── implementations/        # Individual tool implementations
+│   │       ├── calculator.ts       # Calculator tool
+│   │       ├── weather.ts          # Weather tool
+│   │       ├── time.ts             # Time tool
+│   │       ├── random.ts           # Random generator tool
+│   │       ├── url.ts              # URL processing tool
+│   │       ├── text-processor.ts   # Text manipulation tool
+│   │       ├── json-formatter.ts   # JSON formatting tool
+│   │       └── maxmind.ts          # IP geolocation tool
+│   ├── utils/
+│   │   ├── markdown.ts             # Markdown rendering utilities
+│   │   ├── text-formatter.ts       # Text formatting system
+│   │   └── serialization.ts        # Data serialization utilities
+│   └── providers/
+│       └── index.ts                # AI provider abstractions
 ├── routes/
 │   ├── api/
-│   │   └── chat/
-│   │       └── +server.ts          # Groq API endpoint
-│   └── +page.svelte                # Main page
+│   │   ├── chat/
+│   │   │   └── +server.ts          # Main chat API endpoint
+│   │   └── generate-title/
+│   │       └── +server.ts          # Auto-rename API endpoint
+│   ├── tools/
+│   │   └── +page.svelte            # Tools interface page
+│   └── +page.svelte                # Main chat page
 └── app.d.ts                        # TypeScript definitions
 ```
 
@@ -100,11 +129,13 @@ src/
 
 1. **Start a New Chat**: Click "New Chat" or "Start Your First Chat"
 2. **Send Messages**: Type your message and press Enter or click Send
-3. **Use Tools**: Ask the AI to use tools naturally:
-   - "What's the weather in New York?"
-   - "Calculate 25 \* 47 + 12"
-   - "What time is it in Tokyo?"
-   - "Pick a random number between 1 and 100"
+4. **Use Tools**: Ask the AI to use tools naturally or use @ shortcuts:
+   - "What's the weather in New York?" or "@weather New York"
+   - "Calculate 25 \* 47 + 12" or "@calculator 25 * 47 + 12"
+   - "What time is it in Tokyo?" or "@time Tokyo"
+   - "Pick a random number between 1 and 100" or "@random number 1-100"
+   - "Format this JSON data" or "@json-formatter {...}"
+   - "Process this text" or "@text-processor ..."
 4. **Manage Chats**:
    - Switch between chats in the sidebar
    - Rename chats by clicking the edit icon
@@ -114,25 +145,44 @@ src/
 
 ## Customizing Tools
 
-To add new tools, edit `src/lib/tools/index.ts`:
+To add new tools, create a new file in `src/lib/tools/implementations/`:
 
 ```typescript
-export const customTool = tool({
+// src/lib/tools/implementations/custom-tool.ts
+import { z } from 'zod';
+import { BaseTool, type ToolConfig } from '../types.js';
+
+const config: ToolConfig = {
+	name: 'custom-tool',
 	description: 'Description of what the tool does',
-	parameters: z.object({
-		param: z.string().describe('Parameter description')
-	}),
-	execute: async ({ param }) => {
-		// Tool implementation
-		return { result: 'Tool output' };
-	}
+	category: 'utility',
+	tags: ['example'],
+	version: '1.0.0',
+	author: 'System',
+	enabled: true
+};
+
+const parameters = z.object({
+	param: z.string().describe('Parameter description')
 });
 
-// Add to registry
-export const toolsRegistry = {
+async function execute({ param }) {
+	// Tool implementation
+	return { result: 'Tool output' };
+}
+
+export const customTool = new BaseTool(config, parameters, execute);
+```
+
+Then register it in `src/lib/tools/registry.ts`:
+
+```typescript
+import { customTool } from './implementations/custom-tool.js';
+
+const availableTools = [
 	// ... existing tools
-	custom: customTool
-};
+	customTool
+];
 ```
 
 ## Technical Details
