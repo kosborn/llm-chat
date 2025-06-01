@@ -67,7 +67,9 @@
 	function getProviderIcon(provider?: string): string {
 		if (!provider) return '💬';
 
-		const providerConfig = providerStore.getProvider(provider as import('$lib/providers').ProviderId);
+		const providerConfig = providerStore.getProvider(
+			provider as import('$lib/providers').ProviderId
+		);
 		return providerConfig?.icon || '🤖';
 	}
 

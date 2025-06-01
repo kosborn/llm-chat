@@ -49,8 +49,6 @@ function initializeStaticToolCache(): void {
 	}
 }
 
-
-
 // Function to invalidate cache when tools change
 export function invalidateToolCache(): void {
 	staticValidToolsSet.clear();
@@ -60,8 +58,6 @@ export function invalidateToolCache(): void {
 	// Re-initialize immediately for next use
 	initializeStaticToolCache();
 }
-
-
 
 // Create optimized tool rule that pre-compiles valid tools (only highlights enabled tools)
 function createOptimizedToolRule(): FormatRule {

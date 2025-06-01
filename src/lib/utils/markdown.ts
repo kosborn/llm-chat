@@ -195,31 +195,46 @@ renderer.listitem = (token) => {
 };
 
 // Override table rendering
-renderer.table = (token) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+renderer.table = function (token: any) {
 	const { header, rows } = token;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const headerHtml = header.map((cell: any) => this.tablecell(cell)).join('');
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	const rowsHtml = rows
+		.map((row: any) =>
+			row.map((cell: any) => this.tablecell(cell)).join('')
+		)
+		.join('</tr><tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">');
+
 	return `<div class="overflow-x-auto my-4 rounded-lg border border-gray-300 dark:border-gray-600">
 		<table class="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
-			${header}
+			<thead class="bg-gray-50 dark:bg-gray-700">
+				<tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">${headerHtml}</tr>
+			</thead>
 			<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-				${rows}
+				<tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">${rowsHtml}</tr>
 			</tbody>
 		</table>
 	</div>`;
 };
 
-renderer.tablerow = (token) => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+renderer.tablerow = (token: any) => {
 	const { text } = token;
 	return `<tr class="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">${text}</tr>`;
 };
 
-renderer.tablecell = (token) => {
-	const { text, header, align } = token;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+renderer.tablecell = function (token: any) {
+	const { tokens, header, align } = token;
 	const tag = header ? 'th' : 'td';
 	const baseClassName = header
 		? 'px-4 py-3 bg-gray-50 dark:bg-gray-700 font-semibold text-gray-900 dark:text-gray-100'
 		: 'px-4 py-3 text-gray-700 dark:text-gray-300';
 	const alignClass = align ? ` text-${align}` : ' text-left';
-	return `<${tag} class="${baseClassName}${alignClass}">${text}</${tag}>`;
+	const content = this.parser.parseInline(tokens);
+	return `<${tag} class="${baseClassName}${alignClass}">${content}</${tag}>`;
 };
 
 // Override heading rendering
