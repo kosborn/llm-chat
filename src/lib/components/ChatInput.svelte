@@ -237,13 +237,16 @@
 	}
 
 	$effect(() => {
-		try {
-			const textarea = formattedTextInput?.getTextarea();
-			if (textarea) {
-				autoResize();
+		// Only run autoResize when inputValue changes, not on every state change
+		if (inputValue !== undefined) {
+			try {
+				const textarea = formattedTextInput?.getTextarea();
+				if (textarea) {
+					autoResize();
+				}
+			} catch (error) {
+				console.error('Error in effect autoResize:', error);
 			}
-		} catch (error) {
-			console.error('Error in effect autoResize:', error);
 		}
 	});
 </script>

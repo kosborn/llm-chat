@@ -49,7 +49,7 @@
 
 	// Set stable position once when component becomes visible
 	$effect(() => {
-		if ((visible && position.x !== stablePosition.x) || position.y !== stablePosition.y) {
+		if (visible && (position.x !== stablePosition.x || position.y !== stablePosition.y)) {
 			const viewportWidth = window.innerWidth;
 
 			let newX = position.x;
