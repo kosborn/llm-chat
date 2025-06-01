@@ -63,7 +63,7 @@
 				<h4 class="mb-2 text-xs font-semibold text-blue-700 dark:text-blue-300">
 					🌐 Network Information
 				</h4>
-				<div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-xs max-w-2xl">
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-2 text-xs">
 					{#if data.network.isp}
 						<div class="flex gap-2">
 							<span class="text-blue-600 dark:text-blue-400 min-w-fit">ISP:</span>
@@ -100,7 +100,7 @@
 						</div>
 					{/if}
 					{#if data.network.autonomous_system_organization}
-						<div class="flex gap-2 md:col-span-2">
+						<div class="flex gap-2 sm:col-span-2 lg:col-span-3 xl:col-span-4">
 							<span class="text-blue-600 dark:text-blue-400 min-w-fit">AS Org:</span>
 							<span class="text-xs">{data.network.autonomous_system_organization}</span>
 						</div>
