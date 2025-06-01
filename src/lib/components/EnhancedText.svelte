@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { renderMarkdown } from '$lib/utils/markdown.js';
+	import { onMount } from 'svelte';
 	import { parseFormattedText, type FormatSegment } from '$lib/utils/text-formatter.js';
 	import { toolRegistry } from '$lib/tools/registry.js';
 	import type { ToolMetadata } from '$lib/tools/types.js';
@@ -19,20 +20,16 @@
 	}: Props = $props();
 
 	let toolTooltip = $state<{ x: number; y: number; tool: ToolMetadata } | null>(null);
+	let markdownHtml = $state<string>('');
+	let isLoadingMarkdown = $state<boolean>(false);
 
 	// Process text with both markdown and formatting
 	const processedContent = $derived(() => {
 		if (!text) return { html: '', segments: [] };
 
-		// If only markdown is enabled, use markdown
+		// If only markdown is enabled, use markdown (handled separately due to async)
 		if (enableMarkdown && !enableFormatting) {
-			try {
-				const markdownHtml = renderMarkdown(text);
-				return { html: markdownHtml, segments: [] };
-			} catch (error) {
-				console.error('Error rendering markdown:', error);
-				return { html: text.replace(/\n/g, '<br>'), segments: [] };
-			}
+			return { html: markdownHtml, segments: [] };
 		}
 
 		// If formatting is enabled, use text formatter (with or without markdown)
@@ -43,6 +40,27 @@
 
 		// Default: plain text with line breaks
 		return { html: text.replace(/\n/g, '<br>'), segments: [] };
+	});
+
+	// Handle async markdown rendering
+	async function updateMarkdown() {
+		if (enableMarkdown && !enableFormatting && text) {
+			isLoadingMarkdown = true;
+			try {
+				markdownHtml = await renderMarkdown(text);
+			} catch (error) {
+				console.error('Error rendering markdown:', error);
+				markdownHtml = text.replace(/\n/g, '<br>');
+			} finally {
+				isLoadingMarkdown = false;
+			}
+		}
+	}
+
+	$effect(() => {
+		if (enableMarkdown && !enableFormatting) {
+			updateMarkdown();
+		}
 	});
 
 	function handleToolHover(event: MouseEvent, toolName: string) {
@@ -77,7 +95,13 @@
 </script>
 
 <div class="relative break-words whitespace-pre-wrap {className}">
-	{#if processedContent().html}
+	{#if isLoadingMarkdown}
+		<!-- Loading state for markdown -->
+		<div class="animate-pulse">
+			<div class="mb-2 h-4 w-3/4 rounded bg-gray-200 dark:bg-gray-700"></div>
+			<div class="h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-700"></div>
+		</div>
+	{:else if processedContent().html}
 		<!-- Markdown or plain HTML content -->
 		<!-- eslint-disable-next-line svelte/no-at-html-tags -->
 		{@html processedContent().html}

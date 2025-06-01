@@ -125,8 +125,8 @@
 
 		<!-- Message text content -->
 		{#if message.content}
-			<div class="prose prose-sm dark:prose-invert max-w-none">
-				<EnhancedText text={message.content} enableFormatting={true} enableMarkdown={false} />
+			<div class="prose prose-sm dark:prose-invert markdown-content max-w-none">
+				<EnhancedText text={message.content} enableFormatting={false} enableMarkdown={true} />
 			</div>
 		{/if}
 
@@ -173,5 +173,148 @@
 
 	:global(.tool-result a) {
 		word-break: break-all;
+	}
+
+	/* Prism.js syntax highlighting styles */
+	:global(.markdown-content .token.comment),
+	:global(.markdown-content .token.prolog),
+	:global(.markdown-content .token.doctype),
+	:global(.markdown-content .token.cdata) {
+		color: #6a737d;
+	}
+
+	:global(.markdown-content .token.punctuation) {
+		color: #586069;
+	}
+
+	:global(.markdown-content .token.property),
+	:global(.markdown-content .token.tag),
+	:global(.markdown-content .token.boolean),
+	:global(.markdown-content .token.number),
+	:global(.markdown-content .token.constant),
+	:global(.markdown-content .token.symbol),
+	:global(.markdown-content .token.deleted) {
+		color: #d73a49;
+	}
+
+	:global(.markdown-content .token.selector),
+	:global(.markdown-content .token.attr-name),
+	:global(.markdown-content .token.string),
+	:global(.markdown-content .token.char),
+	:global(.markdown-content .token.builtin),
+	:global(.markdown-content .token.inserted) {
+		color: #22863a;
+	}
+
+	:global(.markdown-content .token.operator),
+	:global(.markdown-content .token.entity),
+	:global(.markdown-content .token.url),
+	:global(.markdown-content .language-css .token.string),
+	:global(.markdown-content .style .token.string) {
+		color: #e36209;
+	}
+
+	:global(.markdown-content .token.atrule),
+	:global(.markdown-content .token.attr-value),
+	:global(.markdown-content .token.keyword) {
+		color: #6f42c1;
+	}
+
+	:global(.markdown-content .token.function),
+	:global(.markdown-content .token.class-name) {
+		color: #005cc5;
+	}
+
+	:global(.markdown-content .token.regex),
+	:global(.markdown-content .token.important),
+	:global(.markdown-content .token.variable) {
+		color: #e36209;
+	}
+
+	/* Dark theme syntax highlighting */
+	:global(.dark .markdown-content .token.comment),
+	:global(.dark .markdown-content .token.prolog),
+	:global(.dark .markdown-content .token.doctype),
+	:global(.dark .markdown-content .token.cdata) {
+		color: #8b949e;
+	}
+
+	:global(.dark .markdown-content .token.punctuation) {
+		color: #7d8590;
+	}
+
+	:global(.dark .markdown-content .token.property),
+	:global(.dark .markdown-content .token.tag),
+	:global(.dark .markdown-content .token.boolean),
+	:global(.dark .markdown-content .token.number),
+	:global(.dark .markdown-content .token.constant),
+	:global(.dark .markdown-content .token.symbol),
+	:global(.dark .markdown-content .token.deleted) {
+		color: #ff7b72;
+	}
+
+	:global(.dark .markdown-content .token.selector),
+	:global(.dark .markdown-content .token.attr-name),
+	:global(.dark .markdown-content .token.string),
+	:global(.dark .markdown-content .token.char),
+	:global(.dark .markdown-content .token.builtin),
+	:global(.dark .markdown-content .token.inserted) {
+		color: #7ee787;
+	}
+
+	:global(.dark .markdown-content .token.operator),
+	:global(.dark .markdown-content .token.entity),
+	:global(.dark .markdown-content .token.url),
+	:global(.dark .markdown-content .language-css .token.string),
+	:global(.dark .markdown-content .style .token.string) {
+		color: #ffa657;
+	}
+
+	:global(.dark .markdown-content .token.atrule),
+	:global(.dark .markdown-content .token.attr-value),
+	:global(.dark .markdown-content .token.keyword) {
+		color: #d2a8ff;
+	}
+
+	:global(.dark .markdown-content .token.function),
+	:global(.dark .markdown-content .token.class-name) {
+		color: #79c0ff;
+	}
+
+	:global(.dark .markdown-content .token.regex),
+	:global(.dark .markdown-content .token.important),
+	:global(.dark .markdown-content .token.variable) {
+		color: #ffa657;
+	}
+
+	/* Code block styling improvements */
+	:global(.markdown-content .code-block-wrapper) {
+		font-family:
+			'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', 'Courier New', monospace;
+	}
+
+	:global(.markdown-content pre) {
+		font-size: 14px;
+		line-height: 1.5;
+		overflow-x: auto;
+		scrollbar-width: thin;
+		scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+	}
+
+	:global(.markdown-content pre::-webkit-scrollbar) {
+		height: 8px;
+	}
+
+	:global(.markdown-content pre::-webkit-scrollbar-track) {
+		background: transparent;
+	}
+
+	:global(.markdown-content pre::-webkit-scrollbar-thumb) {
+		background-color: rgba(155, 155, 155, 0.5);
+		border-radius: 20px;
+	}
+
+	:global(.markdown-content pre::-webkit-scrollbar-thumb:hover) {
+		background-color: rgba(155, 155, 155, 0.7);
 	}
 </style>
