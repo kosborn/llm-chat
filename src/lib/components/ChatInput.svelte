@@ -43,6 +43,7 @@
 	let toolFilterText = $state('');
 	let atSymbolPosition = $state(-1);
 	let toolSelectorComponent: ToolSelector;
+	let checkToolTimeout: ReturnType<typeof setTimeout> | null = null;
 
 	// Token counting
 	const tokenCount = $derived(() => countTokens(inputValue));
@@ -94,8 +95,12 @@
 	}
 
 	function handleInput() {
-		autoResize();
-		checkForToolSelector();
+		try {
+			autoResize();
+			checkForToolSelector();
+		} catch (error) {
+			console.error('Error in handleInput:', error);
+		}
 	}
 
 	function checkForToolSelector() {
@@ -104,37 +109,49 @@
 			const textarea = formattedTextInput?.getTextarea();
 			const cursorPosition = textarea?.selectionStart || 0;
 
-			// Find the last @ symbol before cursor
-			let lastAtIndex = -1;
-			for (let i = cursorPosition - 1; i >= 0; i--) {
-				if (text[i] === '@') {
-					// Check if @ is at start or preceded by whitespace
-					if (i === 0 || /\s/.test(text[i - 1])) {
-						lastAtIndex = i;
-						break;
+			// Debounce rapid calls
+			if (checkToolTimeout) {
+				clearTimeout(checkToolTimeout);
+			}
+
+			checkToolTimeout = setTimeout(() => {
+				try {
+					// Find the last @ symbol before cursor
+					let lastAtIndex = -1;
+					for (let i = cursorPosition - 1; i >= 0; i--) {
+						if (text[i] === '@') {
+							// Check if @ is at start or preceded by whitespace
+							if (i === 0 || /\s/.test(text[i - 1])) {
+								lastAtIndex = i;
+								break;
+							}
+						} else if (/\s/.test(text[i])) {
+							// Hit whitespace before finding valid @
+							break;
+						}
 					}
-				} else if (/\s/.test(text[i])) {
-					// Hit whitespace before finding valid @
-					break;
+
+					if (lastAtIndex >= 0) {
+						// Extract filter text after @
+						const filterStart = lastAtIndex + 1;
+						const filterText = text.slice(filterStart, cursorPosition);
+
+						// Only show if filter doesn't contain spaces and is reasonable length
+						if (!filterText.includes(' ') && filterText.length <= 30) {
+							atSymbolPosition = lastAtIndex;
+							toolFilterText = filterText;
+							showToolSelector = true;
+							updateToolSelectorPosition();
+							return;
+						}
+					}
+
+					hideToolSelector();
+				} catch (innerError) {
+					console.error('Error in checkForToolSelector timeout:', innerError);
+					hideToolSelector();
 				}
-			}
-
-			if (lastAtIndex >= 0) {
-				// Extract filter text after @
-				const filterStart = lastAtIndex + 1;
-				const filterText = text.slice(filterStart, cursorPosition);
-
-				// Only show if filter doesn't contain spaces
-				if (!filterText.includes(' ')) {
-					atSymbolPosition = lastAtIndex;
-					toolFilterText = filterText;
-					showToolSelector = true;
-					updateToolSelectorPosition();
-					return;
-				}
-			}
-
-			hideToolSelector();
+			}, 100); // 100ms debounce
 		} catch (error) {
 			console.error('Error in checkForToolSelector:', error);
 			hideToolSelector();
@@ -159,6 +176,10 @@
 	}
 
 	function hideToolSelector() {
+		if (checkToolTimeout) {
+			clearTimeout(checkToolTimeout);
+			checkToolTimeout = null;
+		}
 		showToolSelector = false;
 		toolFilterText = '';
 		atSymbolPosition = -1;

@@ -126,7 +126,7 @@
 		<!-- Message text content -->
 		{#if message.content}
 			<div class="prose prose-sm dark:prose-invert markdown-content max-w-none">
-				<EnhancedText text={message.content} enableFormatting={false} enableMarkdown={true} />
+				<EnhancedText text={message.content} enableFormatting={true} enableMarkdown={true} />
 			</div>
 		{/if}
 
