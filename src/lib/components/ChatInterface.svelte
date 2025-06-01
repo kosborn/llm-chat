@@ -968,51 +968,62 @@
 								{/if}
 							</div>
 						{/if}
-						<p class="text-xs text-gray-500 md:text-sm dark:text-gray-400">
-							{chatStore.currentChat.messages.length} messages
-						</p>
+						<div class="flex items-center gap-3">
+							<p class="text-xs text-gray-500 md:text-sm dark:text-gray-400">
+								{chatStore.currentChat.messages.length} messages
+							</p>
+							<div class="relative md:hidden">
+								<button
+									onclick={() => (showMobileModelSelector = !showMobileModelSelector)}
+									class="flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs transition-colors hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:bg-gray-600"
+									title="Select AI model"
+								>
+									<span class="text-gray-600 dark:text-gray-300">{currentProvider}</span>
+									<span class="text-gray-400 dark:text-gray-500">·</span>
+									<span class="text-gray-800 dark:text-gray-200">{currentModel}</span>
+									<svg
+										class="ml-1 h-3 w-3 transform transition-transform {showMobileModelSelector
+											? 'rotate-180'
+											: ''}"
+										fill="none"
+										stroke="currentColor"
+										viewBox="0 0 24 24"
+									>
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M19 9l-7 7-7-7"
+										></path>
+									</svg>
+								</button>
+								{#if showMobileModelSelector}
+									<div
+										class="absolute top-full right-0 z-10 mt-1 w-64 rounded-lg border border-gray-200 bg-white p-2 shadow-lg dark:border-gray-600 dark:bg-gray-800"
+									>
+										<ModelSelector
+											provider={currentProvider}
+											model={currentModel}
+											onProviderChange={(newProvider) => {
+												currentProvider = newProvider;
+												providerStore.setProvider(newProvider);
+											}}
+											onModelChange={(newModel) => {
+												currentModel = newModel;
+												providerStore.setModel(newModel);
+											}}
+											disabled={isStreaming}
+											compact={true}
+										/>
+									</div>
+								{/if}
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>
 
 			<!-- Mobile Model Selector (Collapsible) -->
-			<div class="border-b border-gray-200 md:hidden dark:border-gray-700">
-				<button
-					onclick={() => (showMobileModelSelector = !showMobileModelSelector)}
-					class="flex w-full items-center justify-between p-3 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800"
-				>
-					<span>AI Provider</span>
-					<svg
-						class="h-4 w-4 transform transition-transform {showMobileModelSelector
-							? 'rotate-180'
-							: ''}"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"
-						></path>
-					</svg>
-				</button>
-				{#if showMobileModelSelector}
-					<div class="border-t border-gray-200 p-2 dark:border-gray-700">
-						<ModelSelector
-							provider={currentProvider}
-							model={currentModel}
-							onProviderChange={(newProvider) => {
-								currentProvider = newProvider;
-								providerStore.setProvider(newProvider);
-							}}
-							onModelChange={(newModel) => {
-								currentModel = newModel;
-								providerStore.setModel(newModel);
-							}}
-							disabled={isStreaming}
-							compact={true}
-						/>
-					</div>
-				{/if}
-			</div>
 
 			<!-- Messages -->
 			<div
