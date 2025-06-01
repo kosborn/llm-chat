@@ -21,6 +21,7 @@
 	let toolTooltip = $state<{ x: number; y: number; tool: ToolMetadata } | null>(null);
 	let markdownHtml = $state<string>('');
 	let isLoadingMarkdown = $state<boolean>(false);
+	let copiedIp = $state<string | null>(null);
 
 	// Process text with both markdown and formatting
 	const processedContent = $derived(() => {
@@ -91,6 +92,27 @@
 			(segment.text.startsWith('http://') || segment.text.startsWith('https://'))
 		);
 	}
+
+	function isIpAddress(segment: FormatSegment): boolean {
+		if (!segment.isFormatted) return false;
+		// Check if it matches IPv4 pattern
+		const ipPattern =
+			/^\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b$/;
+		return ipPattern.test(segment.text);
+	}
+
+	async function copyIpToClipboard(ip: string) {
+		try {
+			await navigator.clipboard.writeText(ip);
+			copiedIp = ip;
+			// Clear the animation after 1 second
+			setTimeout(() => {
+				copiedIp = null;
+			}, 1000);
+		} catch (error) {
+			console.error('Failed to copy IP to clipboard:', error);
+		}
+	}
 </script>
 
 <div class="relative break-words whitespace-pre-wrap {className}">
@@ -109,6 +131,7 @@
 		{#each processedContent().segments as segment, index (index)}
 			{@const toolName = isToolMention(segment)}
 			{@const isUrlSegment = isUrl(segment)}
+			{@const isIpSegment = isIpAddress(segment)}
 
 			{#if toolName}
 				<!-- Tool mention with hover -->
@@ -127,6 +150,25 @@
 				<a href={segment.text} class={segment.className} target="_blank" rel="noopener noreferrer">
 					{segment.text}
 				</a>
+			{:else if isIpSegment}
+				<!-- IP address with copy functionality -->
+				<span
+					class="{segment.className} {copiedIp === segment.text
+						? 'animate-pulse bg-green-200 dark:bg-green-800'
+						: ''}"
+					onclick={() => copyIpToClipboard(segment.text)}
+					role="button"
+					tabindex="0"
+					title="Click to copy IP address"
+					onkeydown={(e) => {
+						if (e.key === 'Enter' || e.key === ' ') {
+							e.preventDefault();
+							copyIpToClipboard(segment.text);
+						}
+					}}
+				>
+					{segment.text}
+				</span>
 			{:else if segment.isFormatted}
 				<!-- Other formatted text -->
 				<span class={segment.className}>

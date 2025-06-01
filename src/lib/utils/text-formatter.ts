@@ -18,6 +18,10 @@ const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 // Tool mention regex - matches @toolname
 const TOOL_REGEX = /@(\w+)/g;
 
+// IP address regex - matches IPv4 addresses
+const IP_REGEX =
+	/\b(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\b/g;
+
 // Get all available tool names for validation
 function getValidToolNames(): Set<string> {
 	try {
@@ -60,8 +64,50 @@ export const defaultFormatRules: FormatRule[] = [
 			const toolName = match.slice(1); // Remove @ symbol
 			return isValidTool(toolName);
 		}
+	},
+	{
+		pattern: IP_REGEX,
+		className:
+			'text-orange-600 dark:text-orange-400 cursor-pointer hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 px-1 py-0.5 rounded transition-colors'
 	}
 ];
+
+// Helper to extract tool mentions from text
+export function extractToolMentions(text: string): string[] {
+	try {
+		if (!text || typeof text !== 'string') return [];
+
+		const matches = text.match(TOOL_REGEX) || [];
+		return matches
+			.map((match) => match.slice(1)) // Remove @ symbol
+			.filter((toolName) => isValidTool(toolName));
+	} catch (error) {
+		console.error('Error extracting tool mentions:', error);
+		return [];
+	}
+}
+
+// Helper to extract URLs from text
+export function extractUrls(text: string): string[] {
+	try {
+		if (!text || typeof text !== 'string') return [];
+		return text.match(URL_REGEX) || [];
+	} catch (error) {
+		console.error('Error extracting URLs:', error);
+		return [];
+	}
+}
+
+// Helper to extract IP addresses from text
+export function extractIps(text: string): string[] {
+	try {
+		if (!text || typeof text !== 'string') return [];
+		return text.match(IP_REGEX) || [];
+	} catch (error) {
+		console.error('Error extracting IP addresses:', error);
+		return [];
+	}
+}
 
 // Parse text and apply formatting rules
 export function parseFormattedText(
@@ -88,10 +134,11 @@ export function parseFormattedText(
 				if (!rule || !rule.pattern) continue;
 
 				const regex = new RegExp(rule.pattern.source, rule.pattern.flags);
-				let match;
+				let match: RegExpExecArray | null;
 
-				while ((match = regex.exec(text)) !== null) {
-					const start = match.index!;
+				match = regex.exec(text);
+				while (match !== null) {
+					const start = match.index ?? 0;
 					const end = start + match[0].length;
 
 					// Validate if rule has validation function
@@ -117,10 +164,11 @@ export function parseFormattedText(
 					if (regex.lastIndex === start) {
 						regex.lastIndex = start + 1;
 					}
+					
+					match = regex.exec(text);
 				}
 			} catch (ruleError) {
 				console.warn('Error processing rule:', ruleError);
-				continue;
 			}
 		}
 
@@ -130,7 +178,9 @@ export function parseFormattedText(
 		// Process matches and create segments
 		for (const { match, rule, start, end } of allMatches) {
 			// Skip overlapping matches
-			if (start < lastIndex) continue;
+			if (start < lastIndex) {
+				continue;
+			}
 
 			// Add unformatted text before this match
 			if (start > lastIndex) {
@@ -178,32 +228,6 @@ export function getFormattedTextClasses(): string {
 	return 'whitespace-pre-wrap break-words';
 }
 
-// Helper to extract tool mentions from text
-export function extractToolMentions(text: string): string[] {
-	try {
-		if (!text || typeof text !== 'string') return [];
-
-		const matches = text.match(TOOL_REGEX) || [];
-		return matches
-			.map((match) => match.slice(1)) // Remove @ symbol
-			.filter((toolName) => isValidTool(toolName));
-	} catch (error) {
-		console.error('Error extracting tool mentions:', error);
-		return [];
-	}
-}
-
-// Helper to extract URLs from text
-export function extractUrls(text: string): string[] {
-	try {
-		if (!text || typeof text !== 'string') return [];
-		return text.match(URL_REGEX) || [];
-	} catch (error) {
-		console.error('Error extracting URLs:', error);
-		return [];
-	}
-}
-
 // Custom rule builder helpers
 export function createToolRule(className?: string): FormatRule {
 	return {
@@ -222,6 +246,15 @@ export function createUrlRule(className?: string): FormatRule {
 		className:
 			className ||
 			'text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300'
+	};
+}
+
+export function createIpRule(className?: string): FormatRule {
+	return {
+		pattern: IP_REGEX,
+		className:
+			className ||
+			'text-orange-600 dark:text-orange-400 cursor-pointer hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 px-1 py-0.5 rounded transition-colors'
 	};
 }
 
