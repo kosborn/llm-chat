@@ -330,14 +330,6 @@ class ChatStore {
 	clearError(): void {
 		this.error = null;
 	}
-
-	triggerTitleFlash(chatId: string): void {
-		this.titleFlashChatId = chatId;
-		// Clear the flash state after animation duration
-		setTimeout(() => {
-			this.titleFlashChatId = null;
-		}, 1000);
-	}
 }
 
 export const chatStore = new ChatStore();
