@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { slide, fade } from 'svelte/transition';
+	import { fade } from 'svelte/transition';
 	import { nanoid } from 'nanoid';
 	import { parseDataStreamPart } from 'ai';
 	import type { ChatMessage, ToolInvocation } from '../../app.d.ts';
@@ -633,80 +633,76 @@
 	{/if}
 
 	<!-- Sidebar -->
-	{#if mobileStore.sidebarVisible || mobileStore.desktopSidebarVisible}
-		<div
-			class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900
-			       {mobileStore.sidebarVisible
-				? 'fixed top-0 left-0 z-50 h-full'
-				: 'fixed top-0 left-0 z-50 h-full'}
-			       {mobileStore.desktopSidebarVisible ? 'md:static md:h-auto' : 'md:hidden'}
-			       md:flex"
-			transition:slide={{ duration: 300, axis: 'x' }}
-		>
-			<!-- Sidebar Navigation -->
-			<div class="border-b border-gray-200 p-2 dark:border-gray-700">
-				<div class="flex rounded-lg bg-gray-200 p-1 dark:bg-gray-800">
-					<button
-						onclick={() => (sidebarMode = 'chats')}
-						class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {sidebarMode ===
-						'chats'
-							? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
-							: 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'}"
-					>
-						Chats ({chatStore.chats.length})
-					</button>
-					<button
-						onclick={() => (sidebarMode = 'archived')}
-						class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {sidebarMode ===
-						'archived'
-							? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
-							: 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'}"
-					>
-						Archived ({chatStore.archivedChats.length})
-					</button>
-				</div>
-			</div>
-
-			<!-- Sidebar Content -->
-			<div class="flex-1 overflow-hidden">
-				{#if sidebarMode === 'chats'}
-					<ChatSidebar
-						chats={chatStore.chats}
-						currentChatId={chatStore.currentChatId}
-						isLoading={chatStore.isLoading}
-						{autoRenamingChatId}
-						on:newChat={() => {
-							handleNewChat();
-							mobileStore.closeSidebar();
-						}}
-						on:selectChat={(e) => {
-							handleSelectChat(e);
-							mobileStore.closeSidebar();
-						}}
-						on:archiveChat={handleArchiveChat}
-						on:renameChat={handleRenameChat}
-						on:closeDesktopSidebar={() => mobileStore.closeDesktopSidebar()}
-					/>
-				{:else}
-					<ArchivedChats
-						archivedChats={chatStore.archivedChats}
-						isLoading={chatStore.isLoading}
-						on:unarchiveChat={handleUnarchiveChat}
-						on:deleteChat={handleDeleteChat}
-						on:selectChat={(e) => {
-							handleSelectArchivedChat(e);
-							mobileStore.closeSidebar();
-						}}
-					/>
-				{/if}
-			</div>
-
-			<!-- Footer -->
-			<div class="border-t border-gray-200 p-4 text-center dark:border-gray-700">
-				<p class="text-xs text-gray-500 dark:text-gray-400">AI Tool Chat v1.0</p>
+	<div
+		class="fixed top-0 left-0 z-50 flex h-full w-80 flex-col border-r border-gray-200 bg-gray-50
+		       transition-transform duration-300 ease-in-out dark:border-gray-700 dark:bg-gray-900
+		       {mobileStore.sidebarVisible ? 'translate-x-0' : '-translate-x-full'}
+		       {mobileStore.desktopSidebarVisible ? 'md:static md:h-auto md:translate-x-0' : 'md:hidden'}
+		       md:flex"
+	>
+		<!-- Sidebar Navigation -->
+		<div class="border-b border-gray-200 p-2 dark:border-gray-700">
+			<div class="flex rounded-lg bg-gray-200 p-1 dark:bg-gray-800">
+				<button
+					onclick={() => (sidebarMode = 'chats')}
+					class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {sidebarMode ===
+					'chats'
+						? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
+						: 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'}"
+				>
+					Chats ({chatStore.chats.length})
+				</button>
+				<button
+					onclick={() => (sidebarMode = 'archived')}
+					class="flex-1 rounded-md px-3 py-2 text-sm font-medium transition-colors {sidebarMode ===
+					'archived'
+						? 'bg-white text-gray-900 shadow-sm dark:bg-gray-700 dark:text-gray-100'
+						: 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'}"
+				>
+					Archived ({chatStore.archivedChats.length})
+				</button>
 			</div>
 		</div>
-	{/if}
+
+		<!-- Sidebar Content -->
+		<div class="flex-1 overflow-hidden">
+			{#if sidebarMode === 'chats'}
+				<ChatSidebar
+					chats={chatStore.chats}
+					currentChatId={chatStore.currentChatId}
+					isLoading={chatStore.isLoading}
+					{autoRenamingChatId}
+					on:newChat={() => {
+						handleNewChat();
+						mobileStore.closeSidebar();
+					}}
+					on:selectChat={(e) => {
+						handleSelectChat(e);
+						mobileStore.closeSidebar();
+					}}
+					on:archiveChat={handleArchiveChat}
+					on:renameChat={handleRenameChat}
+					on:closeDesktopSidebar={() => mobileStore.closeDesktopSidebar()}
+				/>
+			{:else}
+				<ArchivedChats
+					archivedChats={chatStore.archivedChats}
+					isLoading={chatStore.isLoading}
+					on:unarchiveChat={handleUnarchiveChat}
+					on:deleteChat={handleDeleteChat}
+					on:selectChat={(e) => {
+						handleSelectArchivedChat(e);
+						mobileStore.closeSidebar();
+					}}
+				/>
+			{/if}
+		</div>
+
+		<!-- Footer -->
+		<div class="border-t border-gray-200 p-4 text-center dark:border-gray-700">
+			<p class="text-xs text-gray-500 dark:text-gray-400">AI Tool Chat v1.0</p>
+		</div>
+	</div>
 
 	<div class="relative flex min-w-0 flex-1 flex-col overflow-hidden">
 		<!-- Desktop Sidebar Toggle Button (when sidebar is hidden) -->
