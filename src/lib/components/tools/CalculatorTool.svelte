@@ -9,7 +9,7 @@
 
 	let { toolInvocation, onTechnicalView }: Props = $props();
 
-	let data = $derived(toolInvocation.result?.data || toolInvocation.result);
+	let data = $derived(toolInvocation.result?.data?.data || toolInvocation.result?.data || toolInvocation.result);
 </script>
 
 {#if toolInvocation.state !== 'result'}
@@ -52,7 +52,7 @@
 				>
 			</div>
 			<div class="text-lg font-bold text-green-700 dark:text-green-300">
-				Result: {data?.result ?? 'No result'}
+				Result: {data?.result !== undefined ? data.result : 'No result'}
 			</div>
 		</div>
 	</ToolResultCard>
