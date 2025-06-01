@@ -279,14 +279,13 @@
 		{/if}
 	</div>
 
-	<!-- Close Buttons and New Chat Button at Bottom -->
+	<!-- Action Buttons at Bottom -->
 	<div class="border-t border-gray-200 p-4 dark:border-gray-700">
-		<!-- Close Buttons Row -->
-		<div class="mb-3 flex gap-2">
-			<!-- Mobile Close Button -->
+		<!-- Mobile: Close button above New Chat -->
+		<div class="mb-3 md:hidden">
 			<button
 				onclick={handleCloseSidebar}
-				class="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-gray-100 md:hidden dark:hover:bg-gray-800"
+				class="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
 				aria-label="Close sidebar"
 			>
 				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -299,45 +298,48 @@
 				</svg>
 				Close
 			</button>
-			<!-- Desktop Close Button -->
+		</div>
+
+		<!-- Desktop: Hide button and New Chat button side by side -->
+		<div class="flex gap-2">
+			<!-- Desktop Hide Sidebar Button -->
 			<button
 				onclick={handleCloseDesktopSidebar}
-				class="hidden items-center gap-2 rounded-md px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-gray-100 md:flex dark:hover:bg-gray-800"
-				aria-label="Close sidebar"
-				title="Close sidebar"
+				class="hidden items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-3 text-gray-700 transition-colors hover:bg-gray-50 md:flex dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+				aria-label="Hide sidebar"
+				title="Hide sidebar"
 			>
 				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"
 					></path>
 				</svg>
-				Hide Sidebar
+			</button>
+
+			<!-- New Chat Button -->
+			<button
+				onclick={handleNewChat}
+				disabled={isLoading}
+				class="flex flex-1 items-center justify-center gap-2 rounded-lg
+					   bg-blue-600 px-4 py-3 font-medium
+					   text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
+			>
+				<svg
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					xmlns="http://www.w3.org/2000/svg"
+				>
+					<path
+						d="M12 5V19M5 12H19"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					/>
+				</svg>
+				New Chat
 			</button>
 		</div>
-
-		<!-- New Chat Button -->
-		<button
-			onclick={handleNewChat}
-			disabled={isLoading}
-			class="flex w-full items-center justify-center gap-2 rounded-lg
-				   bg-blue-600 px-4 py-3 font-medium
-				   text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400"
-		>
-			<svg
-				width="16"
-				height="16"
-				viewBox="0 0 24 24"
-				fill="none"
-				xmlns="http://www.w3.org/2000/svg"
-			>
-				<path
-					d="M12 5V19M5 12H19"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				/>
-			</svg>
-			New Chat
-		</button>
 	</div>
 </div>
