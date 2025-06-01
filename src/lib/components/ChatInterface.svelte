@@ -30,6 +30,7 @@
 	let showApiConfig = $state(false);
 	let showPwaPrompt = $state(false);
 	let sidebarMode = $state<'chats' | 'archived'>('chats');
+	let showMobileModelSelector = $state(false);
 
 	let editingTitle = $state(false);
 	let titleInput = $state('');
@@ -628,10 +629,11 @@
 
 	<!-- Sidebar -->
 	<div
-		class="fixed top-0 left-0 z-50 flex h-full w-80 flex-col
-		       border-r border-gray-200 bg-gray-50
-		       transition-transform duration-300 ease-in-out md:static md:h-auto md:transform-none dark:border-gray-700 dark:bg-gray-900
-		       {mobileStore.sidebarVisible ? 'translate-x-0 transform' : '-translate-x-full transform'}"
+		class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900
+		       {mobileStore.sidebarVisible
+			? 'fixed top-0 left-0 z-50 h-full translate-x-0 transform transition-transform duration-300 ease-in-out md:static md:h-auto'
+			: 'fixed top-0 left-0 z-50 h-full -translate-x-full transform transition-transform duration-300 ease-in-out md:static md:h-auto'}
+		       {mobileStore.desktopSidebarVisible ? 'md:flex' : 'md:hidden'}"
 	>
 		<!-- Sidebar Navigation -->
 		<div class="border-b border-gray-200 p-2 dark:border-gray-700">
@@ -657,11 +659,12 @@
 			</div>
 		</div>
 
-		<!-- Mobile Close Button -->
-		<div class="flex justify-end p-2 md:hidden">
+		<!-- Close Buttons -->
+		<div class="flex justify-end p-2">
+			<!-- Mobile Close Button -->
 			<button
 				onclick={() => mobileStore.closeSidebar()}
-				class="rounded-md p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800"
+				class="rounded-md p-2 text-gray-500 hover:bg-gray-100 md:hidden dark:hover:bg-gray-800"
 				aria-label="Close sidebar"
 			>
 				<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -670,6 +673,18 @@
 						stroke-linejoin="round"
 						stroke-width="2"
 						d="M6 18L18 6M6 6l12 12"
+					></path>
+				</svg>
+			</button>
+			<!-- Desktop Close Button -->
+			<button
+				onclick={() => mobileStore.closeDesktopSidebar()}
+				class="hidden rounded-md p-2 text-gray-500 hover:bg-gray-100 md:block dark:hover:bg-gray-800"
+				aria-label="Close sidebar"
+				title="Close sidebar"
+			>
+				<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"
 					></path>
 				</svg>
 			</button>
@@ -715,6 +730,20 @@
 	</div>
 
 	<div class="relative flex min-w-0 flex-1 flex-col overflow-hidden">
+		<!-- Desktop Sidebar Toggle Button (when sidebar is hidden) -->
+		{#if !mobileStore.desktopSidebarVisible}
+			<button
+				onclick={() => mobileStore.openDesktopSidebar()}
+				class="absolute top-4 left-4 z-30 hidden items-center gap-2 rounded-md border border-gray-200 bg-white p-2 text-sm font-medium shadow-lg transition-colors hover:bg-gray-50 md:flex dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+				aria-label="Open sidebar"
+			>
+				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"
+					></path>
+				</svg>
+				<span>Chats</span>
+			</button>
+		{/if}
 		{#if chatStore.error}
 			<div
 				class="m-4 rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-700 dark:bg-red-900/30"
@@ -735,7 +764,11 @@
 
 		{#if !chatStore.currentChat}
 			<!-- Welcome Screen -->
-			<div class="flex flex-1 items-center justify-center p-8">
+			<div
+				class="flex flex-1 items-center justify-center p-8 {!mobileStore.desktopSidebarVisible
+					? 'md:pt-16'
+					: ''}"
+			>
 				<div class="max-w-2xl px-4 text-center md:px-0">
 					<h1
 						class="mb-4 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-2xl font-bold text-transparent md:text-4xl"
@@ -819,7 +852,11 @@
 			/>
 
 			<!-- Chat Header -->
-			<div class="border-b border-gray-200 p-4 dark:border-gray-700">
+			<div
+				class="border-b border-gray-200 p-4 dark:border-gray-700 {!mobileStore.desktopSidebarVisible
+					? 'md:pt-16'
+					: ''}"
+			>
 				<div class="flex items-center justify-between">
 					<div class="min-w-0 flex-1">
 						{#if editingTitle}
@@ -938,26 +975,52 @@
 				</div>
 			</div>
 
-			<!-- Mobile Model Selector -->
-			<div class="border-b border-gray-200 p-2 md:hidden dark:border-gray-700">
-				<ModelSelector
-					provider={currentProvider}
-					model={currentModel}
-					onProviderChange={(newProvider) => {
-						currentProvider = newProvider;
-						providerStore.setProvider(newProvider);
-					}}
-					onModelChange={(newModel) => {
-						currentModel = newModel;
-						providerStore.setModel(newModel);
-					}}
-					disabled={isStreaming}
-					compact={true}
-				/>
+			<!-- Mobile Model Selector (Collapsible) -->
+			<div class="border-b border-gray-200 md:hidden dark:border-gray-700">
+				<button
+					onclick={() => (showMobileModelSelector = !showMobileModelSelector)}
+					class="flex w-full items-center justify-between p-3 text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-800"
+				>
+					<span>AI Provider</span>
+					<svg
+						class="h-4 w-4 transform transition-transform {showMobileModelSelector
+							? 'rotate-180'
+							: ''}"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"
+						></path>
+					</svg>
+				</button>
+				{#if showMobileModelSelector}
+					<div class="border-t border-gray-200 p-2 dark:border-gray-700">
+						<ModelSelector
+							provider={currentProvider}
+							model={currentModel}
+							onProviderChange={(newProvider) => {
+								currentProvider = newProvider;
+								providerStore.setProvider(newProvider);
+							}}
+							onModelChange={(newModel) => {
+								currentModel = newModel;
+								providerStore.setModel(newModel);
+							}}
+							disabled={isStreaming}
+							compact={true}
+						/>
+					</div>
+				{/if}
 			</div>
 
 			<!-- Messages -->
-			<div bind:this={messagesContainer} class="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+			<div
+				bind:this={messagesContainer}
+				class="min-h-0 flex-1 space-y-4 overflow-y-auto p-4 {!mobileStore.desktopSidebarVisible
+					? 'md:pt-16'
+					: ''}"
+			>
 				{#if chatStore.currentChat.messages.length === 0}
 					<div class="py-12 text-center text-gray-500 dark:text-gray-400">
 						<div class="mb-4 text-4xl">💬</div>

@@ -129,75 +129,76 @@
 			</button>
 		</div>
 
-		<!-- Center: Empty space for cleaner look -->
-		<div class="flex-1"></div>
+		<!-- Center: Navigation buttons -->
+		<div class="flex items-center gap-1">
+			<a
+				href="/"
+				class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors {$page.url.pathname ===
+				'/'
+					? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+					: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}"
+			>
+				Chat
+			</a>
+			<a
+				href="/tools"
+				class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors {$page.url.pathname ===
+				'/tools'
+					? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
+					: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}"
+			>
+				Tools
+			</a>
+		</div>
 
-		<!-- Right side: Menu toggle -->
-		<button
-			onclick={() => (mobileHeaderVisible = !mobileHeaderVisible)}
-			class="rounded-md p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
-			aria-label="Toggle menu"
-		>
-			<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
-				></path>
-			</svg>
-		</button>
+		<!-- Right side: Status and menu -->
+		<div class="flex items-center gap-2">
+			<!-- Status Indicator -->
+			<button
+				onclick={() => (showApiConfig = true)}
+				class="flex items-center gap-1 rounded-md p-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+				title={getStatusText()}
+				aria-label="Status: {getStatusText()}"
+			>
+				<div class="h-2 w-2 rounded-full {getStatusColor()}"></div>
+				{getStatusIcon()}
+			</button>
+
+			<!-- Overflow menu for additional items -->
+			{#if offlineQueueStore.hasQueuedMessages()}
+				<button
+					onclick={() => (mobileHeaderVisible = !mobileHeaderVisible)}
+					class="rounded-md p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
+					aria-label="Toggle menu"
+				>
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"
+						></path>
+					</svg>
+				</button>
+			{/if}
+		</div>
 	</div>
 
-	<!-- Mobile menu dropdown -->
-	{#if mobileHeaderVisible}
+	<!-- Mobile overflow menu (only shows when needed) -->
+	{#if mobileHeaderVisible && offlineQueueStore.hasQueuedMessages()}
 		<div class="border-t border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800">
-			<div class="space-y-1 px-4 py-2">
-				<a
-					href="/"
-					class="block rounded-md px-3 py-2 text-sm font-medium transition-colors {$page.url
-						.pathname === '/'
-						? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-						: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}"
-					onclick={() => (mobileHeaderVisible = false)}
-				>
-					Chat
-				</a>
-				<a
-					href="/tools"
-					class="block rounded-md px-3 py-2 text-sm font-medium transition-colors {$page.url
-						.pathname === '/tools'
-						? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
-						: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}"
-					onclick={() => (mobileHeaderVisible = false)}
-				>
-					Tools
-				</a>
-				<button
-					onclick={() => {
-						showApiConfig = true;
-						mobileHeaderVisible = false;
-					}}
-					class="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-				>
-					<div class="h-2 w-2 rounded-full {getStatusColor()}"></div>
-					<span>{getStatusText()}</span>
-				</button>
-				{#if offlineQueueStore.hasQueuedMessages()}
-					<div
-						class="flex items-center gap-2 px-3 py-2 text-xs text-orange-600 dark:text-orange-400"
-					>
-						<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								stroke-width="2"
-								d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-							></path>
-						</svg>
-						<span>{offlineQueueStore.getQueueCount()} messages queued</span>
-					</div>
-				{/if}
+			<div class="px-4 py-2">
+				<div class="flex items-center gap-2 text-xs text-orange-600 dark:text-orange-400">
+					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+						></path>
+					</svg>
+					<span>{offlineQueueStore.getQueueCount()} messages queued</span>
+				</div>
 			</div>
 		</div>
 	{/if}

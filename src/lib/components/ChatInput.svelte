@@ -297,11 +297,6 @@
 					<div class="h-2 w-2 rounded-full bg-red-500"></div>
 					<span>Cannot send</span>
 				</div>
-			{:else}
-				<div class="flex items-center gap-1 text-green-600 dark:text-green-400">
-					<div class="h-2 w-2 rounded-full bg-green-500"></div>
-					<span>Ready</span>
-				</div>
 			{/if}
 		</div>
 	</div>

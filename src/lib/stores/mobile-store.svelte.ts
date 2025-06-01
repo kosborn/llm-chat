@@ -1,5 +1,6 @@
 class MobileStore {
 	sidebarVisible = $state(false);
+	desktopSidebarVisible = $state(true);
 
 	toggleSidebar() {
 		this.sidebarVisible = !this.sidebarVisible;
@@ -11,6 +12,18 @@ class MobileStore {
 
 	openSidebar() {
 		this.sidebarVisible = true;
+	}
+
+	toggleDesktopSidebar() {
+		this.desktopSidebarVisible = !this.desktopSidebarVisible;
+	}
+
+	closeDesktopSidebar() {
+		this.desktopSidebarVisible = false;
+	}
+
+	openDesktopSidebar() {
+		this.desktopSidebarVisible = true;
 	}
 }
 
