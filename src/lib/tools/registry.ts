@@ -225,7 +225,6 @@ class ToolRegistryManager implements ToolDiscovery {
 			console.warn('Failed to initialize persistent tool settings:', error);
 		}
 	}
-</edits>
 
 	getAvailableCategories(): string[] {
 		const categories = new Set<string>();
