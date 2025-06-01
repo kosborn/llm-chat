@@ -42,6 +42,7 @@ export { timeTool } from './implementations/time.js';
 export { randomTool } from './implementations/random.js';
 export { urlTool } from './implementations/url.js';
 export { textProcessorTool } from './implementations/text-processor.js';
+export { maxmindTool } from './implementations/maxmind.js';
 
 // Convenience re-exports for the registry
 export { registry, registry as tools };

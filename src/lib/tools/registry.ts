@@ -8,6 +8,7 @@ import { randomTool } from './implementations/random.js';
 import { urlTool } from './implementations/url.js';
 import { textProcessorTool } from './implementations/text-processor.js';
 import { jsonFormatterTool } from './implementations/json-formatter.js';
+import { maxmindTool } from './implementations/maxmind.js';
 
 class ToolRegistryManager implements ToolDiscovery {
 	private tools: Map<string, ToolMetadata> = new Map();
@@ -28,7 +29,8 @@ class ToolRegistryManager implements ToolDiscovery {
 			randomTool,
 			urlTool,
 			textProcessorTool,
-			jsonFormatterTool
+			jsonFormatterTool,
+			maxmindTool
 		];
 
 		for (const toolInstance of availableTools) {
