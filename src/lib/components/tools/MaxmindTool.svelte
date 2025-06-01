@@ -82,10 +82,27 @@
 							<span class="capitalize">{data.network.connection_type}</span>
 						</div>
 					{/if}
+					{#if data.network.domain}
+						<div class="flex gap-2">
+							<span class="text-blue-600 dark:text-blue-400 min-w-fit">Domain:</span>
+							<span class="font-mono">{data.network.domain}</span>
+						</div>
+					{/if}
 					{#if data.network.autonomous_system_number}
 						<div class="flex gap-2">
 							<span class="text-blue-600 dark:text-blue-400 min-w-fit">ASN:</span>
-							<span class="font-mono">{data.network.autonomous_system_number}</span>
+							<a href="https://search.arin.net/rdap/?searchFilter=asn&query={data.network.autonomous_system_number}" 
+							   target="_blank" 
+							   rel="noopener noreferrer"
+							   class="font-mono text-blue-600 dark:text-blue-400 hover:underline">
+								{data.network.autonomous_system_number}
+							</a>
+						</div>
+					{/if}
+					{#if data.network.autonomous_system_organization}
+						<div class="flex gap-2 md:col-span-2">
+							<span class="text-blue-600 dark:text-blue-400 min-w-fit">AS Org:</span>
+							<span class="text-xs">{data.network.autonomous_system_organization}</span>
 						</div>
 					{/if}
 				</div>
