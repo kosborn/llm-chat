@@ -126,8 +126,8 @@
 	class="fixed top-0 right-0 left-0 z-50 border-b border-gray-200 bg-white md:hidden dark:border-gray-700 dark:bg-gray-800"
 >
 	<div class="flex h-14 items-center justify-between px-4">
-		<!-- Left side: Sidebar toggle and Chats button -->
-		<div class="flex items-center gap-2">
+		<!-- Left side: Sidebar toggle -->
+		<div class="flex items-center">
 			<button
 				onclick={() => mobileStore.toggleSidebar()}
 				class="rounded-md p-2 transition-colors hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -141,12 +141,6 @@
 						d="M4 6h16M4 12h16M4 18h16"
 					></path>
 				</svg>
-			</button>
-			<button
-				onclick={() => mobileStore.openSidebar()}
-				class="rounded-md px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700"
-			>
-				Chats
 			</button>
 		</div>
 
