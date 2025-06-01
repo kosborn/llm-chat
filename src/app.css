@@ -137,25 +137,6 @@ textarea:focus-visible {
 	}
 }
 
-/* Sidebar animations */
-.sidebar-enter {
-	transform: translateX(-100%);
-}
-
-.sidebar-enter-active {
-	transform: translateX(0);
-	transition: transform 300ms ease-in-out;
-}
-
-.sidebar-exit {
-	transform: translateX(0);
-}
-
-.sidebar-exit-active {
-	transform: translateX(-100%);
-	transition: transform 300ms ease-in-out;
-}
-
 /* Prevent text overflow in chat messages */
 .chat-message {
 	word-wrap: break-word;

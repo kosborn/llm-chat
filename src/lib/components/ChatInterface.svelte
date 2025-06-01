@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { slide, fade } from 'svelte/transition';
 	import { nanoid } from 'nanoid';
 	import { parseDataStreamPart } from 'ai';
 	import type { ChatMessage, ToolInvocation } from '../../app.d.ts';
@@ -621,24 +622,26 @@
 	<!-- Mobile Sidebar Overlay -->
 	{#if mobileStore.sidebarVisible}
 		<div
-			class="bg-opacity-50 fixed inset-0 z-40 bg-black transition-opacity duration-300 md:hidden"
+			class="bg-opacity-50 fixed inset-0 z-40 bg-black md:hidden"
 			onclick={() => mobileStore.closeSidebar()}
 			onkeydown={(e) => e.key === 'Escape' && mobileStore.closeSidebar()}
 			role="button"
 			tabindex="0"
 			aria-label="Close sidebar"
+			transition:fade={{ duration: 300 }}
 		></div>
 	{/if}
 
 	<!-- Sidebar -->
 	{#if mobileStore.sidebarVisible || mobileStore.desktopSidebarVisible}
 		<div
-			class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 transition-transform duration-300 ease-in-out dark:border-gray-700 dark:bg-gray-900
+			class="flex w-80 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-900
 			       {mobileStore.sidebarVisible
-				? 'fixed top-0 left-0 z-50 h-full translate-x-0'
-				: 'fixed top-0 left-0 z-50 h-full -translate-x-full'}
-			       {mobileStore.desktopSidebarVisible ? 'md:static md:h-auto md:translate-x-0' : 'md:hidden'}
+				? 'fixed top-0 left-0 z-50 h-full'
+				: 'fixed top-0 left-0 z-50 h-full'}
+			       {mobileStore.desktopSidebarVisible ? 'md:static md:h-auto' : 'md:hidden'}
 			       md:flex"
+			transition:slide={{ duration: 300, axis: 'x' }}
 		>
 			<!-- Sidebar Navigation -->
 			<div class="border-b border-gray-200 p-2 dark:border-gray-700">
