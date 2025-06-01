@@ -3,7 +3,10 @@
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+		/>
 
 		<!-- PWA Meta Tags -->
 		<meta name="application-name" content="AI Tool Chat" />
@@ -21,6 +24,33 @@
 		<link rel="apple-touch-icon" sizes="180x180" href="%sveltekit.assets%/icon-192.png" />
 		<link rel="apple-touch-icon" sizes="167x167" href="%sveltekit.assets%/icon-192.png" />
 
+		<style>
+			/* Prevent zoom and double-tap behavior on mobile */
+			* {
+				touch-action: manipulation;
+			}
+
+			/* Disable text selection highlighting on mobile */
+			body {
+				-webkit-touch-callout: none;
+				-webkit-user-select: none;
+				-khtml-user-select: none;
+				-moz-user-select: none;
+				-ms-user-select: none;
+				user-select: none;
+			}
+
+			/* Re-enable text selection for input fields and content areas */
+			input,
+			textarea,
+			[contenteditable] {
+				-webkit-user-select: text;
+				-khtml-user-select: text;
+				-moz-user-select: text;
+				-ms-user-select: text;
+				user-select: text;
+			}
+		</style>
 		<script>
 			// Dark mode detection
 			if (

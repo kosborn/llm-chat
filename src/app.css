@@ -8,6 +8,34 @@ body {
 	padding: 0;
 }
 
+/* Prevent zoom and double-tap behavior on mobile */
+* {
+	touch-action: manipulation;
+}
+
+/* Disable text selection highlighting on mobile but allow for inputs */
+body {
+	-webkit-touch-callout: none;
+	-webkit-user-select: none;
+	-khtml-user-select: none;
+	-moz-user-select: none;
+	-ms-user-select: none;
+	user-select: none;
+}
+
+/* Re-enable text selection for input fields and content areas */
+input,
+textarea,
+[contenteditable],
+.chat-message,
+.prose {
+	-webkit-user-select: text;
+	-khtml-user-select: text;
+	-moz-user-select: text;
+	-ms-user-select: text;
+	user-select: text;
+}
+
 #svelte {
 	height: 100%;
 }
