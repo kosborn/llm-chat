@@ -9,6 +9,7 @@
 	import { offlineQueueStore } from '$lib/stores/offline-queue-store.svelte.js';
 	import { mobileStore } from '$lib/stores/mobile-store.svelte.js';
 	import { browser } from '$app/environment';
+	import { initializePersistentSettings } from '$lib/tools/registry.js';
 
 	const { children } = $props();
 
@@ -19,7 +20,10 @@
 	let checkInterval: NodeJS.Timeout | null = null;
 	let mobileHeaderVisible = $state(false);
 
-	onMount(() => {
+	onMount(async () => {
+		// Initialize persistent tool settings first
+		await initializePersistentSettings();
+
 		checkServerAvailability();
 		// Check every 30 seconds instead of constantly
 		checkInterval = setInterval(() => {

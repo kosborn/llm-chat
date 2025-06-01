@@ -18,6 +18,7 @@
 	import DebugInterface from './DebugInterface.svelte';
 	import ApiKeyConfig from './ApiKeyConfig.svelte';
 	import StatusBar from './StatusBar.svelte';
+	import { ToolMentionManager } from '$lib/utils/tool-mention-manager.js';
 	import ModelSelector from './ModelSelector.svelte';
 	import { mobileStore } from '$lib/stores/mobile-store.svelte.js';
 
@@ -216,11 +217,17 @@
 	}
 
 	async function handleSubmitMessage(
-		event: CustomEvent<{ message: string; provider: string; model: string }>
+		event: CustomEvent<{
+			message: string;
+			provider: string;
+			model: string;
+			mentionedTools?: string[];
+		}>
 	) {
 		const messageText = event.detail.message;
 		const selectedProvider = event.detail.provider as import('$lib/providers').ProviderId;
 		const selectedModel = event.detail.model;
+		const mentionedTools = event.detail.mentionedTools || [];
 
 		if (!chatStore.currentChatId) {
 			await chatStore.createChat();
@@ -305,7 +312,8 @@
 			const response = await clientChatService.sendMessage(
 				messages,
 				selectedProvider,
-				selectedModel
+				selectedModel,
+				mentionedTools
 			);
 
 			if (!response.success) {
@@ -575,6 +583,10 @@
 				await chatStore.addMessage(errorMessage);
 			}
 		} finally {
+			// Always restore original tool settings
+			if (mentionedTools.length > 0) {
+				ToolMentionManager.restoreOriginalSettings();
+			}
 			isStreaming = false;
 			streamingMessageId = null;
 

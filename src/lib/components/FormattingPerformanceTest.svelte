@@ -45,13 +45,13 @@
 	async function runPerformanceTest() {
 		testRunning = true;
 		testResults = [];
-		
+
 		const originalTimes: number[] = [];
 		const cachedTimes: number[] = [];
-		
+
 		// Clear cache first
 		invalidateToolCache();
-		
+
 		// Test original performance (no cache)
 		for (let i = 0; i < 100; i++) {
 			const text = testTexts[i % testTexts.length];
@@ -60,7 +60,7 @@
 			const end = performance.now();
 			originalTimes.push(end - start);
 		}
-		
+
 		// Test cached performance
 		for (let i = 0; i < 100; i++) {
 			const text = testTexts[i % testTexts.length];
@@ -69,12 +69,12 @@
 			const end = performance.now();
 			cachedTimes.push(end - start);
 		}
-		
+
 		// Calculate results
 		const avgOriginal = originalTimes.reduce((a, b) => a + b, 0) / originalTimes.length;
 		const avgCached = cachedTimes.reduce((a, b) => a + b, 0) / cachedTimes.length;
 		const improvement = ((avgOriginal - avgCached) / avgOriginal) * 100;
-		
+
 		performanceResults = {
 			originalCalls: originalTimes.length,
 			cachedCalls: cachedTimes.length,
@@ -82,14 +82,14 @@
 			averageCachedTime: avgCached,
 			cacheHitRate: improvement
 		};
-		
+
 		testResults = [
 			`Original parsing: ${avgOriginal.toFixed(3)}ms average`,
 			`Cached parsing: ${avgCached.toFixed(3)}ms average`,
 			`Performance improvement: ${improvement.toFixed(1)}%`,
 			`Cache efficiency: ${improvement > 0 ? 'Effective' : 'No improvement'}`
 		];
-		
+
 		testRunning = false;
 	}
 
@@ -122,7 +122,9 @@
 </script>
 
 {#if visible}
-	<div class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+	<div
+		class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+	>
 		<h3 class="mb-4 text-lg font-semibold text-gray-900 dark:text-white">
 			Text Formatting Performance Test
 		</h3>
@@ -137,7 +139,7 @@
 				>
 					{testRunning ? 'Running Test...' : 'Run Performance Test'}
 				</button>
-				
+
 				<button
 					onclick={clearCache}
 					class="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700"
@@ -189,14 +191,14 @@
 				<div class="text-sm text-gray-600 dark:text-gray-400">
 					Parse count: {parseCount} | Last parse: {lastParseTime.toFixed(3)}ms
 				</div>
-				
+
 				<textarea
 					bind:value={liveTestText}
 					placeholder="Type text with @tools, URLs, and IPs to test live formatting..."
 					class="w-full rounded border border-gray-300 p-3 dark:border-gray-600 dark:bg-gray-700"
 					rows="3"
 				></textarea>
-				
+
 				<div class="rounded border border-gray-200 p-3 dark:border-gray-600">
 					<div class="mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
 						Formatted Output:
@@ -208,21 +210,25 @@
 			<!-- Extraction Tests -->
 			<div class="space-y-3">
 				<h4 class="font-medium text-gray-900 dark:text-white">Feature Extraction Tests</h4>
-				
+
 				{#each testTexts.slice(0, 3) as testText}
 					<div class="rounded bg-gray-50 p-3 dark:bg-gray-700">
 						<div class="mb-2 text-sm">
-							<strong>Text:</strong> {testText}
+							<strong>Text:</strong>
+							{testText}
 						</div>
 						<div class="grid grid-cols-1 gap-2 text-xs md:grid-cols-3">
 							<div>
-								<strong>Tools:</strong> {extractToolMentions(testText).join(', ') || 'None'}
+								<strong>Tools:</strong>
+								{extractToolMentions(testText).join(', ') || 'None'}
 							</div>
 							<div>
-								<strong>URLs:</strong> {extractUrls(testText).length} found
+								<strong>URLs:</strong>
+								{extractUrls(testText).length} found
 							</div>
 							<div>
-								<strong>IPs:</strong> {extractIps(testText).length} found
+								<strong>IPs:</strong>
+								{extractIps(testText).length} found
 							</div>
 						</div>
 					</div>

@@ -12,6 +12,7 @@
 	import ToolSelector from './ToolSelector.svelte';
 	import FormattedTextInput from './FormattedTextInput.svelte';
 	import { createOptimizedDefaultRules } from '$lib/utils/text-formatter-manager';
+	import { ToolMentionManager } from '$lib/utils/tool-mention-manager.js';
 
 	import type { ToolMetadata } from '$lib/tools/types.js';
 	import type { ProviderId } from '$lib/providers/index.js';
@@ -31,7 +32,12 @@
 	}: Props = $props();
 
 	const dispatch = createEventDispatcher<{
-		submit: { message: string; provider: string; model: string };
+		submit: {
+			message: string;
+			provider: string;
+			model: string;
+			mentionedTools?: string[];
+		};
 	}>();
 
 	let inputValue = $state('');
@@ -52,7 +58,15 @@
 		event?.preventDefault();
 		const message = inputValue.trim();
 		if (message && !disabled) {
-			dispatch('submit', { message, provider, model });
+			// Analyze tool mentions for temporary enabling
+			const mentionContext = ToolMentionManager.analyzeMessage(message);
+
+			dispatch('submit', {
+				message,
+				provider,
+				model,
+				mentionedTools: mentionContext.mentionedTools
+			});
 			inputValue = '';
 			// Reset textarea height
 			const textarea = formattedTextInput?.getTextarea();

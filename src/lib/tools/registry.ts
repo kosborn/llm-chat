@@ -10,6 +10,16 @@ import { textProcessorTool } from './implementations/text-processor.js';
 import { jsonFormatterTool } from './implementations/json-formatter.js';
 import { maxmindTool } from './implementations/maxmind.js';
 
+// Lazy import to avoid circular dependency
+let toolSettingsStore: any = null;
+const getToolSettingsStore = async () => {
+	if (!toolSettingsStore) {
+		const module = await import('$lib/stores/tool-settings-store.svelte.js');
+		toolSettingsStore = module.toolSettingsStore;
+	}
+	return toolSettingsStore;
+};
+
 class ToolRegistryManager implements ToolDiscovery {
 	private tools: Map<string, ToolMetadata> = new Map();
 	private initialized = false;
@@ -124,6 +134,50 @@ class ToolRegistryManager implements ToolDiscovery {
 		return false;
 	}
 
+	async enableToolPersistent(name: string): Promise<boolean> {
+		const success = this.enableTool(name);
+		if (success) {
+			try {
+				const settingsStore = await getToolSettingsStore();
+				settingsStore.setToolSetting(name, true);
+			} catch (error) {
+				console.warn('Failed to persist tool setting:', error);
+			}
+		}
+		return success;
+	}
+
+	async disableToolPersistent(name: string): Promise<boolean> {
+		const success = this.disableTool(name);
+		if (success) {
+			try {
+				const settingsStore = await getToolSettingsStore();
+				settingsStore.setToolSetting(name, false);
+			} catch (error) {
+				console.warn('Failed to persist tool setting:', error);
+			}
+		}
+		return success;
+	}
+
+	async initializePersistentSettings(): Promise<void> {
+		try {
+			const settingsStore = await getToolSettingsStore();
+			const allSettings = settingsStore.getAllSettings();
+
+			// Apply persistent settings to tools
+			for (const [name, enabled] of Object.entries(allSettings)) {
+				if (enabled) {
+					this.enableTool(name);
+				} else {
+					this.disableTool(name);
+				}
+			}
+		} catch (error) {
+			console.warn('Failed to initialize persistent tool settings:', error);
+		}
+	}
+
 	getAvailableCategories(): string[] {
 		const categories = new Set<string>();
 		for (const tool of this.tools.values()) {
@@ -230,6 +284,19 @@ export const enableTool = (name: string) => {
 
 export const disableTool = (name: string) => {
 	return toolRegistry.disableTool(name);
+};
+
+// Persistent configuration functions
+export const enableToolPersistent = async (name: string) => {
+	return toolRegistry.enableToolPersistent(name);
+};
+
+export const disableToolPersistent = async (name: string) => {
+	return toolRegistry.disableToolPersistent(name);
+};
+
+export const initializePersistentSettings = async () => {
+	return toolRegistry.initializePersistentSettings();
 };
 
 // Export the registry instance for advanced usage

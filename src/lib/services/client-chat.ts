@@ -2,6 +2,8 @@ import { streamText } from 'ai';
 import { providerManager } from '$lib/providers/provider-manager.js';
 import { networkStore } from '$lib/stores/network-store.svelte.js';
 import { debugStore } from '$lib/stores/debug-store.svelte.js';
+import { ToolMentionManager } from '$lib/utils/tool-mention-manager.js';
+import { toolRegistry } from '$lib/tools/registry.js';
 import type { ChatMessage, ApiUsageMetadata } from '../../app.d.ts';
 import type { ProviderId } from '$lib/providers/index.js';
 
@@ -16,7 +18,8 @@ class ClientChatService {
 	async sendMessage(
 		messages: ChatMessage[],
 		provider?: string,
-		model?: string
+		model?: string,
+		mentionedTools?: string[]
 	): Promise<ChatResponse> {
 		// Check network status first
 		if (!networkStore.isOnline) {
@@ -47,7 +50,8 @@ class ClientChatService {
 				const serverResponse = await this.tryServerSide(
 					messages,
 					requestedProvider,
-					requestedModel
+					requestedModel,
+					mentionedTools
 				);
 				if (serverResponse.success) {
 					return serverResponse;
@@ -58,13 +62,14 @@ class ClientChatService {
 		}
 
 		// Fallback to client-side
-		return this.sendMessageClientSide(messages, requestedProvider, requestedModel);
+		return this.sendMessageClientSide(messages, requestedProvider, requestedModel, mentionedTools);
 	}
 
 	private async tryServerSide(
 		messages: ChatMessage[],
 		provider: ProviderId,
-		model: string
+		model: string,
+		mentionedTools?: string[]
 	): Promise<ChatResponse> {
 		const outboundMessages = messages.map((msg) => ({
 			role: msg.role,
@@ -85,7 +90,8 @@ class ClientChatService {
 			body: JSON.stringify({
 				messages: outboundMessages,
 				provider,
-				model
+				model,
+				mentionedTools: mentionedTools || []
 			})
 		});
 
@@ -120,7 +126,8 @@ class ClientChatService {
 	private async sendMessageClientSide(
 		messages: ChatMessage[],
 		provider: ProviderId,
-		model: string
+		model: string,
+		mentionedTools?: string[]
 	): Promise<ChatResponse> {
 		// Check if we have a valid API key for this provider
 		if (!providerManager.hasValidApiKey(provider)) {
@@ -157,12 +164,36 @@ class ClientChatService {
 				timestamp: startTime
 			});
 
+			// Handle tool mentions for temporary enabling
+			let tempToolsApplied = false;
+			if (mentionedTools && mentionedTools.length > 0) {
+				const context = ToolMentionManager.analyzeMessage(`@${mentionedTools.join(' @')}`);
+				if (context.hasDisabledMentions) {
+					ToolMentionManager.applyTemporarySettings(context);
+					tempToolsApplied = true;
+				}
+			}
+
+			// Get current enabled tools for this request
+			const enabledTools = toolRegistry.getEnabledTools();
+			const toolsForRequest: Record<string, any> = {};
+
+			for (const [name, metadata] of Object.entries(enabledTools)) {
+				toolsForRequest[name] = metadata.tool;
+			}
+
 			const result = streamText({
 				model: modelInstance,
 				messages: aiMessages,
+				tools: toolsForRequest,
 				temperature: 0.7,
 				maxSteps: 5
 			});
+
+			// Restore original settings if we applied temporary ones
+			if (tempToolsApplied) {
+				ToolMentionManager.restoreOriginalSettings();
+			}
 
 			const responseTime = Date.now() - startTime;
 
@@ -187,6 +218,10 @@ class ClientChatService {
 				apiMetadata
 			};
 		} catch (error) {
+			// Ensure we restore settings even on error
+			if (mentionedTools && mentionedTools.length > 0) {
+				ToolMentionManager.restoreOriginalSettings();
+			}
 			console.error('Client chat error:', error);
 
 			// Provide more specific error messages

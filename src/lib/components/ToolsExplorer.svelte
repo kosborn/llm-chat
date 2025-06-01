@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { toolRegistry } from '$lib/tools/registry.js';
+	import {
+		toolRegistry,
+		enableToolPersistent,
+		disableToolPersistent
+	} from '$lib/tools/registry.js';
+	import { toolSettingsStore } from '$lib/stores/tool-settings-store.svelte.js';
 	import type { ToolMetadata } from '$lib/tools/types.js';
 	import ToolCard from './ToolCard.svelte';
 	import ToolDetail from './ToolDetail.svelte';
@@ -50,14 +55,14 @@
 		});
 	}
 
-	function toggleTool(name: string) {
+	async function toggleTool(name: string) {
 		const tool = tools.find((t) => t.name === name);
 		if (tool) {
 			if (tool.enabled !== false) {
-				toolRegistry.disableTool(name);
+				await disableToolPersistent(name);
 				tool.enabled = false;
 			} else {
-				toolRegistry.enableTool(name);
+				await enableToolPersistent(name);
 				tool.enabled = true;
 			}
 			stats = toolRegistry.getToolStats();

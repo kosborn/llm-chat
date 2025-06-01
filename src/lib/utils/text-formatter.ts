@@ -37,7 +37,7 @@ let staticCacheInitialized = false;
 function initializeStaticToolCache(): void {
 	try {
 		if (staticCacheInitialized) return;
-		
+
 		const tools = toolRegistry.getEnabledTools();
 		if (tools && typeof tools === 'object') {
 			staticValidToolsSet = new Set(Object.keys(tools));
@@ -72,11 +72,11 @@ function isValidTool(toolName: string): boolean {
 	if (!toolName || typeof toolName !== 'string') {
 		return false;
 	}
-	
+
 	if (!staticCacheInitialized) {
 		initializeStaticToolCache();
 	}
-	
+
 	return staticValidToolsSet.has(toolName);
 }
 
@@ -86,7 +86,7 @@ function createOptimizedToolRule(): FormatRule {
 	if (!staticCacheInitialized) {
 		initializeStaticToolCache();
 	}
-	
+
 	return {
 		pattern: TOOL_REGEX,
 		className: 'text-blue-800 dark:text-blue-200',
@@ -362,7 +362,7 @@ export function createToolRule(className?: string): FormatRule {
 	if (!staticCacheInitialized) {
 		initializeStaticToolCache();
 	}
-	
+
 	return {
 		pattern: TOOL_REGEX,
 		className: className || 'text-blue-800 dark:text-blue-200',
@@ -428,7 +428,7 @@ export function createOptimizedDefaultRules(): FormatRule[] {
 	if (!staticCacheInitialized) {
 		initializeStaticToolCache();
 	}
-	
+
 	return [
 		{
 			pattern: URL_REGEX,

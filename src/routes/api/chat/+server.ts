@@ -29,12 +29,13 @@ export async function POST({ request }: { request: Request }) {
 	try {
 		debugLog(`[${requestId}] Incoming chat request`);
 
-		const { messages, provider, model } = await request.json();
+		const { messages, provider, model, mentionedTools = [] } = await request.json();
 
 		debugLog(`[${requestId}] Parsed request body`, {
 			messageCount: messages.length,
 			provider,
 			model,
+			mentionedTools,
 			lastMessage: messages[messages.length - 1]
 		});
 
@@ -149,12 +150,21 @@ export async function POST({ request }: { request: Request }) {
 			);
 		}
 
+		// Handle tool mentions for temporary enabling
+		let effectiveToolsRegistry = toolsRegistry;
+		if (mentionedTools && mentionedTools.length > 0) {
+			// Import tool mention manager dynamically to avoid circular dependencies
+			const { ToolMentionManager } = await import('$lib/utils/tool-mention-manager.js');
+			effectiveToolsRegistry = ToolMentionManager.getTemporaryToolsRegistry(mentionedTools);
+		}
+
 		debugLog(`[${requestId}] Chat session initialized`, {
 			provider: selectedProvider,
 			model: selectedModel,
 			messageCount: messages.length,
-			availableTools: Object.keys(toolsRegistry).length,
-			toolNames: Object.keys(toolsRegistry),
+			mentionedTools,
+			availableTools: Object.keys(effectiveToolsRegistry).length,
+			toolNames: Object.keys(effectiveToolsRegistry),
 			temperature: 0.7,
 			maxSteps: 5
 		});
@@ -166,7 +176,7 @@ export async function POST({ request }: { request: Request }) {
 			const result = streamText({
 				model: modelInstance,
 				messages,
-				tools: toolsRegistry as any,
+				tools: effectiveToolsRegistry as any,
 				maxSteps: 5,
 				temperature: 0.7,
 				onStepFinish: (step) => {
@@ -238,7 +248,7 @@ export async function POST({ request }: { request: Request }) {
 					const result = streamText({
 						model: fallbackModelInstance,
 						messages,
-						tools: toolsRegistry as any,
+						tools: effectiveToolsRegistry as any,
 						maxSteps: 5,
 						temperature: 0.7,
 						onFinish: (result) => {
