@@ -63,34 +63,34 @@
 				<h4 class="mb-2 text-xs font-semibold text-blue-700 dark:text-blue-300">
 					🌐 Network Information
 				</h4>
-				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-8 gap-y-2 text-xs">
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-3 text-xs">
 					{#if data.network.isp}
-						<div class="flex gap-2">
-							<span class="text-blue-600 dark:text-blue-400 min-w-fit">ISP:</span>
+						<div class="flex gap-3 items-center">
+							<span class="text-blue-600 dark:text-blue-400 font-medium w-12">ISP:</span>
 							<span class="font-semibold">{data.network.isp}</span>
 						</div>
 					{/if}
 					{#if data.network.organization}
-						<div class="flex gap-2">
-							<span class="text-blue-600 dark:text-blue-400 min-w-fit">Org:</span>
+						<div class="flex gap-3 items-center">
+							<span class="text-blue-600 dark:text-blue-400 font-medium w-12">Org:</span>
 							<span class="font-semibold">{data.network.organization}</span>
 						</div>
 					{/if}
 					{#if data.network.connection_type}
-						<div class="flex gap-2">
-							<span class="text-blue-600 dark:text-blue-400 min-w-fit">Type:</span>
+						<div class="flex gap-3 items-center">
+							<span class="text-blue-600 dark:text-blue-400 font-medium w-12">Type:</span>
 							<span class="capitalize">{data.network.connection_type}</span>
 						</div>
 					{/if}
 					{#if data.network.domain}
-						<div class="flex gap-2">
-							<span class="text-blue-600 dark:text-blue-400 min-w-fit">Domain:</span>
+						<div class="flex gap-3 items-center">
+							<span class="text-blue-600 dark:text-blue-400 font-medium w-16">Domain:</span>
 							<span class="font-mono">{data.network.domain}</span>
 						</div>
 					{/if}
 					{#if data.network.autonomous_system_number}
-						<div class="flex gap-2">
-							<span class="text-blue-600 dark:text-blue-400 min-w-fit">ASN:</span>
+						<div class="flex gap-3 items-center">
+							<span class="text-blue-600 dark:text-blue-400 font-medium w-12">ASN:</span>
 							<a href="https://search.arin.net/rdap/?searchFilter=asn&query={data.network.autonomous_system_number}" 
 							   target="_blank" 
 							   rel="noopener noreferrer"
@@ -100,8 +100,8 @@
 						</div>
 					{/if}
 					{#if data.network.autonomous_system_organization}
-						<div class="flex gap-2 sm:col-span-2 lg:col-span-3 xl:col-span-4">
-							<span class="text-blue-600 dark:text-blue-400 min-w-fit">AS Org:</span>
+						<div class="flex gap-3 items-center sm:col-span-2 lg:col-span-3">
+							<span class="text-blue-600 dark:text-blue-400 font-medium w-16">AS Org:</span>
 							<span class="text-xs">{data.network.autonomous_system_organization}</span>
 						</div>
 					{/if}
