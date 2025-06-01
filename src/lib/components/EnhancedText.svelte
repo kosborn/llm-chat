@@ -102,15 +102,65 @@
 	}
 
 	async function copyIpToClipboard(ip: string) {
+		console.log('Attempting to copy IP:', ip);
+		console.log('Clipboard API available:', !!navigator.clipboard);
+		console.log('Secure context:', window.isSecureContext);
+
 		try {
-			await navigator.clipboard.writeText(ip);
+			// Try modern clipboard API first
+			if (navigator.clipboard && window.isSecureContext) {
+				console.log('Using modern clipboard API');
+				await navigator.clipboard.writeText(ip);
+				console.log('Modern clipboard API succeeded');
+			} else {
+				console.log('Using fallback clipboard method');
+				// Fallback for older browsers or non-secure contexts
+				const textArea = document.createElement('textarea');
+				textArea.value = ip;
+				textArea.style.position = 'fixed';
+				textArea.style.left = '-999999px';
+				textArea.style.top = '-999999px';
+				document.body.appendChild(textArea);
+				textArea.focus();
+				textArea.select();
+				const success = document.execCommand('copy');
+				document.body.removeChild(textArea);
+				console.log('Fallback clipboard method result:', success);
+			}
+
 			copiedIp = ip;
+			console.log('Copy successful, setting animation');
 			// Clear the animation after 1 second
 			setTimeout(() => {
 				copiedIp = null;
+				console.log('Animation cleared');
 			}, 1000);
 		} catch (error) {
 			console.error('Failed to copy IP to clipboard:', error);
+			// Try fallback method even if modern API failed
+			try {
+				console.log('Attempting fallback after error');
+				const textArea = document.createElement('textarea');
+				textArea.value = ip;
+				textArea.style.position = 'fixed';
+				textArea.style.left = '-999999px';
+				textArea.style.top = '-999999px';
+				document.body.appendChild(textArea);
+				textArea.focus();
+				textArea.select();
+				const success = document.execCommand('copy');
+				document.body.removeChild(textArea);
+				console.log('Fallback after error result:', success);
+
+				if (success) {
+					copiedIp = ip;
+					setTimeout(() => {
+						copiedIp = null;
+					}, 1000);
+				}
+			} catch (fallbackError) {
+				console.error('All clipboard methods failed:', fallbackError);
+			}
 		}
 	}
 </script>
@@ -154,8 +204,8 @@
 				<!-- IP address with copy functionality -->
 				<span
 					class="{segment.className} {copiedIp === segment.text
-						? 'animate-pulse bg-green-200 dark:bg-green-800'
-						: ''}"
+						? 'animate-pulse bg-green-200/50 dark:bg-green-800/50'
+						: ''} select-none"
 					onclick={() => copyIpToClipboard(segment.text)}
 					role="button"
 					tabindex="0"

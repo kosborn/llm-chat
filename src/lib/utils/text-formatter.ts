@@ -68,7 +68,7 @@ export const defaultFormatRules: FormatRule[] = [
 	{
 		pattern: IP_REGEX,
 		className:
-			'text-orange-600 dark:text-orange-400 cursor-pointer hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 px-1 py-0.5 rounded transition-colors'
+			'text-orange-600 dark:text-orange-400 cursor-pointer hover:text-orange-800 dark:hover:text-orange-300 transition-colors'
 	}
 ];
 
@@ -164,7 +164,7 @@ export function parseFormattedText(
 					if (regex.lastIndex === start) {
 						regex.lastIndex = start + 1;
 					}
-					
+
 					match = regex.exec(text);
 				}
 			} catch (ruleError) {
@@ -254,7 +254,7 @@ export function createIpRule(className?: string): FormatRule {
 		pattern: IP_REGEX,
 		className:
 			className ||
-			'text-orange-600 dark:text-orange-400 cursor-pointer hover:text-orange-800 dark:hover:text-orange-300 hover:bg-orange-50 dark:hover:bg-orange-900/20 px-1 py-0.5 rounded transition-colors'
+			'text-orange-600 dark:text-orange-400 cursor-pointer hover:text-orange-800 dark:hover:text-orange-300 transition-colors'
 	};
 }
 
