@@ -30,6 +30,7 @@ class TextFormatterManager {
 
 	// Static tool validation cache
 	private validToolsSet = new Set<string>();
+	private allToolsSet = new Set<string>();
 	private toolsCacheInitialized = false;
 	private lastToolsUpdate = 0;
 
@@ -69,6 +70,14 @@ class TextFormatterManager {
 				}
 			},
 			{
+				pattern: this.TOOL_REGEX,
+				className: 'text-gray-500 dark:text-gray-400 line-through opacity-75',
+				validate: (match: string) => {
+					const toolName = match.slice(1);
+					return this.isDisabledTool(toolName);
+				}
+			},
+			{
 				pattern: this.IP_REGEX,
 				className:
 					'text-orange-600 dark:text-orange-400 cursor-pointer hover:text-orange-800 dark:hover:text-orange-300 transition-colors'
@@ -78,15 +87,23 @@ class TextFormatterManager {
 
 	private initializeToolsCache(): void {
 		try {
-			const tools = toolRegistry.getEnabledTools();
-			if (tools && typeof tools === 'object') {
-				this.validToolsSet = new Set(Object.keys(tools));
-				this.toolsCacheInitialized = true;
-				this.lastToolsUpdate = Date.now();
+			const enabledTools = toolRegistry.getEnabledTools();
+			const allTools = toolRegistry.getAllTools();
+
+			if (enabledTools && typeof enabledTools === 'object') {
+				this.validToolsSet = new Set(Object.keys(enabledTools));
 			}
+
+			if (allTools && typeof allTools === 'object') {
+				this.allToolsSet = new Set(Object.keys(allTools));
+			}
+
+			this.toolsCacheInitialized = true;
+			this.lastToolsUpdate = Date.now();
 		} catch (error) {
 			console.warn('Failed to initialize tools cache:', error);
 			this.validToolsSet = new Set();
+			this.allToolsSet = new Set();
 		}
 	}
 
@@ -102,8 +119,21 @@ class TextFormatterManager {
 		return this.validToolsSet.has(toolName);
 	}
 
+	private isDisabledTool(toolName: string): boolean {
+		if (!toolName || typeof toolName !== 'string') {
+			return false;
+		}
+
+		if (!this.toolsCacheInitialized) {
+			this.initializeToolsCache();
+		}
+
+		return this.allToolsSet.has(toolName) && !this.validToolsSet.has(toolName);
+	}
+
 	public invalidateToolsCache(): void {
 		this.validToolsSet.clear();
+		this.allToolsSet.clear();
 		this.toolsCacheInitialized = false;
 		this.parseCache.clear();
 		this.initializeToolsCache();
@@ -190,7 +220,9 @@ class TextFormatterManager {
 				const regex = new RegExp(rule.pattern.source, rule.pattern.flags);
 				let match: RegExpExecArray | null;
 
-				while ((match = regex.exec(text)) !== null) {
+				while (true) {
+					match = regex.exec(text);
+					if (match === null) break;
 					const start = match.index ?? 0;
 					const end = start + match[0].length;
 
@@ -312,6 +344,7 @@ class TextFormatterManager {
 			maxCacheSize: this.MAX_CACHE_SIZE,
 			toolsCacheInitialized: this.toolsCacheInitialized,
 			validToolsCount: this.validToolsSet.size,
+			allToolsCount: this.allToolsSet.size,
 			lastToolsUpdate: new Date(this.lastToolsUpdate).toISOString()
 		};
 	}

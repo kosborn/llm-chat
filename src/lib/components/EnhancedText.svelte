@@ -67,7 +67,11 @@
 
 							if (isToolMention(segment)) {
 								const toolName = segment.text.slice(1);
-								replacement = `<span class="${segment.className} cursor-help border-b border-dotted border-current" data-tool="${toolName}" title="Tool: ${toolName}">${segment.text}</span>`;
+								const isEnabled = isToolEnabled(toolName);
+								const statusTitle = isEnabled
+									? `Tool: ${toolName}`
+									: `Tool: ${toolName} (Disabled)`;
+								replacement = `<span class="${segment.className} cursor-help border-b border-dotted border-current" data-tool="${toolName}" title="${statusTitle}">${segment.text}</span>`;
 							} else if (isUrl(segment)) {
 								replacement = `<a href="${segment.text}" class="${segment.className}" target="_blank" rel="noopener noreferrer">${segment.text}</a>`;
 							} else if (isIpAddress(segment)) {
@@ -137,6 +141,16 @@
 				y: rect.top - 10,
 				tool: toolMetadata
 			};
+		}
+	}
+
+	function isToolEnabled(toolName: string): boolean {
+		try {
+			const enabledTools = toolRegistry.getEnabledTools();
+			return !!enabledTools[toolName];
+		} catch (error) {
+			console.warn('Error checking tool enabled status:', error);
+			return false;
 		}
 	}
 
@@ -271,6 +285,7 @@
 			{@const toolName = isToolMention(segment)}
 			{@const isUrlSegment = isUrl(segment)}
 			{@const isIpSegment = isIpAddress(segment)}
+			{@const toolEnabled = toolName ? isToolEnabled(toolName) : false}
 
 			{#if toolName}
 				<!-- Tool mention with hover -->
@@ -280,7 +295,7 @@
 					onmouseleave={handleToolLeave}
 					role="button"
 					tabindex="0"
-					title="Tool: {toolName}"
+					title="Tool: {toolName}{toolEnabled ? '' : ' (Disabled)'}"
 				>
 					{segment.text}
 				</span>
@@ -326,12 +341,28 @@
 
 <!-- Tool tooltip -->
 {#if toolTooltip}
+	{@const toolEnabled = isToolEnabled(toolTooltip.tool.name)}
 	<div
 		class="pointer-events-none fixed z-50 max-w-sm rounded-lg border border-gray-700 bg-gray-900 p-3 text-sm text-white shadow-lg dark:bg-gray-800"
 		style="left: {toolTooltip.x}px; top: {toolTooltip.y}px; transform: translateX(-50%) translateY(-100%);"
 	>
-		<div class="mb-1 font-semibold text-blue-300">@{toolTooltip.tool.name}</div>
+		<div class="mb-1 flex items-center gap-2">
+			<div class="font-semibold text-blue-300">@{toolTooltip.tool.name}</div>
+			{#if !toolEnabled}
+				<span
+					class="rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700 dark:bg-red-900/50 dark:text-red-300"
+				>
+					Disabled
+				</span>
+			{/if}
+		</div>
 		<div class="mb-2 text-gray-300">{toolTooltip.tool.description}</div>
+
+		{#if !toolEnabled}
+			<div class="mb-2 text-xs text-amber-400">
+				💡 This tool is disabled but will be temporarily enabled when used.
+			</div>
+		{/if}
 
 		{#if toolTooltip.tool.category}
 			<div class="mb-1 text-xs text-gray-400">

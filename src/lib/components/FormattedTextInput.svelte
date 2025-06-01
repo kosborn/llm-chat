@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { parseFormattedText, type FormatRule } from '$lib/utils/text-formatter-manager';
+	import { parseFormattedText, type FormatRule, type FormatSegment } from '$lib/utils/text-formatter-manager';
 	import { toolRegistry } from '$lib/tools/registry.js';
 	import type { ToolMetadata } from '$lib/tools/types.js';
 
@@ -31,7 +31,7 @@
 
 	let textareaElement: HTMLTextAreaElement;
 
-	let segments = $state([]);
+	let segments = $state<FormatSegment[]>([]);
 	let hoveredTool = $state<ToolMetadata | null>(null);
 	let tooltipPosition = $state({ x: 0, y: 0 });
 	let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -107,8 +107,14 @@
 
 	function getToolData(toolName: string): ToolMetadata | null {
 		try {
-			const tools = toolRegistry.getEnabledTools();
-			return tools[toolName] || null;
+			// First check enabled tools, then all tools (for disabled ones)
+			const enabledTools = toolRegistry.getEnabledTools();
+			if (enabledTools[toolName]) {
+				return enabledTools[toolName];
+			}
+
+			const allTools = toolRegistry.getAllTools();
+			return allTools[toolName] || null;
 		} catch (error) {
 			console.warn('Error getting tool data:', error);
 			return null;
@@ -157,7 +163,7 @@
 		}
 
 		// Show tooltip if hovering over a tool segment
-		if (hoveredSegment && hoveredSegment.isFormatted && hoveredSegment.text.startsWith('@')) {
+		if (hoveredSegment?.isFormatted && hoveredSegment.text.startsWith('@')) {
 			if (hoverTimeout) {
 				clearTimeout(hoverTimeout);
 			}
@@ -176,6 +182,16 @@
 				hoverTimeout = null;
 			}
 			hoveredTool = null;
+		}
+	}
+
+	function isToolEnabled(toolName: string): boolean {
+		try {
+			const enabledTools = toolRegistry.getEnabledTools();
+			return !!enabledTools[toolName];
+		} catch (error) {
+			console.warn('Error checking tool enabled status:', error);
+			return false;
 		}
 	}
 
@@ -255,15 +271,25 @@
 
 	<!-- Tooltip -->
 	{#if hoveredTool}
+		{@const isEnabled = isToolEnabled(hoveredTool.name)}
 		<div
 			class="pointer-events-none fixed z-50 max-w-80 rounded-lg border border-gray-200 bg-white p-3 shadow-lg dark:border-gray-600 dark:bg-gray-800"
 			style="left: {tooltipPosition.x}px; top: {tooltipPosition.y}px; transform: translateX(-50%) translateY(-100%);"
 		>
 			<div class="mb-2 flex items-center gap-2">
 				<span class="text-sm">{getCategoryIcon(hoveredTool.category || 'general')}</span>
-				<div>
-					<div class="text-sm font-medium text-gray-900 dark:text-gray-100">
-						@{hoveredTool.name}
+				<div class="flex-1">
+					<div class="flex items-center gap-2">
+						<div class="text-sm font-medium text-gray-900 dark:text-gray-100">
+							@{hoveredTool.name}
+						</div>
+						{#if !isEnabled}
+							<span
+								class="rounded bg-red-100 px-1.5 py-0.5 text-xs text-red-700 dark:bg-red-900/50 dark:text-red-300"
+							>
+								Disabled
+							</span>
+						{/if}
 					</div>
 					<div class="text-xs text-gray-500 capitalize dark:text-gray-400">
 						{hoveredTool.category || 'general'}
@@ -273,6 +299,11 @@
 			<div class="mb-2 text-sm text-gray-700 dark:text-gray-300">
 				{hoveredTool.description}
 			</div>
+			{#if !isEnabled}
+				<div class="mb-2 text-xs text-amber-600 dark:text-amber-400">
+					💡 This tool is disabled but will be temporarily enabled when used.
+				</div>
+			{/if}
 			{#if hoveredTool.tags && hoveredTool.tags.length > 0}
 				<div class="flex flex-wrap gap-1">
 					{#each hoveredTool.tags as tag (tag)}
