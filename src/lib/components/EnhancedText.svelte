@@ -25,21 +25,27 @@
 
 	// Process text with both markdown and formatting
 	const processedContent = $derived(() => {
-		if (!text) return { html: '', segments: [] };
+		if (!text) return { html: '', segments: [], useMarkdown: false };
+
+		// If both markdown and formatting are enabled, use segments with markdown support
+		if (enableMarkdown && enableFormatting) {
+			const segments = parseFormattedText(text);
+			return { html: '', segments, useMarkdown: true };
+		}
 
 		// If only markdown is enabled, use markdown (handled separately due to async)
 		if (enableMarkdown && !enableFormatting) {
-			return { html: markdownHtml, segments: [] };
+			return { html: markdownHtml, segments: [], useMarkdown: false };
 		}
 
-		// If formatting is enabled, use text formatter (with or without markdown)
+		// If only formatting is enabled, use text formatter
 		if (enableFormatting) {
 			const segments = parseFormattedText(text);
-			return { html: '', segments };
+			return { html: '', segments, useMarkdown: false };
 		}
 
 		// Default: plain text with line breaks
-		return { html: text.replace(/\n/g, '<br>'), segments: [] };
+		return { html: text.replace(/\n/g, '<br>'), segments: [], useMarkdown: false };
 	});
 
 	// Handle async markdown rendering
@@ -62,6 +68,16 @@
 			updateMarkdown();
 		}
 	});
+
+	// Render markdown for a text segment
+	async function renderSegmentAsMarkdown(text: string): Promise<string> {
+		try {
+			return await renderMarkdown(text);
+		} catch (error) {
+			console.error('Error rendering segment markdown:', error);
+			return text.replace(/\n/g, '<br>');
+		}
+	}
 
 	function handleToolHover(event: MouseEvent, toolName: string) {
 		const toolMetadata = toolRegistry.getToolByName(toolName);
@@ -227,6 +243,16 @@
 				<span class={segment.className}>
 					{segment.text}
 				</span>
+			{:else if processedContent().useMarkdown}
+				<!-- Plain text with markdown rendering -->
+				{#await renderSegmentAsMarkdown(segment.text)}
+					<span class="animate-pulse">...</span>
+				{:then markdownContent}
+					<!-- eslint-disable-next-line svelte/no-at-html-tags -->
+					{@html markdownContent}
+				{:catch}
+					{segment.text}
+				{/await}
 			{:else}
 				<!-- Plain text -->
 				{segment.text}
