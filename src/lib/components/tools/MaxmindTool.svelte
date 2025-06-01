@@ -57,76 +57,40 @@
 			{/if}
 		</div>
 
-		<!-- Location & Network Details -->
-		<div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
-			{#if data.location}
-				<div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-					<h4 class="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
-						📍 Location
-					</h4>
-					<div class="space-y-1 text-xs">
-						{#if data.location.country_code}
-							<div class="flex justify-between">
-								<span class="text-gray-600 dark:text-gray-400">Country:</span>
-								<span class="font-mono">{data.location.country_code}</span>
-							</div>
-						{/if}
-						{#if data.location.state_code}
-							<div class="flex justify-between">
-								<span class="text-gray-600 dark:text-gray-400">State:</span>
-								<span class="font-mono">{data.location.state_code}</span>
-							</div>
-						{/if}
-						{#if data.location.postal_code}
-							<div class="flex justify-between">
-								<span class="text-gray-600 dark:text-gray-400">Postal:</span>
-								<span class="font-mono">{data.location.postal_code}</span>
-							</div>
-						{/if}
-						{#if data.location.coordinates}
-							<div class="flex justify-between">
-								<span class="text-gray-600 dark:text-gray-400">Coords:</span>
-								<span class="font-mono text-xs">{data.location.coordinates}</span>
-							</div>
-						{/if}
-					</div>
+		<!-- Network Details -->
+		{#if data.network}
+			<div class="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+				<h4 class="mb-2 text-xs font-semibold text-blue-700 dark:text-blue-300">
+					🌐 Network Information
+				</h4>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-1 text-xs max-w-2xl">
+					{#if data.network.isp}
+						<div class="flex gap-2">
+							<span class="text-blue-600 dark:text-blue-400 min-w-fit">ISP:</span>
+							<span class="font-semibold">{data.network.isp}</span>
+						</div>
+					{/if}
+					{#if data.network.organization}
+						<div class="flex gap-2">
+							<span class="text-blue-600 dark:text-blue-400 min-w-fit">Org:</span>
+							<span class="font-semibold">{data.network.organization}</span>
+						</div>
+					{/if}
+					{#if data.network.connection_type}
+						<div class="flex gap-2">
+							<span class="text-blue-600 dark:text-blue-400 min-w-fit">Type:</span>
+							<span class="capitalize">{data.network.connection_type}</span>
+						</div>
+					{/if}
+					{#if data.network.autonomous_system_number}
+						<div class="flex gap-2">
+							<span class="text-blue-600 dark:text-blue-400 min-w-fit">ASN:</span>
+							<span class="font-mono">{data.network.autonomous_system_number}</span>
+						</div>
+					{/if}
 				</div>
-			{/if}
-
-			{#if data.network}
-				<div class="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-					<h4 class="mb-2 text-xs font-semibold text-blue-700 dark:text-blue-300">
-						🌐 Network
-					</h4>
-					<div class="space-y-1 text-xs">
-						{#if data.network.isp}
-							<div class="flex justify-between">
-								<span class="text-blue-600 dark:text-blue-400">ISP:</span>
-								<span class="font-semibold truncate ml-2">{data.network.isp}</span>
-							</div>
-						{/if}
-						{#if data.network.organization}
-							<div class="flex justify-between">
-								<span class="text-blue-600 dark:text-blue-400">Org:</span>
-								<span class="font-semibold truncate ml-2">{data.network.organization}</span>
-							</div>
-						{/if}
-						{#if data.network.connection_type}
-							<div class="flex justify-between">
-								<span class="text-blue-600 dark:text-blue-400">Type:</span>
-								<span class="capitalize">{data.network.connection_type}</span>
-							</div>
-						{/if}
-						{#if data.network.autonomous_system_number}
-							<div class="flex justify-between">
-								<span class="text-blue-600 dark:text-blue-400">ASN:</span>
-								<span class="font-mono">{data.network.autonomous_system_number}</span>
-							</div>
-						{/if}
-					</div>
-				</div>
-			{/if}
-		</div>
+			</div>
+		{/if}
 
 		<!-- Security & Additional Info -->
 		{#if data.security && (data.security.is_anonymous || data.security.is_anonymous_vpn || data.security.is_hosting_provider || data.security.is_public_proxy || data.security.is_residential_proxy || data.security.is_tor_exit_node || data.security.user_type)}
@@ -163,60 +127,22 @@
 			</div>
 		{/if}
 
-		<!-- Mobile & Confidence Info -->
-		{#if data.mobile || (data.confidence && (data.confidence.city || data.confidence.country || data.confidence.postal || data.confidence.subdivision))}
-			<div class="grid grid-cols-1 lg:grid-cols-2 gap-3">
-				{#if data.mobile}
-					<div class="rounded-lg bg-green-50 p-3 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-						<h4 class="mb-2 text-xs font-semibold text-green-700 dark:text-green-300">
-							📱 Mobile
-						</h4>
-						<div class="flex gap-3 text-xs">
-							<div class="text-center">
-								<div class="font-mono font-bold">{data.mobile.country_code}</div>
-								<div class="text-gray-600 dark:text-gray-400">MCC</div>
-							</div>
-							<div class="text-center">
-								<div class="font-mono font-bold">{data.mobile.network_code}</div>
-								<div class="text-gray-600 dark:text-gray-400">MNC</div>
-							</div>
-						</div>
+		<!-- Mobile Info -->
+		{#if data.mobile}
+			<div class="rounded-lg bg-green-50 p-3 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
+				<h4 class="mb-2 text-xs font-semibold text-green-700 dark:text-green-300">
+					📱 Mobile Network
+				</h4>
+				<div class="flex gap-6 text-xs">
+					<div class="flex gap-2">
+						<span class="text-green-600 dark:text-green-400">MCC:</span>
+						<span class="font-mono font-bold">{data.mobile.country_code}</span>
 					</div>
-				{/if}
-
-				{#if data.confidence && (data.confidence.city || data.confidence.country || data.confidence.postal || data.confidence.subdivision)}
-					<div class="rounded-lg bg-gray-50 p-3 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-						<h4 class="mb-2 text-xs font-semibold text-gray-700 dark:text-gray-300">
-							📊 Confidence
-						</h4>
-						<div class="grid grid-cols-2 gap-2 text-xs">
-							{#if data.confidence.city}
-								<div class="text-center">
-									<div class="font-bold text-blue-600 dark:text-blue-400">{data.confidence.city}%</div>
-									<div class="text-gray-600 dark:text-gray-400">City</div>
-								</div>
-							{/if}
-							{#if data.confidence.country}
-								<div class="text-center">
-									<div class="font-bold text-green-600 dark:text-green-400">{data.confidence.country}%</div>
-									<div class="text-gray-600 dark:text-gray-400">Country</div>
-								</div>
-							{/if}
-							{#if data.confidence.postal}
-								<div class="text-center">
-									<div class="font-bold text-purple-600 dark:text-purple-400">{data.confidence.postal}%</div>
-									<div class="text-gray-600 dark:text-gray-400">Postal</div>
-								</div>
-							{/if}
-							{#if data.confidence.subdivision}
-								<div class="text-center">
-									<div class="font-bold text-orange-600 dark:text-orange-400">{data.confidence.subdivision}%</div>
-									<div class="text-gray-600 dark:text-gray-400">State</div>
-								</div>
-							{/if}
-						</div>
+					<div class="flex gap-2">
+						<span class="text-green-600 dark:text-green-400">MNC:</span>
+						<span class="font-mono font-bold">{data.mobile.network_code}</span>
 					</div>
-				{/if}
+				</div>
 			</div>
 		{/if}
 
