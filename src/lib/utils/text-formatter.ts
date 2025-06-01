@@ -29,86 +29,73 @@ const IPV6_REGEX =
 // Combined IP regex for both IPv4 and IPv6
 const IP_REGEX = new RegExp(`(${IPV4_REGEX.source})|(${IPV6_REGEX.source})`, 'g');
 
-// Cache for tool names to prevent excessive registry calls
-let toolNamesCache: Set<string> | null = null;
-let lastCacheUpdate = 0;
-const CACHE_DURATION = 1000; // 1 second cache
+// Global static cache for valid tool names - only updated when tools change
+let staticValidToolsSet: Set<string> = new Set();
+let staticCacheInitialized = false;
 
-// Get all available tool names for validation with caching
-function getValidToolNames(): Set<string> {
+// Initialize the static tool cache once
+function initializeStaticToolCache(): void {
 	try {
-		const now = Date.now();
-
-		// Return cached result if still valid
-		if (toolNamesCache && now - lastCacheUpdate < CACHE_DURATION) {
-			return toolNamesCache;
-		}
-
+		if (staticCacheInitialized) return;
+		
 		const tools = toolRegistry.getEnabledTools();
-		if (!tools || typeof tools !== 'object') {
-			toolNamesCache = new Set();
-		} else {
-			toolNamesCache = new Set(Object.keys(tools));
+		if (tools && typeof tools === 'object') {
+			staticValidToolsSet = new Set(Object.keys(tools));
 		}
-
-		lastCacheUpdate = now;
-		return toolNamesCache;
+		staticCacheInitialized = true;
 	} catch (error) {
-		console.warn('Tool registry not ready, returning empty tool set:', error);
-		return toolNamesCache || new Set();
+		console.warn('Failed to initialize tool cache:', error);
+		staticValidToolsSet = new Set();
 	}
+}
+
+// Get all available tool names for validation - static cache
+function getValidToolNames(): Set<string> {
+	if (!staticCacheInitialized) {
+		initializeStaticToolCache();
+	}
+	return staticValidToolsSet;
 }
 
 // Function to invalidate cache when tools change
 export function invalidateToolCache(): void {
-	toolNamesCache = null;
-	lastCacheUpdate = 0;
-	// Also clear validation cache
-	toolValidationCache.clear();
+	staticValidToolsSet.clear();
+	staticCacheInitialized = false;
 	// Clear parse cache as tool validation affects parsing
 	parseCache.clear();
+	// Re-initialize immediately for next use
+	initializeStaticToolCache();
 }
 
-// Cache for tool validation results
-const toolValidationCache = new Map<string, { isValid: boolean; timestamp: number }>();
-const VALIDATION_CACHE_DURATION = 5000; // 5 seconds for validation cache
-
-// Validate if a tool name is real with caching
+// Ultra-fast tool validation using static set
 function isValidTool(toolName: string): boolean {
-	try {
-		if (!toolName || typeof toolName !== 'string') {
-			return false;
-		}
-
-		const now = Date.now();
-		const cached = toolValidationCache.get(toolName);
-
-		// Return cached result if still valid
-		if (cached && now - cached.timestamp < VALIDATION_CACHE_DURATION) {
-			return cached.isValid;
-		}
-
-		const validTools = getValidToolNames();
-		const isValid = validTools.has(toolName);
-
-		// Cache the result
-		toolValidationCache.set(toolName, { isValid, timestamp: now });
-
-		// Clean up old cache entries periodically
-		if (toolValidationCache.size > 100) {
-			const cutoff = now - VALIDATION_CACHE_DURATION;
-			for (const [key, value] of toolValidationCache.entries()) {
-				if (value.timestamp < cutoff) {
-					toolValidationCache.delete(key);
-				}
-			}
-		}
-
-		return isValid;
-	} catch (error) {
-		console.warn('Error validating tool name:', error);
+	if (!toolName || typeof toolName !== 'string') {
 		return false;
 	}
+	
+	if (!staticCacheInitialized) {
+		initializeStaticToolCache();
+	}
+	
+	return staticValidToolsSet.has(toolName);
+}
+
+// Create optimized tool rule that pre-compiles valid tools
+function createOptimizedToolRule(): FormatRule {
+	// Pre-initialize tool cache for immediate validation
+	if (!staticCacheInitialized) {
+		initializeStaticToolCache();
+	}
+	
+	return {
+		pattern: TOOL_REGEX,
+		className: 'text-blue-800 dark:text-blue-200',
+		validate: (match: string) => {
+			const toolName = match.slice(1); // Remove @ symbol
+			// Direct set lookup - no function call overhead
+			return staticValidToolsSet.has(toolName);
+		}
+	};
 }
 
 // Default formatting rules
@@ -118,14 +105,7 @@ export const defaultFormatRules: FormatRule[] = [
 		className:
 			'text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300'
 	},
-	{
-		pattern: TOOL_REGEX,
-		className: 'text-blue-800 dark:text-blue-200',
-		validate: (match: string) => {
-			const toolName = match.slice(1); // Remove @ symbol
-			return isValidTool(toolName);
-		}
-	},
+	createOptimizedToolRule(),
 	{
 		pattern: IP_REGEX,
 		className:
@@ -138,10 +118,15 @@ export function extractToolMentions(text: string): string[] {
 	try {
 		if (!text || typeof text !== 'string') return [];
 
+		// Ensure tool cache is initialized
+		if (!staticCacheInitialized) {
+			initializeStaticToolCache();
+		}
+
 		const matches = text.match(TOOL_REGEX) || [];
 		return matches
 			.map((match) => match.slice(1)) // Remove @ symbol
-			.filter((toolName) => isValidTool(toolName));
+			.filter((toolName) => staticValidToolsSet.has(toolName));
 	} catch (error) {
 		console.error('Error extracting tool mentions:', error);
 		return [];
@@ -194,7 +179,7 @@ export function extractIpv6(text: string): string[] {
 
 // Cache for parsed text to prevent excessive re-parsing
 const parseCache = new Map<string, { segments: FormatSegment[]; timestamp: number }>();
-const PARSE_CACHE_DURATION = 2000; // 2 seconds cache for parsed segments
+const PARSE_CACHE_DURATION = 5000; // 5 seconds cache for parsed segments (increased)
 
 // Debounced parsing map to prevent excessive calls
 const debounceTimeouts = new Map<string, NodeJS.Timeout>();
@@ -209,8 +194,8 @@ export function parseFormattedText(
 		if (!text || typeof text !== 'string') return [];
 		if (!rules || !Array.isArray(rules)) return [{ text, isFormatted: false }];
 
-		// Create cache key based on text and rules
-		const cacheKey = `${text}_${JSON.stringify(rules.map((r) => ({ pattern: r.pattern.source, className: r.className })))}`;
+		// Simplified cache key for better performance
+		const cacheKey = `${text.length}_${text.slice(0, 50)}_${rules.length}`;
 		const now = Date.now();
 		const cached = parseCache.get(cacheKey);
 
@@ -225,7 +210,7 @@ export function parseFormattedText(
 		parseCache.set(cacheKey, { segments, timestamp: now });
 
 		// Clean up old cache entries periodically
-		if (parseCache.size > 50) {
+		if (parseCache.size > 100) {
 			const cutoff = now - PARSE_CACHE_DURATION;
 			for (const [key, value] of parseCache.entries()) {
 				if (value.timestamp < cutoff) {
@@ -373,12 +358,18 @@ export function getFormattedTextClasses(): string {
 
 // Custom rule builder helpers
 export function createToolRule(className?: string): FormatRule {
+	// Pre-initialize tool cache for immediate validation
+	if (!staticCacheInitialized) {
+		initializeStaticToolCache();
+	}
+	
 	return {
 		pattern: TOOL_REGEX,
 		className: className || 'text-blue-800 dark:text-blue-200',
 		validate: (match: string) => {
 			const toolName = match.slice(1);
-			return isValidTool(toolName);
+			// Direct set lookup - no function call overhead
+			return staticValidToolsSet.has(toolName);
 		}
 	};
 }
@@ -429,4 +420,33 @@ export function createCustomRule(
 		className,
 		validate
 	};
+}
+
+// Create pre-optimized default rules for high-performance scenarios
+export function createOptimizedDefaultRules(): FormatRule[] {
+	// Ensure tool cache is ready
+	if (!staticCacheInitialized) {
+		initializeStaticToolCache();
+	}
+	
+	return [
+		{
+			pattern: URL_REGEX,
+			className:
+				'text-blue-600 dark:text-blue-400 underline hover:text-blue-800 dark:hover:text-blue-300'
+		},
+		{
+			pattern: TOOL_REGEX,
+			className: 'text-blue-800 dark:text-blue-200',
+			validate: (match: string) => {
+				const toolName = match.slice(1);
+				return staticValidToolsSet.has(toolName);
+			}
+		},
+		{
+			pattern: IP_REGEX,
+			className:
+				'text-orange-600 dark:text-orange-400 cursor-pointer hover:text-orange-800 dark:hover:text-orange-300 transition-colors'
+		}
+	];
 }

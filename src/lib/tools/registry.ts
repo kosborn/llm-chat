@@ -168,7 +168,7 @@ class ToolRegistryManager implements ToolDiscovery {
 
 	private notifyToolCacheInvalidation(): void {
 		// Dynamically import to avoid circular dependency
-		import('$lib/utils/text-formatter.js')
+		import('$lib/utils/text-formatter-manager.js')
 			.then((module) => {
 				if (module.invalidateToolCache) {
 					module.invalidateToolCache();

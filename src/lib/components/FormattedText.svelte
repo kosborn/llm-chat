@@ -2,10 +2,8 @@
 	import {
 		parseFormattedText,
 		getFormattedTextClasses,
-		invalidateToolCache,
 		type FormatRule
-	} from '$lib/utils/text-formatter';
-	import { onMount } from 'svelte';
+	} from '$lib/utils/text-formatter-manager';
 
 	interface Props {
 		text: string;
@@ -15,12 +13,14 @@
 
 	let { text, rules, class: className = '' }: Props = $props();
 
-	// Invalidate cache on mount to ensure fresh tool data
-	onMount(() => {
-		invalidateToolCache();
+	// Use cached parsing - no need to invalidate cache here as it's managed globally
+	const segments = $derived(() => {
+		// Skip parsing for empty text
+		if (!text || !text.trim()) {
+			return [{ text: text || '', isFormatted: false }];
+		}
+		return parseFormattedText(text, rules);
 	});
-
-	const segments = $derived(() => parseFormattedText(text, rules));
 </script>
 
 <div class="{getFormattedTextClasses()} {className}">

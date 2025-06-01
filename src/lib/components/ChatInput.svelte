@@ -11,7 +11,7 @@
 	} from '$lib/utils/simple-token-counter';
 	import ToolSelector from './ToolSelector.svelte';
 	import FormattedTextInput from './FormattedTextInput.svelte';
-	import { defaultFormatRules } from '$lib/utils/text-formatter';
+	import { createOptimizedDefaultRules } from '$lib/utils/text-formatter-manager';
 
 	import type { ToolMetadata } from '$lib/tools/types.js';
 	import type { ProviderId } from '$lib/providers/index.js';
@@ -262,7 +262,7 @@
 				{disabled}
 				{placeholder}
 				rows={1}
-				rules={defaultFormatRules}
+				rules={createOptimizedDefaultRules()}
 				class="max-h-[120px] min-h-[48px] rounded-lg border border-gray-300 bg-white text-gray-900 placeholder-gray-500 focus-within:border-transparent focus-within:ring-2 focus-within:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400"
 			/>
 		</div>

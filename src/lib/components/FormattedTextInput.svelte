@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { parseFormattedText, type FormatRule } from '$lib/utils/text-formatter';
+	import { parseFormattedText, type FormatRule } from '$lib/utils/text-formatter-manager';
 	import { toolRegistry } from '$lib/tools/registry.js';
 	import type { ToolMetadata } from '$lib/tools/types.js';
 
@@ -35,15 +35,42 @@
 	let hoveredTool = $state<ToolMetadata | null>(null);
 	let tooltipPosition = $state({ x: 0, y: 0 });
 	let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
+	let parseTimeout: ReturnType<typeof setTimeout> | null = null;
 
+	// Debounced parsing to reduce excessive re-parsing
 	$effect(() => {
-		try {
-			const result = parseFormattedText(value, rules);
-			segments = Array.isArray(result) ? result : [];
-		} catch (error) {
-			console.error('Error parsing text:', error);
-			segments = [];
+		if (parseTimeout) {
+			clearTimeout(parseTimeout);
 		}
+
+		// For empty values, parse immediately
+		if (!value.trim()) {
+			segments = [];
+			return;
+		}
+
+		// For short text (< 50 chars), parse immediately
+		if (value.length < 50) {
+			try {
+				const result = parseFormattedText(value, rules);
+				segments = Array.isArray(result) ? result : [];
+			} catch (error) {
+				console.error('Error parsing text:', error);
+				segments = [];
+			}
+			return;
+		}
+
+		// For longer text, debounce parsing
+		parseTimeout = setTimeout(() => {
+			try {
+				const result = parseFormattedText(value, rules);
+				segments = Array.isArray(result) ? result : [];
+			} catch (error) {
+				console.error('Error parsing text:', error);
+				segments = [];
+			}
+		}, 150); // 150ms debounce for longer text
 	});
 
 	function handleInput(event: Event) {
@@ -171,11 +198,14 @@
 		}
 	}
 
-	// Cleanup timeout on component destruction
+	// Cleanup timeouts on component destruction
 	$effect(() => {
 		return () => {
 			if (hoverTimeout) {
 				clearTimeout(hoverTimeout);
+			}
+			if (parseTimeout) {
+				clearTimeout(parseTimeout);
 			}
 		};
 	});
