@@ -8,6 +8,7 @@
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
 	import { offlineQueueStore } from '$lib/stores/offline-queue-store.svelte.js';
 	import { mobileStore } from '$lib/stores/mobile-store.svelte.js';
+	import { browser } from '$app/environment';
 
 	const { children } = $props();
 
@@ -27,9 +28,29 @@
 			}
 		}, 30000);
 
+		// Add keyboard shortcut for Cmd+B (or Ctrl+B on Windows/Linux)
+		function handleKeydown(event: KeyboardEvent) {
+			if ((event.metaKey || event.ctrlKey) && event.key === 'b') {
+				event.preventDefault();
+				// Check if we're on mobile or desktop and toggle accordingly
+				if (window.innerWidth < 768) {
+					mobileStore.toggleSidebar();
+				} else {
+					mobileStore.toggleDesktopSidebar();
+				}
+			}
+		}
+
+		if (browser) {
+			document.addEventListener('keydown', handleKeydown);
+		}
+
 		return () => {
 			if (checkInterval) {
 				clearInterval(checkInterval);
+			}
+			if (browser) {
+				document.removeEventListener('keydown', handleKeydown);
 			}
 		};
 	});

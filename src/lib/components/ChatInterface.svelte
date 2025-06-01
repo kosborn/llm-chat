@@ -679,7 +679,6 @@
 						}}
 						on:archiveChat={handleArchiveChat}
 						on:renameChat={handleRenameChat}
-						on:closeSidebar={() => mobileStore.closeSidebar()}
 						on:closeDesktopSidebar={() => mobileStore.closeDesktopSidebar()}
 					/>
 				{:else}

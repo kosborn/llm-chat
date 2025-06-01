@@ -18,7 +18,6 @@
 		newChat: Record<string, never>;
 		archiveChat: { chatId: string };
 		renameChat: { chatId: string; title: string };
-		closeSidebar: Record<string, never>;
 		closeDesktopSidebar: Record<string, never>;
 	}>();
 
@@ -27,10 +26,6 @@
 
 	function handleNewChat() {
 		dispatch('newChat', {});
-	}
-
-	function handleCloseSidebar() {
-		dispatch('closeSidebar', {});
 	}
 
 	function handleCloseDesktopSidebar() {
@@ -133,7 +128,7 @@
 				No chats yet. Start a new conversation!
 			</div>
 		{:else}
-			<div class="space-y-1 p-2">
+			<div class="space-y-1 overflow-hidden p-2">
 				{#each chats as chat (chat.id)}
 					<div
 						class="group relative cursor-pointer rounded-lg p-3 transition-colors
@@ -146,7 +141,7 @@
 						onkeydown={(e) => e.key === 'Enter' && handleSelectChat(chat.id)}
 					>
 						<!-- Chat Title -->
-						<div class="mb-1 flex items-start justify-between gap-2">
+						<div class="mb-1 flex min-w-0 items-start justify-between gap-2">
 							{#if editingChatId === chat.id}
 								<input
 									bind:value={editingTitle}
@@ -158,7 +153,7 @@
 									placeholder="Chat title"
 								/>
 							{:else}
-								<div class="flex flex-1 items-center gap-2">
+								<div class="flex min-w-0 flex-1 items-center gap-2">
 									<span
 										class="text-sm"
 										title={getChatProvider(chat)
@@ -281,25 +276,6 @@
 
 	<!-- Action Buttons at Bottom -->
 	<div class="border-t border-gray-200 p-4 dark:border-gray-700">
-		<!-- Mobile: Close button above New Chat -->
-		<div class="mb-3 md:hidden">
-			<button
-				onclick={handleCloseSidebar}
-				class="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm text-gray-500 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800"
-				aria-label="Close sidebar"
-			>
-				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M6 18L18 6M6 6l12 12"
-					></path>
-				</svg>
-				Close
-			</button>
-		</div>
-
 		<!-- Desktop: Hide button and New Chat button side by side -->
 		<div class="flex gap-2">
 			<!-- Desktop Hide Sidebar Button -->
