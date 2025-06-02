@@ -59,7 +59,21 @@ class ProviderManager {
 		if (this.validateApiKeyFormat(apiKey, provider)) {
 			this.apiKeyStorage.set(provider, apiKey);
 			if (browser) {
+				// Update all storage formats to maintain compatibility
 				localStorage.setItem(`apiKey_${provider}`, apiKey);
+
+				// Update the main API keys object used by UI components
+				try {
+					let existingKeys = {};
+					const stored = localStorage.getItem('ai-api-keys');
+					if (stored) {
+						existingKeys = JSON.parse(stored);
+					}
+					const updatedKeys = { ...existingKeys, [provider]: apiKey };
+					localStorage.setItem('ai-api-keys', JSON.stringify(updatedKeys));
+				} catch (error) {
+					debugConsole.warn('Failed to update ai-api-keys storage:', error);
+				}
 			}
 		} else {
 			throw new Error(`Invalid API key format for ${provider}`);
@@ -75,16 +89,32 @@ class ProviderManager {
 		const targetProvider = provider || this.currentProvider;
 		this.apiKeyStorage.delete(targetProvider);
 		if (browser) {
+			// Clear from all storage formats
 			localStorage.removeItem(`apiKey_${targetProvider}`);
+
+			// Update the main API keys object
+			try {
+				const stored = localStorage.getItem('ai-api-keys');
+				if (stored) {
+					const keys = JSON.parse(stored);
+					delete keys[targetProvider];
+					localStorage.setItem('ai-api-keys', JSON.stringify(keys));
+				}
+			} catch (error) {
+				debugConsole.warn('Failed to update ai-api-keys storage:', error);
+			}
 		}
 	}
 
 	clearAllApiKeys(): void {
 		this.apiKeyStorage.clear();
 		if (browser) {
+			// Clear all storage formats
 			Object.keys(PROVIDERS).forEach((provider) => {
 				localStorage.removeItem(`apiKey_${provider}`);
 			});
+			localStorage.removeItem('ai-api-keys');
+			localStorage.removeItem('ai-chat-api-keys');
 		}
 	}
 
@@ -120,7 +150,10 @@ class ProviderManager {
 		}
 
 		if (browser) {
+			// Update all storage formats to maintain compatibility
 			localStorage.setItem('currentProvider', provider);
+			localStorage.setItem('ai-provider', provider);
+			localStorage.setItem('ai-chat-provider', provider);
 			localStorage.setItem('currentModel', this.currentModel);
 		}
 	}
@@ -434,16 +467,49 @@ class ProviderManager {
 
 	private loadFromLocalStorage(): void {
 		try {
-			// Load API keys
+			// Load API keys from multiple storage formats for compatibility
 			Object.keys(PROVIDERS).forEach((provider) => {
-				const apiKey = localStorage.getItem(`apiKey_${provider}`);
+				let apiKey = null;
+
+				// Check new format first (individual keys)
+				apiKey = localStorage.getItem(`apiKey_${provider}`);
+
+				// If not found, check UI component format
+				if (!apiKey) {
+					try {
+						const stored = localStorage.getItem('ai-api-keys');
+						if (stored) {
+							const keys = JSON.parse(stored);
+							apiKey = keys[provider];
+						}
+					} catch {}
+				}
+
+				// If still not found, check chat store format
+				if (!apiKey) {
+					try {
+						const stored = localStorage.getItem('ai-chat-api-keys');
+						if (stored) {
+							const keys = JSON.parse(stored);
+							apiKey = keys[provider];
+						}
+					} catch {}
+				}
+
 				if (apiKey) {
 					this.apiKeyStorage.set(provider as ProviderId, apiKey);
 				}
 			});
 
-			// Load current provider and model
-			const savedProvider = localStorage.getItem('currentProvider') as ProviderId;
+			// Load current provider from multiple sources
+			let savedProvider = localStorage.getItem('currentProvider') as ProviderId;
+			if (!savedProvider) {
+				savedProvider = localStorage.getItem('ai-provider') as ProviderId;
+			}
+			if (!savedProvider) {
+				savedProvider = localStorage.getItem('ai-chat-provider') as ProviderId;
+			}
+
 			const savedModel = localStorage.getItem('currentModel');
 
 			if (savedProvider && this.isValidProvider(savedProvider)) {
