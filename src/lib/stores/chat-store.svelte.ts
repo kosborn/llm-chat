@@ -274,14 +274,43 @@ class ChatStore {
 			if (!needsRename || chat.messages.length !== 2) return;
 		}
 
-		const userMessage = chat.messages.find((m) => m.role === 'user');
-		const assistantMessage = chat.messages.find((m) => m.role === 'assistant');
+		// Collect messages with content for title generation
+		const userMessages = chat.messages.filter((m) => m.role === 'user' && m.content?.trim());
+		const assistantMessages = chat.messages.filter(
+			(m) => m.role === 'assistant' && m.content?.trim()
+		);
 
-		if (!userMessage || !assistantMessage || !userMessage.content || !assistantMessage.content) {
+		if (userMessages.length === 0 || assistantMessages.length === 0) {
 			if (forceRegenerate) {
-				throw new Error('Chat must have both user and assistant messages with content');
+				throw new Error(
+					'Chat must have at least one user message and one assistant response with content'
+				);
 			}
 			return;
+		}
+
+		// Use the most recent user and assistant messages with content
+		const userMessage = userMessages[userMessages.length - 1];
+		const assistantMessage = assistantMessages[assistantMessages.length - 1];
+
+		// If we have multiple messages, collect more context for better title generation
+		let userContent = userMessage.content;
+		let assistantContent = assistantMessage.content;
+
+		// If we have more than one exchange, combine the first user message with the most recent
+		if (userMessages.length > 1) {
+			const firstUserMessage = userMessages[0];
+			if (firstUserMessage.id !== userMessage.id) {
+				userContent = `${firstUserMessage.content}\n\n[Later in conversation]\n${userMessage.content}`;
+			}
+		}
+
+		// If we have multiple assistant responses, include context from earlier responses
+		if (assistantMessages.length > 1) {
+			const firstAssistantMessage = assistantMessages[0];
+			if (firstAssistantMessage.id !== assistantMessage.id) {
+				assistantContent = `${firstAssistantMessage.content}\n\n[Later in conversation]\n${assistantMessage.content}`;
+			}
 		}
 
 		// Check if we can generate titles (online and has API key if needed)
@@ -303,8 +332,8 @@ class ChatStore {
 			);
 
 			const title = await clientChatService.generateTitle(
-				userMessage.content,
-				assistantMessage.content,
+				userContent,
+				assistantContent,
 				chat.provider,
 				chat.model
 			);
