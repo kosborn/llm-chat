@@ -195,28 +195,31 @@ class ProviderManager {
 	async checkServerAvailability(): Promise<boolean> {
 		if (!browser) return false;
 
+		// Import networkStore dynamically to avoid circular dependencies
+		const { networkStore } = await import('../stores/network-store.svelte.js');
+
+		// If we're offline, server is definitely not available
+		if (!networkStore.isOnline) {
+			this.serverAvailable = false;
+			return false;
+		}
+
 		const now = Date.now();
-		if (now - this.lastServerCheck < 30000) {
+		// Use shorter cache time and reset when offline
+		if (now - this.lastServerCheck < 5000) {
 			return this.serverAvailable;
 		}
 
 		this.lastServerCheck = now;
 
 		try {
-			const response = await fetch('/api/chat', {
-				method: 'POST',
+			const response = await fetch('/api/health', {
+				method: 'GET',
 				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({
-					messages: [{ role: 'user', content: 'health-check' }]
-				})
+				signal: AbortSignal.timeout(3000) // 3 second timeout
 			});
 
-			if (response.ok) {
-				const data = await response.json();
-				this.serverAvailable = data.available === true;
-			} else {
-				this.serverAvailable = false;
-			}
+			this.serverAvailable = response.ok;
 		} catch {
 			this.serverAvailable = false;
 		}
@@ -323,6 +326,18 @@ class ProviderManager {
 			displayName: `${providerConfig.displayName} - ${this.getModelDisplayName(targetProvider, targetModel)}`,
 			errorMessage
 		};
+	}
+
+	// Force refresh server availability status
+	async refreshServerAvailability(): Promise<boolean> {
+		this.lastServerCheck = 0; // Force refresh
+		return this.checkServerAvailability();
+	}
+
+	// Reset server availability when going offline
+	markServerOffline(): void {
+		this.serverAvailable = false;
+		this.lastServerCheck = 0;
 	}
 
 	async getCapabilities(): Promise<ProviderCapabilities> {

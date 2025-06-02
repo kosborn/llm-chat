@@ -56,12 +56,12 @@ export class PWAManager {
 		try {
 			const result = await this.deferredPrompt.prompt();
 			debugConsole.log('Install prompt result:', result.outcome);
-			
+
 			const accepted = result.outcome === 'accepted';
 			if (accepted) {
 				this.deferredPrompt = null;
 			}
-			
+
 			return accepted;
 		} catch (error) {
 			debugConsole.error('Install prompt failed:', error);

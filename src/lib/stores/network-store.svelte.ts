@@ -45,6 +45,11 @@ class NetworkStore {
 		this.isOffline = true;
 		debugConsole.log('Network: Gone offline');
 
+		// Notify provider manager that server is offline
+		import('../providers/provider-manager.js').then(({ providerManager }) => {
+			providerManager.markServerOffline();
+		});
+
 		// Dispatch custom event for other components
 		window.dispatchEvent(new CustomEvent('network-offline'));
 	}

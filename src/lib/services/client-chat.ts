@@ -36,6 +36,9 @@ class ClientChatService {
 			: providerManager.getCurrentProvider();
 		const requestedModel = model || providerManager.getCurrentModel();
 
+		// Force refresh server availability to get current status
+		const isServerAvailable = await providerManager.refreshServerAvailability();
+
 		// Check if we can send with this configuration
 		const status = await providerManager.getProviderStatus(requestedProvider, requestedModel);
 		if (!status.canSend) {
@@ -45,8 +48,8 @@ class ClientChatService {
 			};
 		}
 
-		// Try server-side first if available
-		if (status.isServerAvailable) {
+		// Try server-side first only if server is actually available AND online
+		if (isServerAvailable && networkStore.isOnline) {
 			try {
 				const serverResponse = await this.tryServerSide(
 					messages,
@@ -58,7 +61,9 @@ class ClientChatService {
 					return serverResponse;
 				}
 			} catch (error) {
-				debugConsole.log('Server-side unavailable, falling back to client-side:', error);
+				debugConsole.log('Server-side failed, falling back to client-side:', error);
+				// Mark server as unavailable after failed attempt
+				providerManager.refreshServerAvailability();
 			}
 		}
 
@@ -279,8 +284,11 @@ class ClientChatService {
 			return null;
 		}
 
-		// Try server-side first if available
-		if (status.isServerAvailable) {
+		// Force refresh server availability
+		const isServerAvailable = await providerManager.refreshServerAvailability();
+
+		// Try server-side first only if server is actually available AND online
+		if (isServerAvailable && networkStore.isOnline) {
 			try {
 				const serverTitle = await this.tryServerSideTitle(
 					userMessage,
@@ -293,7 +301,7 @@ class ClientChatService {
 				}
 			} catch (error) {
 				debugConsole.log(
-					'Server-side title generation unavailable, falling back to client-side:',
+					'Server-side title generation failed, falling back to client-side:',
 					error
 				);
 			}

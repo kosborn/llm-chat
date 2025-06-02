@@ -49,7 +49,7 @@
 
 			// Request persistent storage for better offline experience
 			await pwaManager.requestPersistentStorage();
-			
+
 			// Show install prompt after a short delay if available
 			setTimeout(() => {
 				if (pwaManager.canInstall()) {

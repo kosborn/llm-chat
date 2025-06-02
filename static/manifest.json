@@ -1,61 +1,61 @@
 {
-  "name": "AI Tool Chat",
-  "short_name": "AI Chat",
-  "description": "Chat with AI using powerful tools - works offline",
-  "start_url": "/",
-  "scope": "/",
-  "display": "standalone",
-  "orientation": "portrait-primary",
-  "theme_color": "#1e40af",
-  "background_color": "#ffffff",
-  "lang": "en",
-  "categories": ["productivity", "utilities", "business"],
-  "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "AI Tool Chat interface on mobile"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "New Chat",
-      "short_name": "New Chat",
-      "description": "Start a new conversation with AI",
-      "url": "/?action=new-chat",
-      "icons": [
-        {
-          "src": "/icon-192.png",
-          "sizes": "192x192"
-        }
-      ]
-    }
-  ],
-  "prefer_related_applications": false,
-  "edge_side_panel": {
-    "preferred_width": 400
-  },
-  "display_override": ["window-controls-overlay", "standalone"],
-  "protocol_handlers": [
-    {
-      "protocol": "web+aichat",
-      "url": "/?action=chat&text=%s"
-    }
-  ]
+	"name": "AI Tool Chat",
+	"short_name": "AI Chat",
+	"description": "Chat with AI using powerful tools - works offline",
+	"start_url": "/",
+	"scope": "/",
+	"display": "standalone",
+	"orientation": "portrait-primary",
+	"theme_color": "#1e40af",
+	"background_color": "#ffffff",
+	"lang": "en",
+	"categories": ["productivity", "utilities", "business"],
+	"icons": [
+		{
+			"src": "/icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any maskable"
+		},
+		{
+			"src": "/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any maskable"
+		}
+	],
+	"screenshots": [
+		{
+			"src": "/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"form_factor": "narrow",
+			"label": "AI Tool Chat interface on mobile"
+		}
+	],
+	"shortcuts": [
+		{
+			"name": "New Chat",
+			"short_name": "New Chat",
+			"description": "Start a new conversation with AI",
+			"url": "/?action=new-chat",
+			"icons": [
+				{
+					"src": "/icon-192.png",
+					"sizes": "192x192"
+				}
+			]
+		}
+	],
+	"prefer_related_applications": false,
+	"edge_side_panel": {
+		"preferred_width": 400
+	},
+	"display_override": ["window-controls-overlay", "standalone"],
+	"protocol_handlers": [
+		{
+			"protocol": "web+aichat",
+			"url": "/?action=chat&text=%s"
+		}
+	]
 }

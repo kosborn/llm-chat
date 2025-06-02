@@ -53,7 +53,9 @@
 		onClose();
 	}
 
-	const shouldShow = $derived((isOpen || showPrompt) && !pwaManager.isAppInstalled() && pwaManager.canInstall());
+	const shouldShow = $derived(
+		(isOpen || showPrompt) && !pwaManager.isAppInstalled() && pwaManager.canInstall()
+	);
 </script>
 
 {#if shouldShow}
