@@ -127,61 +127,77 @@
 	}
 
 	function handleMouseMove(event: MouseEvent) {
-		if (!value.trim()) return;
+		try {
+			if (!value.trim()) return;
 
-		const textarea = event.currentTarget as HTMLTextAreaElement;
+			const textarea = event.currentTarget as HTMLTextAreaElement;
 
-		// Use textarea properties to calculate approximate character position
-		const rect = textarea.getBoundingClientRect();
-		const x = event.clientX - rect.left - 16; // Account for padding
-		const y = event.clientY - rect.top - 12; // Account for padding
+			// Use textarea properties to calculate approximate character position
+			const rect = textarea.getBoundingClientRect();
+			const x = event.clientX - rect.left - 16; // Account for padding
+			const y = event.clientY - rect.top - 12; // Account for padding
 
-		// Estimate character position based on font metrics
-		const lineHeight = 24; // Approximate line height
-		const charWidth = 8; // Approximate character width
-		const lineNumber = Math.floor(y / lineHeight);
-		const charInLine = Math.floor(x / charWidth);
+			// Early return if coordinates are negative
+			if (x < 0 || y < 0) return;
 
-		// Calculate approximate text position
-		const lines = value.split('\n');
-		let charPosition = 0;
+			// Estimate character position based on font metrics
+			const lineHeight = 24; // Approximate line height
+			const charWidth = 8; // Approximate character width
+			const lineNumber = Math.floor(y / lineHeight);
+			const charInLine = Math.max(0, Math.floor(x / charWidth));
 
-		for (let i = 0; i < lineNumber && i < lines.length; i++) {
-			charPosition += lines[i].length + 1; // +1 for newline
-		}
+			// Calculate approximate text position
+			const lines = value.split('\n');
+			let charPosition = 0;
 
-		if (lineNumber < lines.length) {
-			charPosition += Math.min(charInLine, lines[lineNumber].length);
-		}
+			// Ensure lineNumber is within bounds
+			const clampedLineNumber = Math.max(0, Math.min(lineNumber, lines.length - 1));
 
-		// Find which segment contains this position
-		let currentPos = 0;
-		let hoveredSegment = null;
-
-		for (const segment of segments) {
-			const segmentEnd = currentPos + segment.text.length;
-			if (charPosition >= currentPos && charPosition < segmentEnd) {
-				hoveredSegment = segment;
-				break;
-			}
-			currentPos = segmentEnd;
-		}
-
-		// Show tooltip if hovering over a tool segment
-		if (hoveredSegment?.isFormatted && hoveredSegment.text.startsWith('@')) {
-			if (hoverTimeout) {
-				clearTimeout(hoverTimeout);
+			for (let i = 0; i < clampedLineNumber && i < lines.length; i++) {
+				charPosition += lines[i].length + 1; // +1 for newline
 			}
 
-			hoverTimeout = setTimeout(() => {
-				const toolName = hoveredSegment.text.slice(1);
-				const tool = getToolData(toolName);
-				if (tool) {
-					hoveredTool = tool;
-					tooltipPosition = { x: event.clientX, y: event.clientY - 10 };
+			if (clampedLineNumber < lines.length && lines[clampedLineNumber] !== undefined) {
+				charPosition += Math.min(charInLine, lines[clampedLineNumber].length);
+			}
+
+			// Find which segment contains this position
+			let currentPos = 0;
+			let hoveredSegment = null;
+
+			for (const segment of segments) {
+				const segmentEnd = currentPos + segment.text.length;
+				if (charPosition >= currentPos && charPosition < segmentEnd) {
+					hoveredSegment = segment;
+					break;
 				}
-			}, 100);
-		} else {
+				currentPos = segmentEnd;
+			}
+
+			// Show tooltip if hovering over a tool segment
+			if (hoveredSegment?.isFormatted && hoveredSegment.text.startsWith('@')) {
+				if (hoverTimeout) {
+					clearTimeout(hoverTimeout);
+				}
+
+				hoverTimeout = setTimeout(() => {
+					const toolName = hoveredSegment.text.slice(1);
+					const tool = getToolData(toolName);
+					if (tool) {
+						hoveredTool = tool;
+						tooltipPosition = { x: event.clientX, y: event.clientY - 10 };
+					}
+				}, 100);
+			} else {
+				if (hoverTimeout) {
+					clearTimeout(hoverTimeout);
+					hoverTimeout = null;
+				}
+				hoveredTool = null;
+			}
+		} catch (error) {
+			debugConsole.warn('Error in handleMouseMove:', error);
+			// Clear any pending hover state on error
 			if (hoverTimeout) {
 				clearTimeout(hoverTimeout);
 				hoverTimeout = null;
