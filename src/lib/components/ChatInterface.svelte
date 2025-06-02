@@ -328,7 +328,8 @@
 						id: nanoid(),
 						role: 'assistant',
 						content: "📤 Message queued for sending when you're back online.",
-						timestamp: Date.now()
+						timestamp: Date.now(),
+						messageType: 'queued'
 					};
 					await chatStore.addMessage(queuedMessage);
 				} else {
@@ -337,7 +338,8 @@
 						id: nanoid(),
 						role: 'assistant',
 						content: clientChatService.getStatusMessage(),
-						timestamp: Date.now()
+						timestamp: Date.now(),
+						messageType: 'system'
 					};
 					await chatStore.addMessage(statusMessage);
 				}
@@ -630,7 +632,8 @@
 				id: nanoid(),
 				role: 'assistant',
 				content: 'Sorry, I encountered an error while processing your message. Please try again.',
-				timestamp: Date.now()
+				timestamp: Date.now(),
+				messageType: 'error'
 			};
 
 			if (chatStore.currentChatId) {

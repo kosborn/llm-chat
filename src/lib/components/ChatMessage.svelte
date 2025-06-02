@@ -89,40 +89,59 @@
 				return '';
 		}
 	}
-
-	function getModeDisplayName(mode?: string): string {
-		switch (mode) {
-			case 'client':
-				return 'Browser Client';
-			case 'server':
-				return 'Server AI';
-			default:
-				return '';
-		}
-	}
 </script>
 
 <div
 	bind:this={messageElement}
 	class="flex gap-3 p-4 {message.role === 'user'
 		? 'bg-blue-50 dark:bg-blue-900/20'
-		: 'bg-gray-50 dark:bg-gray-800/50'} mb-4 rounded-lg"
+		: message.messageType === 'error'
+			? 'border border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'
+			: message.messageType === 'system' || message.messageType === 'queued'
+				? 'border border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-900/20'
+				: 'bg-gray-50 dark:bg-gray-800/50'} mb-4 rounded-lg"
 >
 	<!-- Avatar -->
 	<div class="flex-shrink-0">
 		<div
 			class="flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium
-			{message.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-500 text-white'}"
+			{message.role === 'user'
+				? 'bg-blue-500 text-white'
+				: message.messageType === 'error'
+					? 'bg-red-500 text-white'
+					: message.messageType === 'system' || message.messageType === 'queued'
+						? 'bg-amber-500 text-white'
+						: 'bg-gray-500 text-white'}"
 		>
-			{message.role === 'user' ? '👤' : getProviderIcon(message.apiMetadata?.provider)}
+			{message.role === 'user'
+				? '👤'
+				: message.messageType === 'error'
+					? '⚠️'
+					: message.messageType === 'system'
+						? 'ℹ️'
+						: message.messageType === 'queued'
+							? '📤'
+							: getProviderIcon(message.apiMetadata?.provider)}
 		</div>
 	</div>
 
 	<!-- Message content -->
 	<div class="min-w-0 flex-1">
 		<div class="mb-1 flex items-center gap-2">
-			<span class="text-sm font-medium text-gray-900 dark:text-gray-100">
-				{getProviderName(message)}
+			<span
+				class="text-sm font-medium {message.messageType === 'error'
+					? 'text-red-700 dark:text-red-300'
+					: message.messageType === 'system' || message.messageType === 'queued'
+						? 'text-amber-700 dark:text-amber-300'
+						: 'text-gray-900 dark:text-gray-100'}"
+			>
+				{message.messageType === 'error'
+					? 'Error'
+					: message.messageType === 'system'
+						? 'System'
+						: message.messageType === 'queued'
+							? 'Queued'
+							: getProviderName(message)}
 			</span>
 			<span class="text-xs text-gray-500 dark:text-gray-400">
 				{formatTimestamp(message.timestamp)}
@@ -176,7 +195,14 @@
 
 		<!-- Message text content -->
 		{#if message.content}
-			<div class="prose prose-sm dark:prose-invert markdown-content max-w-none">
+			<div
+				class="prose prose-sm dark:prose-invert markdown-content max-w-none {message.messageType ===
+				'error'
+					? 'text-red-700 dark:text-red-300'
+					: message.messageType === 'system' || message.messageType === 'queued'
+						? 'text-amber-700 dark:text-amber-300'
+						: ''}"
+			>
 				<EnhancedText text={message.content} enableFormatting={true} enableMarkdown={true} />
 			</div>
 		{/if}

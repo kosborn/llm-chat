@@ -81,6 +81,7 @@ export interface ChatMessage {
 	timestamp: number;
 	toolInvocations?: ToolInvocation[];
 	apiMetadata?: ApiUsageMetadata;
+	messageType?: 'normal' | 'error' | 'system' | 'queued';
 }
 
 export interface Chat {
