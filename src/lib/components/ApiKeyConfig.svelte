@@ -67,7 +67,7 @@
 
 			if (response.ok) {
 				const data = await response.json();
-				serverAvailable = data.available === true;
+				serverAvailable = data.status === 'ok';
 			} else {
 				serverAvailable = false;
 			}
