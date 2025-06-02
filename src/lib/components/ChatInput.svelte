@@ -2,7 +2,7 @@
 	import { createEventDispatcher } from 'svelte';
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
 	import { providerStore } from '$lib/stores/provider-store.svelte.js';
-
+	import { offlineQueueStore } from '$lib/stores/offline-queue-store.svelte.js';
 
 	import {
 		countTokens,
@@ -14,6 +14,7 @@
 	import { createOptimizedDefaultRules } from '$lib/utils/text-formatter-manager';
 	import { ToolMentionManager } from '$lib/utils/tool-mention-manager.js';
 	import { debugConsole } from '$lib/utils/console.js';
+
 	import type { ToolMetadata } from '$lib/tools/types.js';
 	import type { ProviderId } from '$lib/providers/index.js';
 
@@ -24,7 +25,7 @@
 		model?: string;
 	}
 
-	const {
+	let {
 		disabled = false,
 		placeholder = 'Type a message...',
 		provider = 'groq',
@@ -64,7 +65,7 @@
 			return "flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-3 font-medium text-white transition-colors hover:bg-red-700 md:min-w-[80px] md:px-6";
 		}
 		
-		if (providerStore.effectiveMode === 'server') {
+		if (providerStore.effectiveMode === 'server' || (providerStore.preferredMode === 'server' && providerStore.effectiveMode === 'server')) {
 			return "flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-3 font-medium text-white transition-colors hover:bg-green-700 md:min-w-[80px] md:px-6";
 		}
 		
@@ -200,75 +201,14 @@
 			if (!textarea || atSymbolPosition < 0) return;
 
 			const textareaRect = textarea.getBoundingClientRect();
-			const isDesktop = window.innerWidth >= 768; // md breakpoint
 
-			if (isDesktop) {
-				// Desktop: Position next to cursor
-				const cursorPosition = getCursorPixelPosition(textarea, atSymbolPosition);
-				toolSelectorPosition = {
-					x: textareaRect.left + cursorPosition.x,
-					y: textareaRect.top + cursorPosition.y - 5
-				};
-			} else {
-				// Mobile: Center horizontally above textarea
-				toolSelectorPosition = {
-					x: textareaRect.left + textareaRect.width / 2 - 160, // Center assuming 320px width
-					y: textareaRect.top - 5
-				};
-			}
+			// Position for bottom-anchored popup - set Y to just above textarea
+			toolSelectorPosition = {
+				x: textareaRect.left + 16, // Account for padding
+				y: textareaRect.top - 5 // Position just above textarea for bottom-anchored popup
+			};
 		} catch (error) {
 			debugConsole.error('Error updating tool selector position:', error);
-		}
-	}
-
-	function getCursorPixelPosition(textarea: HTMLTextAreaElement, textPosition: number) {
-		try {
-			// Create a temporary div to measure text dimensions
-			const div = document.createElement('div');
-			const styles = window.getComputedStyle(textarea);
-			
-			// Copy relevant styles from textarea
-			div.style.font = styles.font;
-			div.style.fontSize = styles.fontSize;
-			div.style.fontFamily = styles.fontFamily;
-			div.style.fontWeight = styles.fontWeight;
-			div.style.lineHeight = styles.lineHeight;
-			div.style.letterSpacing = styles.letterSpacing;
-			div.style.wordSpacing = styles.wordSpacing;
-			div.style.padding = styles.padding;
-			div.style.border = styles.border;
-			div.style.boxSizing = styles.boxSizing;
-			div.style.width = `${textarea.offsetWidth}px`;
-			div.style.position = 'absolute';
-			div.style.visibility = 'hidden';
-			div.style.whiteSpace = 'pre-wrap';
-			div.style.wordWrap = 'break-word';
-			div.style.overflowWrap = 'break-word';
-
-			document.body.appendChild(div);
-
-			// Get text up to the @ symbol
-			const textUpToPosition = inputValue.substring(0, textPosition);
-			div.textContent = textUpToPosition;
-
-			// Add a span at the cursor position to measure
-			const span = document.createElement('span');
-			span.textContent = '|';
-			div.appendChild(span);
-
-			const spanRect = span.getBoundingClientRect();
-			const divRect = div.getBoundingClientRect();
-
-			const x = spanRect.left - divRect.left;
-			const y = spanRect.top - divRect.top;
-
-			document.body.removeChild(div);
-
-			return { x, y };
-		} catch (error) {
-			debugConsole.error('Error calculating cursor position:', error);
-			// Fallback to simple position
-			return { x: 16, y: 0 };
 		}
 	}
 
