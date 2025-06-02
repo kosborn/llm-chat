@@ -133,6 +133,13 @@ export const isToolEnabled = (toolName: string, config?: ToolsConfig): boolean =
 	return cfg.enabled && (cfg.tools[toolName]?.enabled ?? false);
 };
 
+export const isToolNetworkRequired = (toolName: string): boolean => {
+	// This would need to be coordinated with the actual tool metadata
+	// For now, we'll define which tools require network
+	const networkRequiredTools = ['weather', 'url', 'maxmind'];
+	return networkRequiredTools.includes(toolName);
+};
+
 export const isCategoryEnabled = (categoryName: string, config?: ToolsConfig): boolean => {
 	const cfg = config || getToolsConfig();
 	return cfg.enabled && (cfg.categories[categoryName]?.enabled ?? true);
@@ -146,4 +153,14 @@ export const getToolTimeout = (toolName: string, config?: ToolsConfig): number =
 export const getToolRateLimit = (toolName: string, config?: ToolsConfig) => {
 	const cfg = config || getToolsConfig();
 	return cfg.tools[toolName]?.rateLimit;
+};
+
+export const getToolsRequiringNetwork = (config?: ToolsConfig): string[] => {
+	const cfg = config || getToolsConfig();
+	return Object.keys(cfg.tools).filter((toolName) => isToolNetworkRequired(toolName));
+};
+
+export const getOfflineCompatibleTools = (config?: ToolsConfig): string[] => {
+	const cfg = config || getToolsConfig();
+	return Object.keys(cfg.tools).filter((toolName) => !isToolNetworkRequired(toolName));
 };

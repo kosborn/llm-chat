@@ -8,7 +8,8 @@ const weatherConfig: ToolConfig = {
 	version: '1.0.0',
 	author: 'System',
 	tags: ['weather', 'location', 'temperature'],
-	enabled: true
+	enabled: true,
+	requiresNetwork: true
 };
 
 const weatherParameters = z.object({

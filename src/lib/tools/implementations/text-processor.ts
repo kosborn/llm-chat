@@ -8,7 +8,8 @@ const textProcessorConfig: ToolConfig = {
 	version: '1.0.0',
 	author: 'System',
 	tags: ['text', 'formatting', 'transformation', 'analysis'],
-	enabled: true
+	enabled: true,
+	requiresNetwork: false
 };
 
 const textProcessorParameters = z.object({

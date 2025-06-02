@@ -1,6 +1,5 @@
 // Main tools entry point - now using modular registry system
 import {
-	toolRegistry,
 	toolsRegistry,
 	getAvailableTools,
 	getToolDescriptions,
@@ -22,6 +21,9 @@ export {
 	enableTool,
 	disableTool
 };
+
+// Re-export network-aware functions from registry
+export { getOfflineTools, getNetworkTools, canUseTool } from './registry.js';
 
 export {
 	type ToolConfig,

@@ -1,5 +1,6 @@
 import type { ToolRegistry, ToolMetadata, ToolDiscovery } from './types.js';
 import { debugConsole } from '../utils/console.js';
+import { networkStatus } from '../services/network-status.svelte.js';
 
 // Import all tool implementations
 import { weatherTool } from './implementations/weather.js';
@@ -87,7 +88,12 @@ class ToolRegistryManager implements ToolDiscovery {
 			// The metadata.enabled property is updated during initializePersistentSettings
 			const isEnabled = metadata.enabled !== false;
 
-			if (isEnabled) {
+			// Check if tool requires network and we're offline
+			const requiresNetwork = metadata.requiresNetwork === true;
+			const isNetworkAvailable = networkStatus.isOnline;
+			const canUse = !requiresNetwork || isNetworkAvailable;
+
+			if (isEnabled && canUse) {
 				enabledTools[name] = metadata;
 			}
 		}
@@ -232,15 +238,68 @@ class ToolRegistryManager implements ToolDiscovery {
 
 	getToolStats() {
 		const enabledTools = this.getEnabledTools();
+		const networkTools = Array.from(this.tools.values()).filter(
+			(tool) => tool.requiresNetwork === true
+		);
+		const offlineTools = Array.from(this.tools.values()).filter(
+			(tool) => tool.requiresNetwork !== true
+		);
+
 		const stats = {
 			total: this.tools.size,
 			enabled: Object.keys(enabledTools).length,
 			disabled: this.tools.size - Object.keys(enabledTools).length,
+			requiresNetwork: networkTools.length,
+			worksOffline: offlineTools.length,
+			networkStatus: networkStatus.isOnline ? 'online' : 'offline',
 			categories: this.getAvailableCategories().length,
 			tags: this.getAvailableTags().length
 		};
 
 		return stats;
+	}
+
+	// Get tools that work offline (don't require network)
+	getOfflineTools(): ToolRegistry {
+		const offlineTools: ToolRegistry = {};
+
+		for (const [name, metadata] of this.tools.entries()) {
+			const isEnabled = metadata.enabled !== false;
+			const worksOffline = metadata.requiresNetwork !== true;
+
+			if (isEnabled && worksOffline) {
+				offlineTools[name] = metadata;
+			}
+		}
+
+		return offlineTools;
+	}
+
+	// Get tools that require network
+	getNetworkTools(): ToolRegistry {
+		const networkTools: ToolRegistry = {};
+
+		for (const [name, metadata] of this.tools.entries()) {
+			const isEnabled = metadata.enabled !== false;
+			const requiresNetwork = metadata.requiresNetwork === true;
+
+			if (isEnabled && requiresNetwork) {
+				networkTools[name] = metadata;
+			}
+		}
+
+		return networkTools;
+	}
+
+	// Check if a specific tool can be used in current network state
+	canUseTool(toolName: string): boolean {
+		const tool = this.tools.get(toolName);
+		if (!tool || tool.enabled === false) {
+			return false;
+		}
+
+		const requiresNetwork = tool.requiresNetwork === true;
+		return !requiresNetwork || networkStatus.isOnline;
 	}
 
 	private notifyToolCacheInvalidation(): void {
@@ -271,7 +330,7 @@ export const toolsRegistry = new Proxy({} as Record<string, unknown>, {
 		}
 		return undefined;
 	},
-	ownKeys(target) {
+	ownKeys() {
 		const enabledTools = toolRegistry.getEnabledTools();
 		const keys = Object.keys(enabledTools);
 		return keys;
@@ -325,6 +384,19 @@ export const getToolsByTag = (tag: string) => {
 
 export const getToolStats = () => {
 	return toolRegistry.getToolStats();
+};
+
+// Network-aware helper functions
+export const getOfflineTools = () => {
+	return toolRegistry.getOfflineTools();
+};
+
+export const getNetworkTools = () => {
+	return toolRegistry.getNetworkTools();
+};
+
+export const canUseTool = (toolName: string) => {
+	return toolRegistry.canUseTool(toolName);
 };
 
 // Configuration functions

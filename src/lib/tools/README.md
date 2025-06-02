@@ -31,6 +31,7 @@ src/lib/tools/
 - **Category System**: Organize tools by category and tags
 - **Rate Limiting**: Built-in rate limiting support per tool
 - **Error Handling**: Standardized error handling and reporting
+- **Network Awareness**: Automatic filtering of network-dependent tools when offline
 - **Backward Compatibility**: Maintains compatibility with existing code
 
 ## Quick Start
@@ -53,7 +54,14 @@ const result = await toolsRegistry.weather.execute({
 ### Getting Tool Information
 
 ```typescript
-import { getToolDescriptions, getToolsByCategory, getToolStats } from '$lib/tools';
+import {
+	getToolDescriptions,
+	getToolsByCategory,
+	getToolStats,
+	getOfflineTools,
+	getNetworkTools,
+	canUseTool
+} from '$lib/tools';
 
 // Get all tool descriptions
 const descriptions = getToolDescriptions();
@@ -63,6 +71,15 @@ const utilityTools = getToolsByCategory('utility');
 
 // Get system statistics
 const stats = getToolStats();
+
+// Get tools that work offline
+const offlineTools = getOfflineTools();
+
+// Get tools that require network
+const networkTools = getNetworkTools();
+
+// Check if a specific tool can be used
+const canUseWeather = canUseTool('weather');
 ```
 
 ## Creating a New Tool
@@ -83,7 +100,8 @@ const myToolConfig: ToolConfig = {
 	version: '1.0.0',
 	author: 'Your Name',
 	tags: ['example', 'demo'],
-	enabled: true
+	enabled: true,
+	requiresNetwork: false // Set to true if tool needs internet connection
 };
 
 const myToolParameters = z.object({
@@ -142,6 +160,7 @@ tools: {
       maxRequests: 100,
       windowMs: 60000
     }
+    // Note: requiresNetwork is defined in the tool implementation, not config
   }
 }
 ```
@@ -161,6 +180,27 @@ export { myTool } from './implementations/my-tool.js';
 - **data**: Data processing tools (JSON, CSV, text processing)
 - **ai**: AI and ML tools (image processing, text analysis)
 - **development**: Development tools (code formatting, API testing)
+- **network**: Network-related tools (IP lookup, geolocation)
+
+## Network Requirements
+
+Tools are automatically categorized by their network requirements:
+
+### Offline Compatible Tools
+
+- **calculator**: Mathematical calculations
+- **time**: Local time operations
+- **random**: Random number/choice generation
+- **text-processor**: Text manipulation and analysis
+- **json-formatter**: JSON processing and validation
+
+### Network Required Tools
+
+- **weather**: Weather API calls
+- **url**: URL shortening services
+- **maxmind**: IP geolocation API calls
+
+When the client is offline, only offline-compatible tools will be available.
 
 ## Configuration
 
@@ -237,6 +277,13 @@ const mathTools = registry.getToolsByTag('math');
 
 // Get tool statistics
 const stats = registry.getToolStats();
+
+// Get network-aware tool sets
+const offlineTools = registry.getOfflineTools();
+const networkTools = registry.getNetworkTools();
+
+// Check if a tool can be used in current network state
+const canUse = registry.canUseTool('weather');
 ```
 
 ### Direct Registry Access
@@ -282,6 +329,8 @@ console.log('Execution time:', result.metadata.executionTime);
 6. **Documentation**: Include comprehensive parameter descriptions
 7. **Testing**: Test tools thoroughly before deployment
 8. **Versioning**: Use semantic versioning for tool updates
+9. **Network Requirements**: Accurately specify `requiresNetwork` to ensure proper offline behavior
+10. **Graceful Degradation**: Consider offline alternatives when designing network-dependent tools
 
 ## Environment Variables
 
@@ -295,6 +344,10 @@ NODE_ENV=development
 NODE_ENV=production
 TOOLS_MAX_CONCURRENT=3
 TOOLS_DEFAULT_TIMEOUT=15000
+
+# API Keys for network-dependent tools
+MAXMIND_API_KEY=account:password
+WEATHER_API_KEY=your_weather_api_key
 ```
 
 ## Troubleshooting
@@ -304,6 +357,8 @@ TOOLS_DEFAULT_TIMEOUT=15000
 1. Check if tool is imported in `registry.ts`
 2. Verify tool is enabled in configuration
 3. Check for import/export errors
+4. **Check network status**: Network-dependent tools are disabled when offline
+5. Verify `requiresNetwork` property is correctly set in tool configuration
 
 ### Tool Execution Fails
 
@@ -311,6 +366,8 @@ TOOLS_DEFAULT_TIMEOUT=15000
 2. Verify tool timeout settings
 3. Check rate limiting configuration
 4. Review error logs for specific issues
+5. **Check network connectivity**: Ensure network-dependent tools have internet access
+6. Verify API keys for external services (MaxMind, weather APIs, etc.)
 
 ### Performance Issues
 
@@ -337,4 +394,30 @@ import { registry, getToolsByCategory } from 'lib/tools';
 2. Follow existing naming conventions
 3. Add appropriate tests
 4. Update this documentation
-5. Submit PR with tool description and use cases
+5. **Specify network requirements**: Set `requiresNetwork` correctly in tool config
+6. Test both online and offline scenarios for network-dependent tools
+7. Submit PR with tool description and use cases
+
+## Network Status Service
+
+The tools system integrates with a network status service that:
+
+- Automatically detects online/offline state
+- Filters available tools based on network requirements
+- Provides real-time updates when connectivity changes
+- Offers manual network status checks
+
+```typescript
+import { networkStatus } from '$lib/services/network-status.svelte.js';
+
+// Check current status
+const isOnline = networkStatus.isOnline;
+
+// Force a network check
+await networkStatus.forceCheck();
+
+// Listen for network changes
+const cleanup = networkStatus.onNetworkChange((isOnline) => {
+	console.log('Network status changed:', isOnline);
+});
+```

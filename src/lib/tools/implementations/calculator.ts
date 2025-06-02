@@ -8,7 +8,8 @@ const calculatorConfig: ToolConfig = {
 	version: '1.0.0',
 	author: 'System',
 	tags: ['math', 'calculation', 'arithmetic'],
-	enabled: true
+	enabled: true,
+	requiresNetwork: false
 };
 
 const calculatorParameters = z.object({

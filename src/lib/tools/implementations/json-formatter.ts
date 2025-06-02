@@ -8,7 +8,8 @@ const jsonFormatterConfig: ToolConfig = {
 	version: '1.0.0',
 	author: 'System',
 	tags: ['json', 'format', 'validate', 'data', 'parse'],
-	enabled: true
+	enabled: true,
+	requiresNetwork: false
 };
 
 const jsonFormatterParameters = z.object({

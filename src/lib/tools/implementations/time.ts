@@ -8,7 +8,8 @@ const timeConfig: ToolConfig = {
 	version: '1.0.0',
 	author: 'System',
 	tags: ['time', 'timezone', 'datetime'],
-	enabled: true
+	enabled: true,
+	requiresNetwork: false
 };
 
 const timeParameters = z.object({

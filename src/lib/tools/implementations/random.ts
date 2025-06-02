@@ -8,7 +8,8 @@ const randomConfig: ToolConfig = {
 	version: '1.0.0',
 	author: 'System',
 	tags: ['random', 'generator', 'choice'],
-	enabled: true
+	enabled: true,
+	requiresNetwork: false
 };
 
 const randomParameters = z.object({

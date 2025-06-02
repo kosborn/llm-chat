@@ -4,6 +4,9 @@
 	import { getAllProviders, validateApiKey, type ProviderId } from '$lib/providers';
 	import { providerStore } from '$lib/stores/provider-store.svelte.js';
 	import type { ModePreference } from '$lib/providers/provider-manager.js';
+	import NetworkStatusIndicator from './NetworkStatusIndicator.svelte';
+	import { getToolStats, getOfflineTools, getNetworkTools } from '$lib/tools';
+	import { networkStatus } from '$lib/services/network-status.svelte.js';
 
 	interface Props {
 		isOpen: boolean;
@@ -23,6 +26,16 @@
 
 	// Get providers
 	const providers = getAllProviders();
+
+	// Tool availability tracking
+	let toolStats = $derived(getToolStats());
+	let offlineTools = $derived(getOfflineTools());
+	let networkTools = $derived(getNetworkTools());
+	let isNetworkOnline = $derived(networkStatus.isOnline);
+	let availableToolsCount = $derived(
+		isNetworkOnline ? toolStats.enabled : Object.keys(offlineTools).length
+	);
+	let unavailableToolsCount = $derived(isNetworkOnline ? 0 : Object.keys(networkTools).length);
 
 	// Load saved data when dialog opens
 	$effect(() => {
@@ -109,7 +122,9 @@
 			try {
 				const stored = localStorage.getItem('ai-api-keys');
 				if (stored) existingKeys = JSON.parse(stored);
-			} catch {}
+			} catch {
+				// Ignore errors when loading existing keys
+			}
 
 			const updatedKeys = {
 				...existingKeys,
@@ -203,7 +218,9 @@
 				const keys = JSON.parse(stored);
 				return !!keys[selectedProviderId];
 			}
-		} catch {}
+		} catch {
+			// Ignore errors when checking stored keys
+		}
 		return false;
 	});
 </script>
@@ -235,6 +252,40 @@
 						/>
 					</svg>
 				</button>
+			</div>
+
+			<!-- Network Status -->
+			<div class="mb-4 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+				<div class="mb-3 flex items-center justify-between">
+					<h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+						Network & Tools Status
+					</h3>
+					<NetworkStatusIndicator compact={true} />
+				</div>
+				<div class="grid grid-cols-2 gap-4 text-xs">
+					<div>
+						<span class="font-medium text-gray-600 dark:text-gray-400">Available Tools:</span>
+						<span class="ml-1 font-bold text-green-600 dark:text-green-400"
+							>{availableToolsCount}</span
+						>
+					</div>
+					{#if unavailableToolsCount > 0}
+						<div>
+							<span class="font-medium text-gray-600 dark:text-gray-400">Offline Tools:</span>
+							<span class="ml-1 font-bold text-red-600 dark:text-red-400"
+								>{unavailableToolsCount}</span
+							>
+						</div>
+					{/if}
+					<div>
+						<span class="font-medium text-gray-600 dark:text-gray-400">Network Required:</span>
+						<span class="ml-1">{Object.keys(networkTools).length}</span>
+					</div>
+					<div>
+						<span class="font-medium text-gray-600 dark:text-gray-400">Works Offline:</span>
+						<span class="ml-1">{Object.keys(offlineTools).length}</span>
+					</div>
+				</div>
 			</div>
 
 			<!-- Server Status -->

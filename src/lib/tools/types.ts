@@ -10,6 +10,7 @@ export interface ToolConfig {
 	version?: string;
 	author?: string;
 	tags?: string[];
+	requiresNetwork?: boolean;
 }
 
 // Tool metadata for registry

@@ -9,7 +9,8 @@ const toolConfig: ToolConfig = {
 	version: '1.0.0',
 	author: 'Your Name',
 	tags: ['tag1', 'tag2'], // Add relevant tags
-	enabled: true // Set to false to disable by default
+	enabled: true, // Set to false to disable by default
+	requiresNetwork: false // Set to true if tool needs internet connection
 };
 
 // TODO: Define your tool's parameters using Zod schema

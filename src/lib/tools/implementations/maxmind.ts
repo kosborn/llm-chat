@@ -9,7 +9,8 @@ const maxmindConfig: ToolConfig = {
 	version: '1.0.0',
 	author: 'System',
 	tags: ['ip', 'geolocation', 'network', 'security', 'location'],
-	enabled: true
+	enabled: true,
+	requiresNetwork: true
 };
 
 const maxmindParameters = z.object({

@@ -8,7 +8,8 @@ const urlConfig: ToolConfig = {
 	version: '1.0.0',
 	author: 'System',
 	tags: ['url', 'shortener', 'web'],
-	enabled: true
+	enabled: true,
+	requiresNetwork: true
 };
 
 const urlParameters = z.object({
