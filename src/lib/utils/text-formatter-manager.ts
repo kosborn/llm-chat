@@ -35,10 +35,10 @@ class TextFormatterManager {
 	private toolsCacheInitialized = false;
 	private lastToolsUpdate = 0;
 
-	// Parse result cache
+	// Parse result cache with improved limits
 	private parseCache = new Map<string, { segments: FormatSegment[]; timestamp: number }>();
-	private readonly PARSE_CACHE_DURATION = 10000; // 10 seconds
-	private readonly MAX_CACHE_SIZE = 200;
+	private readonly PARSE_CACHE_DURATION = 15000; // 15 seconds for better reuse
+	private readonly MAX_CACHE_SIZE = 100; // Reduced for memory efficiency
 
 	// Default rules (compiled once)
 	private defaultRules: FormatRule[] = [];
@@ -141,9 +141,11 @@ class TextFormatterManager {
 	}
 
 	private createCacheKey(text: string, rules?: FormatRule[]): string {
-		// Simple but effective cache key
+		// Optimized cache key generation for better performance
 		const rulesHash = rules ? rules.length.toString() : 'default';
-		return `${text.length}_${rulesHash}_${text.slice(0, 100)}`;
+		const textSample =
+			text.length > 200 ? text.slice(0, 100) + text.slice(-100) : text.slice(0, 100);
+		return `${text.length}_${rulesHash}_${textSample}`;
 	}
 
 	private cleanupCache(): void {
@@ -206,6 +208,11 @@ class TextFormatterManager {
 		const segments: FormatSegment[] = [];
 		let lastIndex = 0;
 
+		// For very large texts, limit processing to prevent UI freezing
+		const MAX_TEXT_LENGTH = 10000;
+		const shouldLimitProcessing = text.length > MAX_TEXT_LENGTH;
+		const processedText = shouldLimitProcessing ? text.slice(0, MAX_TEXT_LENGTH) : text;
+
 		// Collect all matches from all rules
 		const allMatches: Array<{
 			match: RegExpMatchArray;
@@ -214,16 +221,21 @@ class TextFormatterManager {
 			end: number;
 		}> = [];
 
+		// Limit match processing for performance
+		const MAX_MATCHES_PER_RULE = 500;
+
 		for (const rule of rules) {
 			try {
 				if (!rule || !rule.pattern) continue;
 
 				const regex = new RegExp(rule.pattern.source, rule.pattern.flags);
 				let match: RegExpExecArray | null;
+				let matchCount = 0;
 
-				while (true) {
-					match = regex.exec(text);
+				while (matchCount < MAX_MATCHES_PER_RULE) {
+					match = regex.exec(processedText);
 					if (match === null) break;
+
 					const start = match.index ?? 0;
 					const end = start + match[0].length;
 
@@ -231,10 +243,12 @@ class TextFormatterManager {
 					if (rule.validate) {
 						try {
 							if (!rule.validate(match[0])) {
+								matchCount++;
 								continue;
 							}
 						} catch (validateError) {
 							debugConsole.warn('Error in rule validation:', validateError);
+							matchCount++;
 							continue;
 						}
 					}
@@ -245,6 +259,8 @@ class TextFormatterManager {
 						start,
 						end
 					});
+
+					matchCount++;
 
 					// Prevent infinite loop
 					if (regex.lastIndex === start) {
@@ -268,10 +284,13 @@ class TextFormatterManager {
 
 			// Add unformatted text before this match
 			if (start > lastIndex) {
-				segments.push({
-					text: text.slice(lastIndex, start),
-					isFormatted: false
-				});
+				const unformattedText = processedText.slice(lastIndex, start);
+				if (unformattedText) {
+					segments.push({
+						text: unformattedText,
+						isFormatted: false
+					});
+				}
 			}
 
 			// Add formatted segment
@@ -284,15 +303,24 @@ class TextFormatterManager {
 			lastIndex = end;
 		}
 
-		// Add remaining unformatted text
-		if (lastIndex < text.length) {
+		// Add remaining text
+		const remainingProcessedText = processedText.slice(lastIndex);
+		if (remainingProcessedText) {
 			segments.push({
-				text: text.slice(lastIndex),
+				text: remainingProcessedText,
 				isFormatted: false
 			});
 		}
 
-		// If no matches found, return the entire text as unformatted
+		// Add any text that was truncated due to length limit
+		if (shouldLimitProcessing && text.length > MAX_TEXT_LENGTH) {
+			segments.push({
+				text: text.slice(MAX_TEXT_LENGTH),
+				isFormatted: false
+			});
+		}
+
+		// If no segments created, return the entire text as unformatted
 		if (segments.length === 0) {
 			segments.push({
 				text,

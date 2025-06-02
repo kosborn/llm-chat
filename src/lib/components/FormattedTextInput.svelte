@@ -41,24 +41,34 @@
 	let tooltipPosition = $state({ x: 0, y: 0 });
 	let hoverTimeout: ReturnType<typeof setTimeout> | null = null;
 	let parseTimeout: ReturnType<typeof setTimeout> | null = null;
+	let lastParsedValue = $state('');
+	let viewportStart = $state(0);
+	let viewportEnd = $state(5000); // Initial viewport for first 5000 chars
 
-	// Debounced parsing to reduce excessive re-parsing
+	// Optimized parsing with shorter debounce and incremental updates
 	$effect(() => {
 		if (parseTimeout) {
 			clearTimeout(parseTimeout);
 		}
 
+		// Skip if value hasn't changed
+		if (value === lastParsedValue) {
+			return;
+		}
+
 		// For empty values, parse immediately
 		if (!value.trim()) {
 			segments = [];
+			lastParsedValue = value;
 			return;
 		}
 
-		// For short text (< 50 chars), parse immediately
-		if (value.length < 50) {
+		// For short text (< 100 chars), parse immediately
+		if (value.length < 100) {
 			try {
 				const result = parseFormattedText(value, rules);
 				segments = Array.isArray(result) ? result : [];
+				lastParsedValue = value;
 			} catch (error) {
 				debugConsole.error('Error parsing text:', error);
 				segments = [];
@@ -66,16 +76,52 @@
 			return;
 		}
 
-		// For longer text, debounce parsing
+		// For longer text, use viewport-aware parsing
 		parseTimeout = setTimeout(() => {
 			try {
-				const result = parseFormattedText(value, rules);
-				segments = Array.isArray(result) ? result : [];
+				// For very long text (>2000 chars), only parse visible portion plus buffer
+				if (value.length > 2000) {
+					const buffer = 500; // Parse 500 chars before/after viewport
+					const textToParse = value.slice(
+						Math.max(0, viewportStart - buffer),
+						Math.min(value.length, viewportEnd + buffer)
+					);
+					const offsetStart = Math.max(0, viewportStart - buffer);
+
+					// Parse the viewport section
+					const result = parseFormattedText(textToParse, rules);
+
+					// Add unformatted segments for text outside viewport
+					const fullSegments: FormatSegment[] = [];
+
+					if (offsetStart > 0) {
+						fullSegments.push({
+							text: value.slice(0, offsetStart),
+							isFormatted: false
+						});
+					}
+
+					fullSegments.push(...(Array.isArray(result) ? result : []));
+
+					const endOfParsed = offsetStart + textToParse.length;
+					if (endOfParsed < value.length) {
+						fullSegments.push({
+							text: value.slice(endOfParsed),
+							isFormatted: false
+						});
+					}
+
+					segments = fullSegments;
+				} else {
+					const result = parseFormattedText(value, rules);
+					segments = Array.isArray(result) ? result : [];
+				}
+				lastParsedValue = value;
 			} catch (error) {
 				debugConsole.error('Error parsing text:', error);
 				segments = [];
 			}
-		}, 150); // 150ms debounce for longer text
+		}, 50); // Reduced to 50ms debounce for better responsiveness
 	});
 
 	function handleInput(event: Event) {
@@ -110,6 +156,26 @@
 		textareaElement?.setSelectionRange(start, end);
 	}
 
+	function updateViewport() {
+		if (!textareaElement) return;
+
+		try {
+			const scrollTop = textareaElement.scrollTop;
+			const clientHeight = textareaElement.clientHeight;
+			const lineHeight = 24; // Approximate line height
+			const charsPerLine = Math.floor(textareaElement.clientWidth / 8); // Approximate chars per line
+
+			const visibleLines = Math.ceil(clientHeight / lineHeight);
+			const startLine = Math.floor(scrollTop / lineHeight);
+			const endLine = startLine + visibleLines;
+
+			viewportStart = Math.max(0, startLine * charsPerLine);
+			viewportEnd = Math.min(value.length, endLine * charsPerLine);
+		} catch (error) {
+			debugConsole.warn('Error updating viewport:', error);
+		}
+	}
+
 	function getToolData(toolName: string): ToolMetadata | null {
 		try {
 			// First check enabled tools, then all tools (for disabled ones)
@@ -126,9 +192,16 @@
 		}
 	}
 
+	// Optimized mouse move handler with throttling
+	let lastMouseMoveTime = 0;
 	function handleMouseMove(event: MouseEvent) {
 		try {
 			if (!value.trim()) return;
+
+			// Throttle mouse move events to every 50ms
+			const now = Date.now();
+			if (now - lastMouseMoveTime < 50) return;
+			lastMouseMoveTime = now;
 
 			const textarea = event.currentTarget as HTMLTextAreaElement;
 
@@ -249,13 +322,13 @@
 </script>
 
 <div class="relative {className}">
-	{#if value.trim()}
+	{#if value.trim() && segments.length > 0}
 		<!-- Formatted overlay - always visible when there's text -->
 		<div
 			class="pointer-events-none absolute inset-0 z-10 px-4 py-3 break-words whitespace-pre-wrap"
 			style="font-family: inherit; font-size: inherit; line-height: inherit; overflow: hidden;"
 		>
-			{#each segments as segment, index (index)}
+			{#each segments as segment, index (`${index}-${segment.text.slice(0, 10)}`)}
 				{#if segment.isFormatted && segment.className}
 					{#if segment.text.startsWith('@')}
 						<span
@@ -280,7 +353,8 @@
 		{disabled}
 		{placeholder}
 		{rows}
-		class="relative z-30 w-full resize-none overflow-hidden px-4 py-3 placeholder-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:placeholder-gray-400 {value.trim()
+		class="relative z-30 w-full resize-none overflow-hidden px-4 py-3 placeholder-gray-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:placeholder-gray-400 {value.trim() &&
+		segments.length > 0
 			? 'text-transparent caret-gray-900 dark:caret-gray-100'
 			: 'text-gray-900 dark:text-gray-100'}"
 		oninput={handleInput}
@@ -288,6 +362,7 @@
 		onfocus={handleFocus}
 		onblur={handleBlur}
 		onmousemove={handleMouseMove}
+		onscroll={updateViewport}
 	></textarea>
 
 	<!-- Tooltip -->
