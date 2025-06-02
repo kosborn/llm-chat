@@ -187,7 +187,7 @@
 			<a
 				href="/"
 				class="rounded-md px-3 py-1.5 text-sm font-medium transition-colors {$page.url.pathname ===
-				'/'
+					'/' || $page.url.pathname.startsWith('/chat/')
 					? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
 					: 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}"
 			>
@@ -274,7 +274,7 @@
 				<a
 					href="/"
 					class="rounded-md px-3 py-2 text-sm font-medium transition-colors {$page.url.pathname ===
-					'/'
+						'/' || $page.url.pathname.startsWith('/chat/')
 						? 'bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400'
 						: 'text-gray-700 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'}"
 				>

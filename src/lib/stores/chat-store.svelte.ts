@@ -17,7 +17,7 @@ class ChatStore {
 		return this.chats.find((chat) => chat.id === this.currentChatId) || null;
 	}
 
-	async init(): Promise<void> {
+	async init(preferredChatId?: string): Promise<void> {
 		try {
 			this.isLoading = true;
 			this.error = null;
@@ -27,8 +27,10 @@ class ChatStore {
 			this.chats = cloneForState(chats);
 			this.archivedChats = cloneForState(archivedChats);
 
-			// Set current chat to the most recent one if no chat is selected
-			if (!this.currentChatId && chats.length > 0) {
+			// Set current chat based on preference or default to most recent
+			if (preferredChatId && chats.some((chat) => chat.id === preferredChatId)) {
+				this.currentChatId = preferredChatId;
+			} else if (!this.currentChatId && chats.length > 0) {
 				this.currentChatId = chats[0].id;
 			}
 		} catch (err) {

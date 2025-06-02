@@ -3,6 +3,8 @@
 	import { fly, fade } from 'svelte/transition';
 	import { nanoid } from 'nanoid';
 	import { parseDataStreamPart } from 'ai';
+	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import type { ChatMessage, ToolInvocation } from '../../app.d.ts';
 	import { chatStore } from '$lib/stores/chat-store.svelte.js';
 	import { debugStore } from '$lib/stores/debug-store.svelte.js';
@@ -68,7 +70,7 @@
 				return;
 			}
 
-			await chatStore.createChat();
+			const chatId = await chatStore.createChat();
 
 			// Set provider and model on the new chat
 			if (chatStore.currentChat) {
@@ -80,6 +82,9 @@
 				await chatStore.updateChat(updatedChat);
 			}
 
+			// Navigate to the new chat URL
+			await goto(`/chat/${chatId}`);
+
 			// Focus the input after creating a new chat
 			setTimeout(() => {
 				chatInputComponent?.focus();
@@ -90,7 +95,11 @@
 	}
 
 	async function handleSelectChat(event: CustomEvent<{ chatId: string }>) {
-		await chatStore.selectChat(event.detail.chatId);
+		const chatId = event.detail.chatId;
+		await chatStore.selectChat(chatId);
+
+		// Navigate to the selected chat URL
+		await goto(`/chat/${chatId}`);
 	}
 
 	// Sync provider and model when current chat changes
@@ -103,7 +112,21 @@
 
 	async function handleArchiveChat(event: CustomEvent<{ chatId: string }>) {
 		try {
-			await chatStore.archiveChat(event.detail.chatId);
+			const chatId = event.detail.chatId;
+			const wasCurrentChat = chatStore.currentChatId === chatId;
+
+			await chatStore.archiveChat(chatId);
+
+			// If we archived the current chat, navigate appropriately
+			if (wasCurrentChat) {
+				if (chatStore.currentChatId) {
+					// Navigate to the new current chat
+					await goto(`/chat/${chatStore.currentChatId}`);
+				} else {
+					// No chats left, navigate to home
+					await goto('/');
+				}
+			}
 		} catch (error) {
 			debugConsole.error('Failed to archive chat:', error);
 		}
@@ -121,7 +144,21 @@
 
 	async function handleDeleteChat(event: CustomEvent<{ chatId: string }>) {
 		try {
-			await chatStore.deleteChat(event.detail.chatId);
+			const chatId = event.detail.chatId;
+			const wasCurrentChat = chatStore.currentChatId === chatId;
+
+			await chatStore.deleteChat(chatId);
+
+			// If we deleted the current chat, navigate appropriately
+			if (wasCurrentChat) {
+				if (chatStore.currentChatId) {
+					// Navigate to the new current chat
+					await goto(`/chat/${chatStore.currentChatId}`);
+				} else {
+					// No chats left, navigate to home
+					await goto('/');
+				}
+			}
 		} catch (error) {
 			debugConsole.error('Failed to delete chat:', error);
 		}
@@ -129,12 +166,15 @@
 
 	async function handleSelectArchivedChat(event: CustomEvent<{ chatId: string }>) {
 		try {
+			const chatId = event.detail.chatId;
 			// First unarchive the chat
-			await chatStore.unarchiveChat(event.detail.chatId);
+			await chatStore.unarchiveChat(chatId);
 			// Then select it
-			await chatStore.selectChat(event.detail.chatId);
+			await chatStore.selectChat(chatId);
 			// Switch to main chats view
 			sidebarMode = 'chats';
+			// Navigate to the selected chat URL
+			await goto(`/chat/${chatId}`);
 		} catch (error) {
 			debugConsole.error('Failed to select archived chat:', error);
 		}

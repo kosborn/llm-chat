@@ -1,24 +1,32 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import { goto } from '$app/navigation';
+	import { onMount } from 'svelte';
 	import ChatInterface from '$lib/components/ChatInterface.svelte';
 	import { chatStore } from '$lib/stores/chat-store.svelte.js';
+
+	const chatId = $derived(page.params.chatId);
 
 	onMount(async () => {
 		// Initialize chat store if not already done
 		if (chatStore.chats.length === 0 && !chatStore.isLoading) {
-			await chatStore.init();
+			await chatStore.init(chatId);
 		}
 
-		// If there are existing chats, redirect to the most recent one
-		if (chatStore.chats.length > 0 && chatStore.currentChatId) {
-			goto(`/chat/${chatStore.currentChatId}`, { replaceState: true });
+		// If we have a chatId, try to select that chat
+		if (chatId) {
+			await chatStore.selectChat(chatId);
+
+			// If the chat doesn't exist, redirect to home
+			if (!chatStore.currentChat) {
+				goto('/', { replaceState: true });
+			}
 		}
 	});
 </script>
 
 <svelte:head>
-	<title>AI Tool Chat</title>
+	<title>{chatStore.currentChat?.title || 'Chat'} - AI Tool Chat</title>
 	<meta name="description" content="Chat with AI and use powerful tools" />
 </svelte:head>
 
