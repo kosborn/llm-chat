@@ -270,6 +270,12 @@
 		}
 	}
 
+	async function handleDismissMessage(messageId: string) {
+		if (chatStore.currentChatId) {
+			await chatStore.removeMessage(messageId);
+		}
+	}
+
 	async function handleSubmitMessage(
 		event: CustomEvent<{
 			message: string;
@@ -305,6 +311,8 @@
 			debugConsole.error('No chat available');
 			return;
 		}
+
+		let assistantMessageId: string | null = null;
 
 		try {
 			// Add user message
@@ -348,7 +356,7 @@
 
 			// Start streaming assistant response
 			isStreaming = true;
-			const assistantMessageId = nanoid();
+			assistantMessageId = nanoid();
 			streamingMessageId = assistantMessageId;
 
 			const assistantMessage: ChatMessage = {
@@ -626,6 +634,11 @@
 			debugStore.logError(error, {
 				chatId: chatStore.currentChatId
 			});
+
+			// Remove the empty assistant message that was created
+			if (assistantMessageId && chatStore.currentChatId) {
+				await chatStore.removeMessage(assistantMessageId);
+			}
 
 			// Add error message
 			const errorMessage: ChatMessage = {
@@ -1188,6 +1201,7 @@
 						<ChatMessageComponent
 							{message}
 							isStreaming={isStreaming && streamingMessageId === message.id}
+							onDismiss={handleDismissMessage}
 						/>
 					{/each}
 				{/if}

@@ -142,6 +142,39 @@ class ChatStore {
 		}
 	}
 
+	async removeMessage(messageId: string): Promise<void> {
+		if (!this.currentChat) return;
+
+		const messageIndex = this.currentChat.messages.findIndex((m) => m.id === messageId);
+		if (messageIndex === -1) return;
+
+		// Create new messages array without the removed message
+		const updatedMessages = this.currentChat.messages.filter((m) => m.id !== messageId);
+
+		// Create new chat object
+		const updatedChat = {
+			...this.currentChat,
+			messages: updatedMessages
+		};
+
+		// Update local state
+		const currentChatId = this.currentChat?.id;
+		if (currentChatId) {
+			const chatIndex = this.chats.findIndex((c) => c.id === currentChatId);
+			if (chatIndex !== -1) {
+				const newChats = [...this.chats];
+				newChats[chatIndex] = updatedChat;
+				this.chats = newChats;
+			}
+		}
+
+		try {
+			await chatStorage.updateChat(serialize(updatedChat));
+		} catch (err) {
+			this.error = err instanceof Error ? err.message : 'Failed to remove message';
+		}
+	}
+
 	async archiveChat(chatId: string): Promise<void> {
 		try {
 			this.error = null;

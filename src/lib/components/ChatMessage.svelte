@@ -18,9 +18,10 @@
 	interface Props {
 		message: ChatMessage;
 		isStreaming?: boolean;
+		onDismiss?: (messageId: string) => void;
 	}
 
-	let { message, isStreaming = false }: Props = $props();
+	let { message, isStreaming = false, onDismiss }: Props = $props();
 
 	let messageElement: HTMLDivElement;
 	let showMetadata = $state(false);
@@ -196,14 +197,34 @@
 		<!-- Message text content -->
 		{#if message.content}
 			<div
-				class="prose prose-sm dark:prose-invert markdown-content max-w-none {message.messageType ===
-				'error'
+				class="prose prose-sm dark:prose-invert markdown-content max-w-none {message.messageType === 'error'
 					? 'text-red-700 dark:text-red-300'
 					: message.messageType === 'system' || message.messageType === 'queued'
 						? 'text-amber-700 dark:text-amber-300'
 						: ''}"
 			>
 				<EnhancedText text={message.content} enableFormatting={true} enableMarkdown={true} />
+			</div>
+		{/if}
+
+		<!-- Dismiss button for error messages -->
+		{#if message.messageType === 'error' && onDismiss}
+			<div class="mt-2">
+				<button
+					onclick={() => onDismiss?.(message.id)}
+					class="flex items-center gap-2 rounded-md border border-red-300 bg-red-50 px-3 py-1 text-xs text-red-700 hover:bg-red-100 dark:border-red-600 dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-900/50"
+					aria-label="Dismiss error message"
+				>
+					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M6 18L18 6M6 6l12 12"
+						/>
+					</svg>
+					Dismiss
+				</button>
 			</div>
 		{/if}
 
