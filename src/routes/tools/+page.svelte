@@ -1,5 +1,13 @@
 <script lang="ts">
 	import ToolsExplorer from '$lib/components/ToolsExplorer.svelte';
+	import NetworkStatusIndicator from '$lib/components/NetworkStatusIndicator.svelte';
+	import { getToolStats, getOfflineTools, getNetworkTools } from '$lib/tools';
+	import { networkStatus } from '$lib/services/network-status.svelte.js';
+
+	let toolStats = $derived(getToolStats());
+	let offlineTools = $derived(getOfflineTools());
+	let networkTools = $derived(getNetworkTools());
+	let isOnline = $derived(networkStatus.isOnline);
 </script>
 
 <svelte:head>
@@ -10,10 +18,24 @@
 <div class="h-[calc(100vh-4rem)] overflow-auto bg-gray-50 dark:bg-gray-900">
 	<div class="container mx-auto px-4 py-8">
 		<header class="mb-8">
-			<h1 class="mb-2 text-3xl font-bold text-gray-900 dark:text-white">Tools Explorer</h1>
-			<p class="text-gray-600 dark:text-gray-300">
-				Discover and manage the available tools for your AI chat bot
-			</p>
+			<div class="flex items-center justify-between">
+				<div>
+					<h1 class="mb-2 text-3xl font-bold text-gray-900 dark:text-white">Tools Explorer</h1>
+					<p class="text-gray-600 dark:text-gray-300">
+						Discover and manage the available tools for your AI chat bot
+					</p>
+				</div>
+				<div class="flex flex-col items-end gap-2">
+					<NetworkStatusIndicator />
+					<div class="text-sm text-gray-500 dark:text-gray-400">
+						{#if isOnline}
+							{toolStats.enabled} tools available
+						{:else}
+							{Object.keys(offlineTools).length} offline tools available
+						{/if}
+					</div>
+				</div>
+			</div>
 		</header>
 
 		<!-- Demo Section -->
@@ -63,6 +85,52 @@
 							🔗 URL Operations
 						</span>
 					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Network Requirements Info -->
+		<div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2">
+			<!-- Offline Tools -->
+			<div class="rounded-lg border border-green-200 bg-green-50 p-4 dark:border-green-800 dark:bg-green-900/20">
+				<div class="flex items-center gap-2 mb-3">
+					<div class="h-3 w-3 rounded-full bg-green-500"></div>
+					<h3 class="text-sm font-medium text-green-800 dark:text-green-200">
+						Works Offline ({Object.keys(offlineTools).length})
+					</h3>
+				</div>
+				<p class="text-xs text-green-700 dark:text-green-300 mb-2">
+					These tools work without internet connection and are always available:
+				</p>
+				<div class="flex flex-wrap gap-1">
+					{#each Object.values(offlineTools) as tool}
+						<span class="inline-flex items-center rounded bg-green-100 px-2 py-0.5 text-xs text-green-800 dark:bg-green-800 dark:text-green-100">
+							{tool.name}
+						</span>
+					{/each}
+				</div>
+			</div>
+
+			<!-- Network Required Tools -->
+			<div class="rounded-lg border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-900/20">
+				<div class="flex items-center gap-2 mb-3">
+					<div class="h-3 w-3 rounded-full {isOnline ? 'bg-amber-500' : 'bg-red-500'}"></div>
+					<h3 class="text-sm font-medium text-amber-800 dark:text-amber-200">
+						Requires Internet ({Object.keys(networkTools).length})
+					</h3>
+				</div>
+				<p class="text-xs text-amber-700 dark:text-amber-300 mb-2">
+					These tools need internet connection and are {isOnline ? 'available' : 'currently offline'}:
+				</p>
+				<div class="flex flex-wrap gap-1">
+					{#each Object.values(networkTools) as tool}
+						<span class="inline-flex items-center rounded px-2 py-0.5 text-xs 
+							{isOnline 
+								? 'bg-amber-100 text-amber-800 dark:bg-amber-800 dark:text-amber-100' 
+								: 'bg-red-100 text-red-800 dark:bg-red-800 dark:text-red-100'}">
+							{tool.name}
+						</span>
+					{/each}
 				</div>
 			</div>
 		</div>
