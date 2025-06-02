@@ -55,6 +55,28 @@
 	// Token counting
 	const tokenCount = $derived(() => countTokens(inputValue));
 
+	// Send button styling based on provider status
+	const sendButtonClass = $derived(() => {
+		if (disabled) {
+			return "flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-gray-400 px-3 py-3 font-medium text-white transition-colors disabled:cursor-not-allowed md:min-w-[80px] md:px-6";
+		}
+		
+		if (!networkStore.isOnline || !providerStore.isConfigured || !providerStore.canSend) {
+			return "flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-3 font-medium text-white transition-colors hover:bg-red-700 md:min-w-[80px] md:px-6";
+		}
+		
+		if (providerStore.effectiveMode === 'server' || (providerStore.preferredMode === 'server' && providerStore.effectiveMode === 'server')) {
+			return "flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-3 font-medium text-white transition-colors hover:bg-green-700 md:min-w-[80px] md:px-6";
+		}
+		
+		if (providerStore.effectiveMode === 'client' || providerStore.preferredMode === 'client') {
+			return "flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-purple-600 px-3 py-3 font-medium text-white transition-colors hover:bg-purple-700 md:min-w-[80px] md:px-6";
+		}
+		
+		// Default blue for auto mode
+		return "flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-3 font-medium text-white transition-colors hover:bg-blue-700 md:min-w-[80px] md:px-6";
+	});
+
 	function handleSubmit(event?: SubmitEvent) {
 		event?.preventDefault();
 		const message = inputValue.trim();
@@ -285,7 +307,7 @@
 		<button
 			type="submit"
 			{disabled}
-			class="flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-3 font-medium text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-400 md:min-w-[80px] md:px-6"
+			class={sendButtonClass()}
 		>
 			{#if disabled}
 				<div
@@ -313,48 +335,6 @@
 				<span class="font-mono {getTokenCountColor(tokenCount())}">
 					{formatTokenCount(tokenCount())}
 				</span>
-			{/if}
-		</div>
-
-		<!-- Status and Queue Info -->
-		<div class="flex items-center gap-2">
-			{#if !networkStore.isOnline}
-				<div class="flex items-center gap-1 text-orange-600 dark:text-orange-400">
-					<div class="h-2 w-2 rounded-full bg-orange-500"></div>
-					<span>Offline</span>
-					{#if offlineQueueStore.hasQueuedMessages()}
-						<span>({offlineQueueStore.getQueueCount()} queued)</span>
-					{/if}
-				</div>
-			{:else if !providerStore.isConfigured}
-				<div class="flex items-center gap-1 text-yellow-600 dark:text-yellow-400">
-					<div class="h-2 w-2 rounded-full bg-yellow-500"></div>
-					<span>API key needed</span>
-				</div>
-			{:else if !providerStore.canSend}
-				<div class="flex items-center gap-1 text-red-600 dark:text-red-400">
-					<div class="h-2 w-2 rounded-full bg-red-500"></div>
-					<span>Cannot send</span>
-				</div>
-			{:else if providerStore.preferredMode !== 'auto'}
-				<div class="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-					<div class="h-2 w-2 rounded-full bg-blue-500"></div>
-					<span>
-						{#if providerStore.preferredMode === 'client'}
-							📱 Client mode
-						{:else if providerStore.preferredMode === 'server'}
-							🌐 Server mode
-						{/if}
-						{#if providerStore.preferredMode !== providerStore.effectiveMode}
-							(forced)
-						{/if}
-					</span>
-				</div>
-			{:else if providerStore.effectiveMode === 'client'}
-				<div class="flex items-center gap-1 text-blue-600 dark:text-blue-400">
-					<div class="h-2 w-2 rounded-full bg-blue-500"></div>
-					<span>📱 Auto (client)</span>
-				</div>
 			{/if}
 		</div>
 	</div>
