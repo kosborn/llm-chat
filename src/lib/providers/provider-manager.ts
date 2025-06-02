@@ -10,6 +10,8 @@ import type { ModelConfig, Provider, ProviderId } from './index.js';
 import { PROVIDERS, getAllProviders, getProvider } from './index.js';
 import { debugConsole } from '../utils/console.js';
 
+export type ModePreference = 'auto' | 'server' | 'client';
+
 export interface ProviderStatus {
 	canSend: boolean;
 	hasApiKey: boolean;
@@ -20,6 +22,7 @@ export interface ProviderStatus {
 	model: string;
 	displayName: string;
 	errorMessage?: string;
+	preferredMode?: ModePreference;
 }
 
 export interface ModelSelection {
@@ -47,11 +50,25 @@ class ProviderManager {
 	private serverAvailable: boolean = false;
 	private lastServerCheck: number = 0;
 	private providerInstances: Map<string, any> = new Map();
+	private preferredMode: ModePreference = 'auto';
 
 	constructor() {
 		if (browser) {
 			this.loadFromLocalStorage();
 		}
+	}
+
+	// === Mode Preference Management ===
+
+	setPreferredMode(mode: ModePreference) {
+		this.preferredMode = mode;
+		if (browser) {
+			localStorage.setItem('ai-preferred-mode', mode);
+		}
+	}
+
+	getPreferredMode(): ModePreference {
+		return this.preferredMode;
 	}
 
 	// === API Key Management ===
@@ -338,18 +355,46 @@ class ProviderManager {
 		const isValidApiKey = this.hasValidApiKey(targetProvider);
 		const isServerAvailable = await this.checkServerAvailability();
 
-		const canSend = isServerAvailable || isValidApiKey;
-		const isUsingClientMode = !isServerAvailable && isValidApiKey;
-
+		// Determine what we can send based on preferred mode
+		let canSend = false;
+		let isUsingClientMode = false;
 		let errorMessage: string | undefined;
-		if (!canSend) {
-			if (!hasApiKey) {
-				errorMessage = `No ${providerConfig.displayName} API key configured`;
-			} else if (!isValidApiKey) {
-				errorMessage = `Invalid ${providerConfig.displayName} API key format`;
-			} else {
-				errorMessage = 'Cannot send messages';
-			}
+
+		switch (this.preferredMode) {
+			case 'server':
+				canSend = isServerAvailable;
+				isUsingClientMode = false;
+				if (!canSend) {
+					errorMessage = 'Server AI is not available';
+				}
+				break;
+
+			case 'client':
+				canSend = isValidApiKey;
+				isUsingClientMode = true;
+				if (!canSend) {
+					if (!hasApiKey) {
+						errorMessage = `No ${providerConfig.displayName} API key configured`;
+					} else {
+						errorMessage = `Invalid ${providerConfig.displayName} API key format`;
+					}
+				}
+				break;
+
+			case 'auto':
+			default:
+				canSend = isServerAvailable || isValidApiKey;
+				isUsingClientMode = !isServerAvailable && isValidApiKey;
+				if (!canSend) {
+					if (!hasApiKey) {
+						errorMessage = `No ${providerConfig.displayName} API key configured and server AI unavailable`;
+					} else if (!isValidApiKey) {
+						errorMessage = `Invalid ${providerConfig.displayName} API key format and server AI unavailable`;
+					} else {
+						errorMessage = 'Cannot send messages';
+					}
+				}
+				break;
 		}
 
 		return {
@@ -361,31 +406,57 @@ class ProviderManager {
 			provider: targetProvider,
 			model: targetModel,
 			displayName: `${providerConfig.displayName} - ${this.getModelDisplayName(targetProvider, targetModel)}`,
-			errorMessage
+			errorMessage,
+			preferredMode: this.preferredMode
 		};
 	}
 
-	// Get current operating mode
+	// Get current operating mode based on preference and availability
 	getCurrentMode(): 'server' | 'client' | 'offline' {
 		if (!browser) return 'server';
 
-		// If no API keys and server not available = offline
-		if (!this.serverAvailable && this.getClientAvailableProviders().length === 0) {
-			return 'offline';
-		}
+		switch (this.preferredMode) {
+			case 'server':
+				return this.serverAvailable ? 'server' : 'offline';
 
-		// If server available = server mode
-		if (this.serverAvailable) {
-			return 'server';
-		}
+			case 'client':
+				return this.getClientAvailableProviders().length > 0 ? 'client' : 'offline';
 
-		// If we have API keys but no server = client mode
-		return 'client';
+			case 'auto':
+			default:
+				// If no API keys and server not available = offline
+				if (!this.serverAvailable && this.getClientAvailableProviders().length === 0) {
+					return 'offline';
+				}
+
+				// If server available = server mode (unless forced client)
+				if (this.serverAvailable) {
+					return 'server';
+				}
+
+				// If we have API keys but no server = client mode
+				return 'client';
+		}
 	}
 
 	// Check if currently using client mode
 	isUsingClientMode(): boolean {
 		return this.getCurrentMode() === 'client';
+	}
+
+	// Get the effective mode that would be used for sending
+	getEffectiveMode(): 'server' | 'client' | 'offline' {
+		switch (this.preferredMode) {
+			case 'server':
+				return this.serverAvailable ? 'server' : 'offline';
+			case 'client':
+				return this.getClientAvailableProviders().length > 0 ? 'client' : 'offline';
+			case 'auto':
+			default:
+				if (this.serverAvailable) return 'server';
+				if (this.getClientAvailableProviders().length > 0) return 'client';
+				return 'offline';
+		}
 	}
 
 	// Force refresh server availability status
@@ -545,6 +616,12 @@ class ProviderManager {
 
 			if (savedModel && this.isValidModelForProvider(this.currentProvider, savedModel)) {
 				this.currentModel = savedModel;
+			}
+
+			// Load preferred mode
+			const savedMode = localStorage.getItem('ai-preferred-mode') as ModePreference;
+			if (savedMode && ['auto', 'server', 'client'].includes(savedMode)) {
+				this.preferredMode = savedMode;
 			}
 		} catch (error) {
 			debugConsole.warn('Failed to load provider settings from localStorage:', error);

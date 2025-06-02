@@ -67,6 +67,21 @@ class ProviderStore {
 		return providerManager.getCurrentMode();
 	}
 
+	get preferredMode(): import('$lib/providers/provider-manager').ModePreference {
+		return providerManager.getPreferredMode();
+	}
+
+	get effectiveMode(): 'server' | 'client' | 'offline' {
+		return providerManager.getEffectiveMode();
+	}
+
+	// === Mode Preference Management ===
+
+	setPreferredMode(mode: import('$lib/providers/provider-manager').ModePreference) {
+		providerManager.setPreferredMode(mode);
+		this.refreshStatus();
+	}
+
 	// === Provider Management ===
 
 	async setProvider(provider: ProviderId, model?: string) {

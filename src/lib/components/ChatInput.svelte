@@ -336,10 +336,24 @@
 					<div class="h-2 w-2 rounded-full bg-red-500"></div>
 					<span>Cannot send</span>
 				</div>
-			{:else if providerStore.currentMode === 'client'}
+			{:else if providerStore.preferredMode !== 'auto'}
 				<div class="flex items-center gap-1 text-blue-600 dark:text-blue-400">
 					<div class="h-2 w-2 rounded-full bg-blue-500"></div>
-					<span>📱 Client mode</span>
+					<span>
+						{#if providerStore.preferredMode === 'client'}
+							📱 Client mode
+						{:else if providerStore.preferredMode === 'server'}
+							🌐 Server mode
+						{/if}
+						{#if providerStore.preferredMode !== providerStore.effectiveMode}
+							(forced)
+						{/if}
+					</span>
+				</div>
+			{:else if providerStore.effectiveMode === 'client'}
+				<div class="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+					<div class="h-2 w-2 rounded-full bg-blue-500"></div>
+					<span>📱 Auto (client)</span>
 				</div>
 			{/if}
 		</div>

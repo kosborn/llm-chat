@@ -1045,6 +1045,29 @@
 									📴 Offline
 								</span>
 							{/if}
+							<!-- Mode toggle button -->
+							<button
+								onclick={() => {
+									const currentMode = providerStore.preferredMode;
+									const nextMode =
+										currentMode === 'auto'
+											? 'server'
+											: currentMode === 'server'
+												? 'client'
+												: 'auto';
+									providerStore.setPreferredMode(nextMode);
+								}}
+								class="rounded px-1 py-0.5 text-xs text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-gray-300"
+								title="Toggle between Auto/Server/Client modes"
+							>
+								{#if providerStore.preferredMode === 'auto'}
+									🔄
+								{:else if providerStore.preferredMode === 'server'}
+									🌐
+								{:else}
+									📱
+								{/if}
+							</button>
 							<div class="relative md:hidden">
 								<button
 									onclick={() => (showMobileModelSelector = !showMobileModelSelector)}

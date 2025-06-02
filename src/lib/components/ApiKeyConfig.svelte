@@ -2,6 +2,8 @@
 	import { onMount } from 'svelte';
 	import { browser } from '$app/environment';
 	import { getAllProviders, validateApiKey, type ProviderId } from '$lib/providers';
+	import { providerStore } from '$lib/stores/provider-store.svelte.js';
+	import type { ModePreference } from '$lib/providers/provider-manager.js';
 
 	interface Props {
 		isOpen: boolean;
@@ -17,6 +19,7 @@
 	let serverAvailable = $state(false);
 	let checkingServer = $state(false);
 	let validationError = $state('');
+	let selectedMode = $state<ModePreference>('auto');
 
 	// Get providers
 	const providers = getAllProviders();
@@ -26,6 +29,7 @@
 		if (isOpen && browser) {
 			loadSavedConfiguration();
 			checkServerStatus();
+			selectedMode = providerStore.preferredMode;
 		}
 	});
 
@@ -114,6 +118,9 @@
 
 			localStorage.setItem('ai-api-keys', JSON.stringify(updatedKeys));
 
+			// Save mode preference
+			providerStore.setPreferredMode(selectedMode);
+
 			onClose();
 		} catch (error) {
 			console.error('Failed to save configuration:', error);
@@ -181,7 +188,13 @@
 		}
 	});
 
-	const canSave = $derived(serverAvailable || (apiKeyInput.trim() && !validationError));
+	const canSave = $derived(
+		selectedMode === 'server'
+			? serverAvailable
+			: selectedMode === 'client'
+				? apiKeyInput.trim() && !validationError
+				: serverAvailable || (apiKeyInput.trim() && !validationError)
+	);
 	const hasStoredKey = $derived.by(() => {
 		if (!browser) return false;
 		try {
@@ -272,6 +285,34 @@
 				</div>
 			{/if}
 
+			<!-- Mode Selection -->
+			<div class="mb-4">
+				<label
+					for="mode-select"
+					class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+				>
+					Operating Mode
+				</label>
+				<select
+					id="mode-select"
+					bind:value={selectedMode}
+					class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:focus:border-blue-400"
+				>
+					<option value="auto">🔄 Auto - Use server first, fallback to client</option>
+					<option value="server">🌐 Server Only - Use server AI only</option>
+					<option value="client">📱 Client Only - Use browser client only</option>
+				</select>
+				<p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+					{#if selectedMode === 'auto'}
+						Automatically chooses the best available option (recommended)
+					{:else if selectedMode === 'server'}
+						Forces server AI usage - requires internet connection
+					{:else if selectedMode === 'client'}
+						Forces browser client usage - requires API key
+					{/if}
+				</p>
+			</div>
+
 			<!-- Provider Selection -->
 			<div class="mb-4">
 				<label
@@ -300,7 +341,11 @@
 					class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
 				>
 					API Key
-					{#if serverAvailable}
+					{#if selectedMode === 'server'}
+						<span class="text-gray-500">(not needed for server-only mode)</span>
+					{:else if selectedMode === 'client'}
+						<span class="text-red-600 dark:text-red-400">(required for client-only mode)</span>
+					{:else if serverAvailable}
 						<span class="text-gray-500">(optional - enables client mode fallback)</span>
 					{:else}
 						<span class="text-blue-600 dark:text-blue-400">(required for browser client mode)</span>
@@ -311,9 +356,14 @@
 						id="api-key-input"
 						type={showApiKey ? 'text' : 'password'}
 						bind:value={apiKeyInput}
-						placeholder={serverAvailable
-							? 'Optional - enables client mode fallback'
-							: 'Required for browser client mode'}
+						disabled={selectedMode === 'server'}
+						placeholder={selectedMode === 'server'
+							? 'Not needed for server-only mode'
+							: selectedMode === 'client'
+								? 'Required for client-only mode'
+								: serverAvailable
+									? 'Optional - enables client mode fallback'
+									: 'Required for browser client mode'}
 						class="w-full rounded-lg border bg-white px-3 py-2 pr-10 shadow-sm focus:ring-1 focus:outline-none
 							   {validationError
 							? 'border-red-500 focus:border-red-500 focus:ring-red-500'

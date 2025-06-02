@@ -48,27 +48,59 @@ class ClientChatService {
 			};
 		}
 
-		// Try server-side first only if server is actually available AND online
-		if (isServerAvailable && networkStore.isOnline) {
-			try {
-				const serverResponse = await this.tryServerSide(
+		// Respect mode preference
+		const preferredMode = providerManager.getPreferredMode();
+
+		switch (preferredMode) {
+			case 'server':
+				// Only use server mode
+				if (isServerAvailable && networkStore.isOnline) {
+					return this.tryServerSide(messages, requestedProvider, requestedModel, mentionedTools);
+				} else {
+					return {
+						success: false,
+						error: 'Server AI is not available. Switch to Auto or Client mode to use your API key.'
+					};
+				}
+
+			case 'client':
+				// Only use client mode
+				return this.sendMessageClientSide(
 					messages,
 					requestedProvider,
 					requestedModel,
 					mentionedTools
 				);
-				if (serverResponse.success) {
-					return serverResponse;
-				}
-			} catch (error) {
-				debugConsole.log('Server-side failed, falling back to client-side:', error);
-				// Mark server as unavailable after failed attempt
-				providerManager.refreshServerAvailability();
-			}
-		}
 
-		// Fallback to client-side
-		return this.sendMessageClientSide(messages, requestedProvider, requestedModel, mentionedTools);
+			case 'auto':
+			default:
+				// Try server-side first only if server is actually available AND online
+				if (isServerAvailable && networkStore.isOnline) {
+					try {
+						const serverResponse = await this.tryServerSide(
+							messages,
+							requestedProvider,
+							requestedModel,
+							mentionedTools
+						);
+						if (serverResponse.success) {
+							return serverResponse;
+						}
+					} catch (error) {
+						debugConsole.log('Server-side failed, falling back to client-side:', error);
+						// Mark server as unavailable after failed attempt
+						providerManager.refreshServerAvailability();
+					}
+				}
+
+				// Fallback to client-side
+				return this.sendMessageClientSide(
+					messages,
+					requestedProvider,
+					requestedModel,
+					mentionedTools
+				);
+		}
 	}
 
 	private async tryServerSide(
@@ -289,33 +321,61 @@ class ClientChatService {
 		// Force refresh server availability
 		const isServerAvailable = await providerManager.refreshServerAvailability();
 
-		// Try server-side first only if server is actually available AND online
-		if (isServerAvailable && networkStore.isOnline) {
-			try {
-				const serverTitle = await this.tryServerSideTitle(
+		// Respect mode preference
+		const preferredMode = providerManager.getPreferredMode();
+
+		switch (preferredMode) {
+			case 'server':
+				// Only use server mode
+				if (isServerAvailable && networkStore.isOnline) {
+					return this.tryServerSideTitle(
+						userMessage,
+						assistantMessage,
+						requestedProvider,
+						requestedModel
+					);
+				}
+				return null;
+
+			case 'client':
+				// Only use client mode
+				return this.generateTitleClientSide(
 					userMessage,
 					assistantMessage,
 					requestedProvider,
 					requestedModel
 				);
-				if (serverTitle) {
-					return serverTitle;
-				}
-			} catch (error) {
-				debugConsole.log(
-					'Server-side title generation failed, falling back to client-side:',
-					error
-				);
-			}
-		}
 
-		// Fallback to client-side
-		return this.generateTitleClientSide(
-			userMessage,
-			assistantMessage,
-			requestedProvider,
-			requestedModel
-		);
+			case 'auto':
+			default:
+				// Try server-side first only if server is actually available AND online
+				if (isServerAvailable && networkStore.isOnline) {
+					try {
+						const serverTitle = await this.tryServerSideTitle(
+							userMessage,
+							assistantMessage,
+							requestedProvider,
+							requestedModel
+						);
+						if (serverTitle) {
+							return serverTitle;
+						}
+					} catch (error) {
+						debugConsole.log(
+							'Server-side title generation failed, falling back to client-side:',
+							error
+						);
+					}
+				}
+
+				// Fallback to client-side
+				return this.generateTitleClientSide(
+					userMessage,
+					assistantMessage,
+					requestedProvider,
+					requestedModel
+				);
+		}
 	}
 
 	private async tryServerSideTitle(

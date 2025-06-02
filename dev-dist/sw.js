@@ -81,7 +81,7 @@ define(['./workbox-f001acab'], function (workbox) {
 		[
 			{
 				url: '/',
-				revision: '0.tvtu8754tug'
+				revision: '0.l4dtho5rov'
 			}
 		],
 		{}
