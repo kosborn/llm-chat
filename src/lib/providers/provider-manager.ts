@@ -314,7 +314,10 @@ class ProviderManager {
 				instance = createGroq({ apiKey });
 				break;
 			case 'anthropic':
-				instance = createAnthropic({ apiKey });
+				instance = createAnthropic({
+					apiKey,
+					headers: { 'anthropic-dangerous-direct-browser-access': 'true' }
+				});
 				break;
 			case 'openai':
 				instance = createOpenAI({ apiKey });
