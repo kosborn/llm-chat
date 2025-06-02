@@ -22,11 +22,14 @@ class ClientChatService {
 		model?: string,
 		mentionedTools?: string[]
 	): Promise<ChatResponse> {
-		// Check network status first
-		if (!networkStore.isOnline) {
+		// For PWA: distinguish between no internet vs server unreachable
+		// Only block if truly offline (no internet connection)
+		const hasInternet = await this.checkInternetConnectivity();
+
+		if (!hasInternet) {
 			return {
 				success: false,
-				error: 'You are currently offline. Messages will be queued and sent when you reconnect.'
+				error: 'No internet connection. Please check your network and try again.'
 			};
 		}
 
@@ -54,7 +57,7 @@ class ClientChatService {
 		switch (preferredMode) {
 			case 'server':
 				// Only use server mode
-				if (isServerAvailable && networkStore.isOnline) {
+				if (isServerAvailable && hasInternet) {
 					return this.tryServerSide(messages, requestedProvider, requestedModel, mentionedTools);
 				} else {
 					return {
@@ -74,8 +77,8 @@ class ClientChatService {
 
 			case 'auto':
 			default:
-				// Try server-side first only if server is actually available AND online
-				if (isServerAvailable && networkStore.isOnline) {
+				// Try server-side first only if server is actually available AND has internet
+				if (isServerAvailable && hasInternet) {
 					try {
 						const serverResponse = await this.tryServerSide(
 							messages,
@@ -301,8 +304,9 @@ class ClientChatService {
 		provider?: string,
 		model?: string
 	): Promise<string | null> {
-		// Check network status first
-		if (!networkStore.isOnline) {
+		// Check for internet connectivity (not just server availability)
+		const hasInternet = await this.checkInternetConnectivity();
+		if (!hasInternet) {
 			return null;
 		}
 
@@ -327,7 +331,7 @@ class ClientChatService {
 		switch (preferredMode) {
 			case 'server':
 				// Only use server mode
-				if (isServerAvailable && networkStore.isOnline) {
+				if (isServerAvailable && hasInternet) {
 					return this.tryServerSideTitle(
 						userMessage,
 						assistantMessage,
@@ -348,8 +352,8 @@ class ClientChatService {
 
 			case 'auto':
 			default:
-				// Try server-side first only if server is actually available AND online
-				if (isServerAvailable && networkStore.isOnline) {
+				// Try server-side first only if server is actually available AND has internet
+				if (isServerAvailable && hasInternet) {
 					try {
 						const serverTitle = await this.tryServerSideTitle(
 							userMessage,
@@ -473,8 +477,9 @@ class ClientChatService {
 	}
 
 	async canSendMessages(): Promise<boolean> {
-		// Can't send if offline
-		if (!networkStore.isOnline) {
+		// Can't send if no internet connection
+		const hasInternet = await this.checkInternetConnectivity();
+		if (!hasInternet) {
 			return false;
 		}
 
@@ -484,8 +489,9 @@ class ClientChatService {
 	}
 
 	async getStatusMessage(): Promise<string> {
-		if (!networkStore.isOnline) {
-			return "📴 You're offline. Messages will be queued and sent when you reconnect.";
+		const hasInternet = await this.checkInternetConnectivity();
+		if (!hasInternet) {
+			return '📴 No internet connection. Please check your network.';
 		}
 
 		const status = await providerManager.getProviderStatus();
@@ -508,10 +514,12 @@ class ClientChatService {
 	}> {
 		const status = await providerManager.getProviderStatus();
 
+		const hasInternet = await this.checkInternetConnectivity();
+
 		return {
 			canSend: status.canSend,
 			hasApiKey: status.hasApiKey,
-			isOnline: networkStore.isOnline,
+			isOnline: hasInternet,
 			isValidApiKey: status.isValidApiKey,
 			provider: providerManager.getProviderDisplayName(status.provider),
 			model: providerManager.getModelDisplayName(status.provider, status.model),
@@ -522,6 +530,49 @@ class ClientChatService {
 	// Get API usage statistics
 	getApiUsageStats() {
 		return debugStore.getApiMetrics();
+	}
+
+	// Check actual internet connectivity (not just server availability)
+	private async checkInternetConnectivity(): Promise<boolean> {
+		// First check navigator.onLine as a quick check
+		if (!navigator.onLine) {
+			return false;
+		}
+
+		// Then try a simple connectivity test to a reliable external service
+		try {
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+			// Try to reach a small, reliable endpoint
+			const response = await fetch('https://www.google.com/favicon.ico', {
+				method: 'HEAD',
+				mode: 'no-cors',
+				cache: 'no-cache',
+				signal: controller.signal
+			});
+
+			clearTimeout(timeoutId);
+			return true;
+		} catch {
+			// If that fails, fall back to checking our own server's static assets
+			try {
+				const controller = new AbortController();
+				const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+				await fetch('/favicon.png', {
+					method: 'HEAD',
+					mode: 'no-cors',
+					cache: 'no-cache',
+					signal: controller.signal
+				});
+
+				clearTimeout(timeoutId);
+				return true;
+			} catch {
+				return false;
+			}
+		}
 	}
 
 	// Provider management methods
