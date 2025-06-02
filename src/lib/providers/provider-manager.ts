@@ -15,6 +15,7 @@ export interface ProviderStatus {
 	hasApiKey: boolean;
 	isValidApiKey: boolean;
 	isServerAvailable: boolean;
+	isUsingClientMode: boolean;
 	provider: ProviderId;
 	model: string;
 	displayName: string;
@@ -325,6 +326,7 @@ class ProviderManager {
 				hasApiKey: false,
 				isValidApiKey: false,
 				isServerAvailable: false,
+				isUsingClientMode: false,
 				provider: targetProvider,
 				model: targetModel,
 				displayName: targetProvider,
@@ -337,6 +339,7 @@ class ProviderManager {
 		const isServerAvailable = await this.checkServerAvailability();
 
 		const canSend = isServerAvailable || isValidApiKey;
+		const isUsingClientMode = !isServerAvailable && isValidApiKey;
 
 		let errorMessage: string | undefined;
 		if (!canSend) {
@@ -354,11 +357,35 @@ class ProviderManager {
 			hasApiKey,
 			isValidApiKey,
 			isServerAvailable,
+			isUsingClientMode,
 			provider: targetProvider,
 			model: targetModel,
 			displayName: `${providerConfig.displayName} - ${this.getModelDisplayName(targetProvider, targetModel)}`,
 			errorMessage
 		};
+	}
+
+	// Get current operating mode
+	getCurrentMode(): 'server' | 'client' | 'offline' {
+		if (!browser) return 'server';
+
+		// If no API keys and server not available = offline
+		if (!this.serverAvailable && this.getClientAvailableProviders().length === 0) {
+			return 'offline';
+		}
+
+		// If server available = server mode
+		if (this.serverAvailable) {
+			return 'server';
+		}
+
+		// If we have API keys but no server = client mode
+		return 'client';
+	}
+
+	// Check if currently using client mode
+	isUsingClientMode(): boolean {
+		return this.getCurrentMode() === 'client';
 	}
 
 	// Force refresh server availability status

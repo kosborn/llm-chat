@@ -257,11 +257,16 @@
 					</div>
 				</div>
 			{:else}
-				<div class="mb-4 rounded-lg bg-orange-50 p-4 dark:bg-orange-900/20">
+				<div class="mb-4 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
 					<div class="flex items-center gap-3">
-						<div class="h-3 w-3 rounded-full bg-orange-500"></div>
-						<div class="text-sm text-orange-700 dark:text-orange-300">
-							Server unavailable - API key required for AI functionality
+						<div class="h-3 w-3 rounded-full bg-blue-500"></div>
+						<div>
+							<div class="text-sm font-medium text-blue-700 dark:text-blue-300">
+								📱 Browser Client Mode Available
+							</div>
+							<div class="text-xs text-blue-600 dark:text-blue-400">
+								Server AI unavailable - configure your API key to use client mode
+							</div>
 						</div>
 					</div>
 				</div>
@@ -296,7 +301,9 @@
 				>
 					API Key
 					{#if serverAvailable}
-						<span class="text-gray-500">(optional)</span>
+						<span class="text-gray-500">(optional - enables client mode fallback)</span>
+					{:else}
+						<span class="text-blue-600 dark:text-blue-400">(required for browser client mode)</span>
 					{/if}
 				</label>
 				<div class="relative">
@@ -305,8 +312,8 @@
 						type={showApiKey ? 'text' : 'password'}
 						bind:value={apiKeyInput}
 						placeholder={serverAvailable
-							? 'Optional - leave blank to use server'
-							: 'Enter your API key'}
+							? 'Optional - enables client mode fallback'
+							: 'Required for browser client mode'}
 						class="w-full rounded-lg border bg-white px-3 py-2 pr-10 shadow-sm focus:ring-1 focus:outline-none
 							   {validationError
 							? 'border-red-500 focus:border-red-500 focus:ring-red-500'
@@ -377,28 +384,56 @@
 				{/if}
 			{/if}
 
-			<!-- Security Notice -->
-			<div class="mb-6 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
-				<div class="flex items-start gap-3">
-					<svg
-						class="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400"
-						fill="none"
-						stroke="currentColor"
-						viewBox="0 0 24 24"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-						/>
-					</svg>
-					<div class="text-sm text-blue-800 dark:text-blue-200">
-						<p class="mb-1 font-medium">Privacy & Security</p>
-						<p>
-							Your API key is stored locally in your browser and never sent to our servers. All AI
-							requests go directly from your browser to the provider.
-						</p>
+			<!-- Mode Explanation -->
+			<div class="mb-6 space-y-3">
+				<div class="rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
+					<div class="flex items-start gap-3">
+						<div class="mt-0.5 h-5 w-5 flex-shrink-0 text-green-600 dark:text-green-400">🌐</div>
+						<div class="text-sm text-green-800 dark:text-green-200">
+							<p class="mb-1 font-medium">Server AI Mode</p>
+							<p>
+								Uses server-hosted AI models. No API key required, but requires internet connection.
+							</p>
+						</div>
+					</div>
+				</div>
+
+				<div class="rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
+					<div class="flex items-start gap-3">
+						<div class="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400">📱</div>
+						<div class="text-sm text-blue-800 dark:text-blue-200">
+							<p class="mb-1 font-medium">Browser Client Mode</p>
+							<p>
+								Your API key enables direct browser-to-provider communication. Works as fallback
+								when server is unavailable. All requests go directly from your browser to the AI
+								provider.
+							</p>
+						</div>
+					</div>
+				</div>
+
+				<div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+					<div class="flex items-start gap-3">
+						<svg
+							class="mt-0.5 h-5 w-5 flex-shrink-0 text-gray-600 dark:text-gray-400"
+							fill="none"
+							stroke="currentColor"
+							viewBox="0 0 24 24"
+						>
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								stroke-width="2"
+								d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+							/>
+						</svg>
+						<div class="text-sm text-gray-700 dark:text-gray-300">
+							<p class="mb-1 font-medium">Privacy & Security</p>
+							<p>
+								Your API key is stored locally in your browser and never sent to our servers. Client
+								mode requests bypass our servers entirely.
+							</p>
+						</div>
 					</div>
 				</div>
 			</div>

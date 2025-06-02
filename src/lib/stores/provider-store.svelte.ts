@@ -59,6 +59,14 @@ class ProviderStore {
 		return this._status?.isServerAvailable ?? false;
 	}
 
+	get isUsingClientMode(): boolean {
+		return this._status?.isUsingClientMode ?? false;
+	}
+
+	get currentMode(): 'server' | 'client' | 'offline' {
+		return providerManager.getCurrentMode();
+	}
+
 	// === Provider Management ===
 
 	async setProvider(provider: ProviderId, model?: string) {
@@ -249,6 +257,22 @@ class ProviderStore {
 	// Server instance only available server-side
 	getServerProviderInstance(provider: ProviderId) {
 		return providerManager.getServerProviderInstance(provider);
+	}
+
+	// === Mode Detection ===
+
+	getModeDisplayName(): string {
+		const mode = this.currentMode;
+		switch (mode) {
+			case 'server':
+				return 'Server AI';
+			case 'client':
+				return 'Browser Client';
+			case 'offline':
+				return 'Offline';
+			default:
+				return 'Unknown';
+		}
 	}
 
 	// === Backward Compatibility ===

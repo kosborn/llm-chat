@@ -125,7 +125,8 @@ class ClientChatService {
 			apiMetadata: {
 				provider: actualProvider,
 				model: actualModel,
-				timestamp: Date.now()
+				timestamp: Date.now(),
+				mode: 'server'
 			}
 		};
 	}
@@ -216,7 +217,8 @@ class ClientChatService {
 				model,
 				provider,
 				responseTime,
-				timestamp: Date.now()
+				timestamp: Date.now(),
+				mode: 'client'
 			};
 
 			// Log API metadata to debug store

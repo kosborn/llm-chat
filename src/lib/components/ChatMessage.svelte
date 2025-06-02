@@ -13,6 +13,7 @@
 	} from '$lib/utils/simple-token-counter';
 	import { getProviderDisplayName } from '$lib/utils/cost-calculator.js';
 	import { extractToolMentions } from '$lib/utils/text-formatter.js';
+	import { providerStore } from '$lib/stores/provider-store.svelte.js';
 
 	interface Props {
 		message: ChatMessage;
@@ -62,8 +63,6 @@
 		selectedToolInvocation = null;
 	}
 
-	import { providerStore } from '$lib/stores/provider-store.svelte.js';
-
 	function getProviderIcon(provider?: string): string {
 		if (!provider) return '💬';
 
@@ -78,6 +77,28 @@
 		return message.apiMetadata?.provider
 			? getProviderDisplayName(message.apiMetadata.provider)
 			: 'Assistant';
+	}
+
+	function getModeIcon(mode?: string): string {
+		switch (mode) {
+			case 'client':
+				return '📱';
+			case 'server':
+				return '🌐';
+			default:
+				return '';
+		}
+	}
+
+	function getModeDisplayName(mode?: string): string {
+		switch (mode) {
+			case 'client':
+				return 'Browser Client';
+			case 'server':
+				return 'Server AI';
+			default:
+				return '';
+		}
 	}
 </script>
 
@@ -124,6 +145,14 @@
 			{#if hasToolInvocations() && message.role === 'assistant'}
 				<span class="text-xs text-green-600 dark:text-green-400" title="Tools executed">
 					⚡ {message.toolInvocations?.length}
+				</span>
+			{/if}
+			{#if message.apiMetadata?.mode === 'client' && message.role === 'assistant'}
+				<span
+					class="text-xs text-blue-600 dark:text-blue-400"
+					title="Generated using browser client (offline mode)"
+				>
+					{getModeIcon(message.apiMetadata.mode)} Client
 				</span>
 			{/if}
 			{#if message.apiMetadata && message.role === 'assistant'}

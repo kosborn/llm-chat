@@ -336,6 +336,11 @@
 					<div class="h-2 w-2 rounded-full bg-red-500"></div>
 					<span>Cannot send</span>
 				</div>
+			{:else if providerStore.currentMode === 'client'}
+				<div class="flex items-center gap-1 text-blue-600 dark:text-blue-400">
+					<div class="h-2 w-2 rounded-full bg-blue-500"></div>
+					<span>📱 Client mode</span>
+				</div>
 			{/if}
 		</div>
 	</div>

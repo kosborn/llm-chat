@@ -54,6 +54,7 @@ export interface ApiUsageMetadata {
 	requestId?: string;
 	responseTime?: number;
 	timestamp: number;
+	mode?: 'server' | 'client';
 }
 
 export interface ToolInvocation {

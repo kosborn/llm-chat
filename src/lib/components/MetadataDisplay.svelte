@@ -44,6 +44,14 @@
 					<span class="font-medium text-gray-700 dark:text-gray-300">
 						{getModelDisplayName(metadata.provider || '', metadata.model || '')}
 					</span>
+					{#if metadata.mode === 'client'}
+						<span
+							class="text-xs text-blue-600 dark:text-blue-400"
+							title="Generated using browser client"
+						>
+							📱 Client
+						</span>
+					{/if}
 					{#if metadata.totalTokens}
 						<span class="text-gray-500 dark:text-gray-400">
 							{formatTokens(metadata.totalTokens)} tokens
@@ -93,6 +101,18 @@
 							<span class="text-gray-600 dark:text-gray-400">Time:</span>
 							<span class="ml-1 font-mono">{formatTimestamp(metadata.timestamp)}</span>
 						</div>
+						{#if metadata.mode}
+							<div>
+								<span class="text-gray-600 dark:text-gray-400">Mode:</span>
+								<span
+									class="ml-1 font-mono {metadata.mode === 'client'
+										? 'text-blue-600 dark:text-blue-400'
+										: 'text-gray-700 dark:text-gray-300'}"
+								>
+									{metadata.mode === 'client' ? '📱 Browser Client' : '🌐 Server AI'}
+								</span>
+							</div>
+						{/if}
 						{#if metadata.promptTokens}
 							<div>
 								<span class="text-gray-600 dark:text-gray-400">Input:</span>
@@ -152,6 +172,19 @@
 							</span>
 						</div>
 					</div>
+
+					{#if metadata.mode}
+						<div>
+							<span class="block text-gray-600 dark:text-gray-400">Mode</span>
+							<span
+								class="font-mono text-sm font-medium {metadata.mode === 'client'
+									? 'text-blue-600 dark:text-blue-400'
+									: 'text-gray-700 dark:text-gray-300'}"
+							>
+								{metadata.mode === 'client' ? '📱 Browser Client' : '🌐 Server AI'}
+							</span>
+						</div>
+					{/if}
 
 					{#if metadata.promptTokens || metadata.completionTokens || metadata.totalTokens}
 						<div>

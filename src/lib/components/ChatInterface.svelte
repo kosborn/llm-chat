@@ -1028,6 +1028,23 @@
 							<p class="text-xs text-gray-500 md:text-sm dark:text-gray-400">
 								{chatStore.currentChat.messages.length} messages
 							</p>
+							<!-- Mode indicator -->
+							{#if providerStore.currentMode === 'client'}
+								<span
+									class="text-xs text-blue-600 dark:text-blue-400"
+									title="Using browser client mode"
+								>
+									📱 Client
+								</span>
+							{:else if providerStore.currentMode === 'server'}
+								<span class="text-xs text-green-600 dark:text-green-400" title="Using server AI">
+									🌐 Server
+								</span>
+							{:else if providerStore.currentMode === 'offline'}
+								<span class="text-xs text-orange-600 dark:text-orange-400" title="Offline mode">
+									📴 Offline
+								</span>
+							{/if}
 							<div class="relative md:hidden">
 								<button
 									onclick={() => (showMobileModelSelector = !showMobileModelSelector)}
