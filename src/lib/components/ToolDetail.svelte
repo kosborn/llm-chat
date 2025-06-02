@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ToolMetadata } from '$lib/tools/types.js';
 	import { onMount } from 'svelte';
+	import { networkStatus } from '$lib/services/network-status.svelte.js';
 
 	interface Props {
 		tool: ToolMetadata;
@@ -9,6 +10,7 @@
 	}
 
 	const { tool, onClose, onToggle }: Props = $props();
+	let isOnline = $derived(networkStatus.isOnline);
 	let modal: HTMLDivElement;
 
 	onMount(() => {
@@ -46,6 +48,22 @@
 			default:
 				return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
 		}
+	}
+
+	function getNetworkStatusColor(requiresNetwork: boolean, isOnline: boolean) {
+		if (!requiresNetwork) {
+			return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+		}
+		return isOnline
+			? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+			: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+	}
+
+	function getNetworkStatusText(requiresNetwork: boolean, isOnline: boolean) {
+		if (!requiresNetwork) {
+			return 'Works Offline';
+		}
+		return isOnline ? 'Internet Required' : 'Offline - Unavailable';
 	}
 
 	function getToolParameters() {
@@ -102,7 +120,7 @@
 				<h2 id="modal-title" class="mb-2 text-xl font-semibold text-gray-900 dark:text-white">
 					{tool.name}
 				</h2>
-				<div class="flex items-center gap-2">
+				<div class="flex flex-wrap items-center gap-2">
 					{#if tool.category}
 						<span
 							class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getCategoryColor(
@@ -119,6 +137,18 @@
 							: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}"
 					>
 						{tool.enabled !== false ? 'Enabled' : 'Disabled'}
+					</span>
+					<span
+						class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getNetworkStatusColor(
+							tool.requiresNetwork === true,
+							isOnline
+						)}"
+						title={tool.requiresNetwork === true
+							? 'This tool requires internet connection'
+							: 'This tool works offline'}
+					>
+						{tool.requiresNetwork === true ? '🌐' : '📱'}
+						{getNetworkStatusText(tool.requiresNetwork === true, isOnline)}
 					</span>
 					{#if tool.version}
 						<span class="text-xs text-gray-500 dark:text-gray-400">v{tool.version}</span>
@@ -144,6 +174,65 @@
 
 		<!-- Content -->
 		<div class="max-h-[calc(90vh-140px)] overflow-y-auto p-6">
+			<!-- Network Requirements -->
+			{#if tool.requiresNetwork === true}
+				<div class="mb-6 rounded-lg border {isOnline ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'}">
+					<div class="flex items-start gap-3 p-4">
+						<div class="flex-shrink-0">
+							<svg
+								class="h-5 w-5 {isOnline ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}"
+								fill="currentColor"
+								viewBox="0 0 20 20"
+							>
+								<path
+									fill-rule="evenodd"
+									d="M3 3a1 1 0 000 2h11a1 1 0 100-2H3zM3 7a1 1 0 000 2h5a1 1 0 000-2H3zM3 11a1 1 0 100 2h4a1 1 0 100-2H3zM13 16a1 1 0 102 0v-5.586l1.293 1.293a1 1 0 001.414-1.414l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 101.414 1.414L13 10.414V16z"
+									clip-rule="evenodd"
+								/>
+							</svg>
+						</div>
+						<div>
+							<h4 class="text-sm font-medium {isOnline ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}">
+								{isOnline ? 'Internet Connection Required' : 'Tool Currently Unavailable'}
+							</h4>
+							<p class="mt-1 text-sm {isOnline ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}">
+								{#if isOnline}
+									This tool requires an active internet connection to function properly.
+								{:else}
+									This tool needs internet access but you're currently offline.
+								{/if}
+							</p>
+						</div>
+					</div>
+				</div>
+			{:else}
+				<div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+					<div class="flex items-start gap-3">
+						<div class="flex-shrink-0">
+							<svg
+								class="h-5 w-5 text-blue-600 dark:text-blue-400"
+								fill="currentColor"
+								viewBox="0 0 20 20"
+							>
+								<path
+									fill-rule="evenodd"
+									d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z"
+									clip-rule="evenodd"
+								/>
+							</svg>
+						</div>
+						<div>
+							<h4 class="text-sm font-medium text-blue-800 dark:text-blue-200">
+								Works Offline
+							</h4>
+							<p class="mt-1 text-sm text-blue-700 dark:text-blue-300">
+								This tool works entirely offline and doesn't require an internet connection.
+							</p>
+						</div>
+					</div>
+				</div>
+			{/if}
+
 			<!-- Description -->
 			<div class="mb-6">
 				<h3 class="mb-2 text-lg font-medium text-gray-900 dark:text-white">Description</h3>

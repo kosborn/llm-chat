@@ -3,9 +3,12 @@
 	import {
 		toolRegistry,
 		enableToolPersistent,
-		disableToolPersistent
+		disableToolPersistent,
+		getOfflineTools,
+		getNetworkTools
 	} from '$lib/tools/registry.js';
 	import { toolSettingsStore } from '$lib/stores/tool-settings-store.svelte.js';
+	import { networkStatus } from '$lib/services/network-status.svelte.js';
 	import type { ToolMetadata } from '$lib/tools/types.js';
 	import ToolCard from './ToolCard.svelte';
 	import ToolDetail from './ToolDetail.svelte';
@@ -17,9 +20,11 @@
 	let selectedCategory = $state('all');
 	let selectedTag = $state('all');
 	let showOnlyEnabled = $state(false);
+	let networkFilter = $state('all'); // 'all', 'offline', 'network'
 	let categories: string[] = $state([]);
 	let tags: string[] = $state([]);
-	let stats = $state({ total: 0, enabled: 0, disabled: 0, categories: 0, tags: 0 });
+	let stats = $state({ total: 0, enabled: 0, disabled: 0, categories: 0, tags: 0, requiresNetwork: 0, worksOffline: 0 });
+	let isOnline = $derived(networkStatus.isOnline);
 
 	onMount(async () => {
 		await loadTools();
@@ -51,7 +56,15 @@
 			// Enabled filter
 			const matchesEnabled = !showOnlyEnabled || tool.enabled !== false;
 
-			return matchesSearch && matchesCategory && matchesTag && matchesEnabled;
+			// Network filter
+			const matchesNetwork = (() => {
+				if (networkFilter === 'all') return true;
+				if (networkFilter === 'offline') return tool.requiresNetwork !== true;
+				if (networkFilter === 'network') return tool.requiresNetwork === true;
+				return true;
+			})();
+
+			return matchesSearch && matchesCategory && matchesTag && matchesEnabled && matchesNetwork;
 		});
 	}
 
@@ -75,6 +88,7 @@
 		selectedCategory = 'all';
 		selectedTag = 'all';
 		showOnlyEnabled = false;
+		networkFilter = 'all';
 		filterTools();
 	}
 
@@ -142,6 +156,25 @@
 				</select>
 			</div>
 
+			<!-- Network Requirements Filter -->
+			<div class="mb-4">
+				<label
+					for="network"
+					class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+				>
+					Network Requirements
+				</label>
+				<select
+					id="network"
+					bind:value={networkFilter}
+					class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+				>
+					<option value="all">All Tools</option>
+					<option value="offline">Works Offline</option>
+					<option value="network">Requires Internet</option>
+				</select>
+			</div>
+
 			<!-- Enabled Only Filter -->
 			<div class="mb-4">
 				<label class="flex items-center">
@@ -179,6 +212,14 @@
 						<span class="text-red-600 dark:text-red-400">{stats.disabled}</span>
 					</div>
 					<div class="flex justify-between">
+						<span>Works Offline:</span>
+						<span class="text-blue-600 dark:text-blue-400">{stats.worksOffline}</span>
+					</div>
+					<div class="flex justify-between">
+						<span>Needs Internet:</span>
+						<span class="text-amber-600 dark:text-amber-400">{stats.requiresNetwork}</span>
+					</div>
+					<div class="flex justify-between">
 						<span>Categories:</span>
 						<span>{stats.categories}</span>
 					</div>
@@ -193,7 +234,24 @@
 
 	<!-- Tools Grid -->
 	<div class="lg:col-span-3">
-		{#if filteredTools.length === 0}
+		{#if !isOnline && networkFilter === 'network'}
+			<div class="py-12 text-center">
+				<div class="mb-4 text-red-400 dark:text-red-500">
+					<svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+						/>
+					</svg>
+				</div>
+				<h3 class="mb-2 text-lg font-medium text-gray-900 dark:text-white">Network tools offline</h3>
+				<p class="text-gray-500 dark:text-gray-400">
+					These tools require internet connection but you're currently offline.
+				</p>
+			</div>
+		{:else if filteredTools.length === 0}
 			<div class="py-12 text-center">
 				<div class="mb-4 text-gray-400 dark:text-gray-500">
 					<svg class="mx-auto h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">

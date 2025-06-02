@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { ToolMetadata } from '$lib/tools/types.js';
+	import { networkStatus } from '$lib/services/network-status.svelte.js';
 
 	interface Props {
 		tool: ToolMetadata;
@@ -8,6 +9,8 @@
 	}
 
 	const { tool, onToggle, onViewDetails }: Props = $props();
+	
+	let isOnline = $derived(networkStatus.isOnline);
 
 	function getCategoryColor(category?: string) {
 		switch (category) {
@@ -29,6 +32,26 @@
 			? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
 			: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
 	}
+
+	function getNetworkStatusColor(requiresNetwork: boolean, isOnline: boolean) {
+		if (!requiresNetwork) {
+			return 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200';
+		}
+		return isOnline
+			? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+			: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200';
+	}
+
+	function getNetworkStatusText(requiresNetwork: boolean, isOnline: boolean) {
+		if (!requiresNetwork) {
+			return 'Works Offline';
+		}
+		return isOnline ? 'Online Required' : 'Offline';
+	}
+
+	function getNetworkIcon(requiresNetwork: boolean) {
+		return requiresNetwork ? '🌐' : '📱';
+	}
 </script>
 
 <div
@@ -40,7 +63,7 @@
 			<h3 class="mb-1 text-lg font-semibold text-gray-900 dark:text-white">
 				{tool.name}
 			</h3>
-			<div class="mb-2 flex items-center gap-2">
+			<div class="mb-2 flex flex-wrap items-center gap-2">
 				{#if tool.category}
 					<span
 						class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getCategoryColor(
@@ -56,6 +79,18 @@
 					)}"
 				>
 					{tool.enabled !== false ? 'Enabled' : 'Disabled'}
+				</span>
+				<span
+					class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {getNetworkStatusColor(
+						tool.requiresNetwork === true,
+						isOnline
+					)}"
+					title={tool.requiresNetwork === true
+						? 'This tool requires internet connection'
+						: 'This tool works offline'}
+				>
+					{getNetworkIcon(tool.requiresNetwork === true)}
+					{getNetworkStatusText(tool.requiresNetwork === true, isOnline)}
 				</span>
 			</div>
 		</div>
