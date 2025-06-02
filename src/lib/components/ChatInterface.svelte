@@ -48,16 +48,6 @@
 	onMount(async () => {
 		await chatStore.init();
 
-		// Register service worker
-		if ('serviceWorker' in navigator) {
-			try {
-				await navigator.serviceWorker.register('/service-worker.js');
-				debugConsole.log('Service Worker registered');
-			} catch (error) {
-				debugConsole.error('Service Worker registration failed:', error);
-			}
-		}
-
 		// Don't automatically show API config modal - let user click the button when needed
 
 		// Listen for network events to process offline queue
