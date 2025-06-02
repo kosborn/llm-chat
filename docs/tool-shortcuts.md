@@ -1,10 +1,14 @@
 # Tool Shortcuts Documentation
 
+![Tool Selector Popup](imgs/tool-selector-popup.png)
+
 ## @ Shortcut Feature
 
 The chat interface now supports an @ shortcut system that allows you to quickly select and invoke specific tools in your messages.
 
 ## How to Use
+
+![Tool Filtering](imgs/tool-filtering.png)
 
 1. **Type @ symbol**: Start typing `@` in the chat input field
 2. **Browse tools**: A dropdown will appear showing all available tools
@@ -20,6 +24,12 @@ The chat interface now supports an @ shortcut system that allows you to quickly 
 @time current timezone
 @random number between 1 and 100
 ```
+
+![Calculator Tool Example](imgs/calculator-tool-example.png)
+*Calculator tool in action*
+
+![Weather Tool Example](imgs/weather-tool-example.png)
+*Weather tool providing location-based information*
 
 ## Available Tools
 
@@ -60,12 +70,18 @@ The system includes several built-in tools organized by category:
 
 ## Integration
 
+![Tools Interface Page](imgs/tools-interface-page.png)
+*Dedicated tools interface for exploring available tools*
+
 The @ shortcut seamlessly integrates with the existing chat interface:
 
 - Maintains message history and context
 - Works with offline queue system
 - Respects API key configuration
 - Compatible with dark/light themes
+
+![Text Formatting](imgs/text-formatting.png)
+*Rich text formatting with tool mentions highlighted*
 
 ## Technical Details
 

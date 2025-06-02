@@ -2,6 +2,8 @@
 
 A modern chat application built with SvelteKit 5 and Vercel's AI SDK, featuring custom function calling tools and Groq integration.
 
+![Main Chat Interface](docs/imgs/main-chat-interface.png)
+
 ## Features
 
 - 🤖 **AI-Powered Chat**: Uses Groq's `meta-llama/llama-4-scout-17b-16e-instruct` model
@@ -13,7 +15,11 @@ A modern chat application built with SvelteKit 5 and Vercel's AI SDK, featuring 
 - ✨ **Markdown Support**: Rich text rendering with syntax highlighting
 - 🔄 **Streaming Responses**: Real-time AI response streaming
 
+![Dark Mode](docs/imgs/dark-mode.png)
+
 ## Available Tools
+
+![Tool Selector](docs/imgs/tool-selector-popup.png)
 
 - **Weather Tool** 🌤️: Get current weather information for any location
 - **Calculator** 🧮: Perform mathematical calculations and computations
@@ -23,6 +29,14 @@ A modern chat application built with SvelteKit 5 and Vercel's AI SDK, featuring 
 - **Text Processor** 📝: Text transformation and analysis operations
 - **JSON Formatter** 📋: Format, validate, and manipulate JSON data
 - **MaxMind Tool** 🌍: IP geolocation and network information lookup
+
+### Tool Examples
+
+![Weather Tool Example](docs/imgs/weather-tool-example.png)
+*Weather tool providing detailed weather information*
+
+![Calculator Tool Example](docs/imgs/calculator-tool-example.png)
+*Calculator tool performing mathematical operations*
 
 ## Prerequisites
 
@@ -127,6 +141,8 @@ src/
 
 ## Usage
 
+![Chat Sidebar](docs/imgs/chat-sidebar.png)
+
 1. **Start a New Chat**: Click "New Chat" or "Start Your First Chat"
 2. **Send Messages**: Type your message and press Enter or click Send
 3. **Use Tools**: Ask the AI to use tools naturally or use @ shortcuts:
@@ -136,12 +152,29 @@ src/
    - "Pick a random number between 1 and 100" or "@random number 1-100"
    - "Format this JSON data" or "@json-formatter {...}"
    - "Process this text" or "@text-processor ..."
+
+![Tool Filtering](docs/imgs/tool-filtering.png)
+*Real-time tool filtering with @ shortcuts*
+
 4. **Manage Chats**:
    - Switch between chats in the sidebar
    - Rename chats by clicking the edit icon
    - Archive chats with the archive icon
    - View archived chats in the "Archived" tab
    - Restore archived chats or permanently delete them from the archived section
+
+![Archived Chats](docs/imgs/archived-chats.png)
+*Archive and manage your chat history*
+
+### Tools Interface
+
+![Tools Interface Page](docs/imgs/tools-interface-page.png)
+*Dedicated tools interface for exploring and testing tools*
+
+### Text Formatting
+
+![Text Formatting](docs/imgs/text-formatting.png)
+*Rich text formatting with tool mentions and URL highlighting*
 
 ## Customizing Tools
 

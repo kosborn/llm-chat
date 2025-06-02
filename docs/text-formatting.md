@@ -1,5 +1,7 @@
 # Text Formatting and Tool Completion Features
 
+![Text Formatting Example](imgs/text-formatting.png)
+
 ## Overview
 
 The chat interface now supports rich text formatting and enhanced tool selection with autocomplete functionality. This includes highlighting of tool mentions and URLs in the chat input.
@@ -27,6 +29,8 @@ Example:
 
 ### 3. Tool Selector with @ Shortcut
 
+![Tool Selector Popup](imgs/tool-selector-popup.png)
+
 Type `@` followed by any characters to open the tool selector popup:
 
 - **Navigation**: Use arrow keys (↑/↓) to navigate through available tools
@@ -35,11 +39,15 @@ Type `@` followed by any characters to open the tool selector popup:
 - **Autocomplete**: Press Tab to quickly select the first matching tool
 - **Close**: Press Escape to close without selecting
 
+![Tool Filtering in Action](imgs/tool-filtering.png)
+
 Example workflow:
 
 1. Type `@wea` - Opens selector showing weather-related tools
 2. Use arrow keys to navigate or press Tab to select the first match
 3. The text becomes `@weather ` with proper formatting
+
+![Weather Tool Example](imgs/weather-tool-example.png)
 
 ### 4. Visual Feedback
 
