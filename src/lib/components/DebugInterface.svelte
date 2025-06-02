@@ -254,7 +254,7 @@
 <svelte:window onkeydown={handleKeyDown} />
 
 <!-- Toggle Button -->
-<div class="fixed right-4 bottom-4 z-50">
+<div class="fixed right-4 bottom-[25vh] z-50">
 	<button
 		onclick={handleDebugToggle}
 		class="relative flex h-12 w-12 items-center justify-center rounded-full bg-gray-800 text-white shadow-lg transition-colors hover:bg-gray-700 dark:bg-gray-200 dark:text-gray-800 dark:hover:bg-gray-300"
