@@ -144,17 +144,20 @@ import { registry, getToolsByCategory } from '$lib/tools';
 Successfully added multiple tools including:
 
 **Text Processor Tool** with 10 operations:
+
 - Text transformations (uppercase, lowercase, titlecase, reverse)
 - Analysis (word count, character count with/without spaces)
 - Formatting (remove spaces, add line numbers)
 - Extraction (emails, URLs with domain analysis)
 
 **JSON Formatter Tool** with operations:
+
 - Format, minify, validate JSON
 - Extract keys and values
 - Get size, flatten/unflatten structures
 
 **MaxMind Tool** for network analysis:
+
 - IP geolocation lookup
 - Network information and security data
 

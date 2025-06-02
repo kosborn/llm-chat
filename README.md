@@ -129,9 +129,9 @@ src/
 
 1. **Start a New Chat**: Click "New Chat" or "Start Your First Chat"
 2. **Send Messages**: Type your message and press Enter or click Send
-4. **Use Tools**: Ask the AI to use tools naturally or use @ shortcuts:
+3. **Use Tools**: Ask the AI to use tools naturally or use @ shortcuts:
    - "What's the weather in New York?" or "@weather New York"
-   - "Calculate 25 \* 47 + 12" or "@calculator 25 * 47 + 12"
+   - "Calculate 25 \* 47 + 12" or "@calculator 25 \* 47 + 12"
    - "What time is it in Tokyo?" or "@time Tokyo"
    - "Pick a random number between 1 and 100" or "@random number 1-100"
    - "Format this JSON data" or "@json-formatter {...}"

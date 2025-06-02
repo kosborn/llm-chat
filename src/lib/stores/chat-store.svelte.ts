@@ -295,13 +295,14 @@ class ChatStore {
 			} else if (forceRegenerate) {
 				// Check if we're offline or missing API key for better error messages
 				if (!clientChatService.canSendMessages()) {
-					notificationStore.error(
-						'Cannot generate title while offline. Please check your connection.'
-					);
+					const errorMsg = 'Cannot generate title while offline. Please check your connection.';
+					notificationStore.error(errorMsg);
+					throw new Error(errorMsg);
 				} else {
-					notificationStore.error(
-						'Failed to generate title. The AI service may be temporarily unavailable.'
-					);
+					const errorMsg =
+						'Failed to generate title. The AI service may be temporarily unavailable.';
+					notificationStore.error(errorMsg);
+					throw new Error(errorMsg);
 				}
 			}
 		} catch (err) {
@@ -323,6 +324,8 @@ class ChatStore {
 				} else {
 					notificationStore.error('Failed to generate title. Please try again.');
 				}
+				// Re-throw the error so it can be caught by the calling function
+				throw err;
 			}
 			debugConsole.warn('Auto-rename failed:', err);
 		}
