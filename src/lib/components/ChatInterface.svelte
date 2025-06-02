@@ -819,7 +819,6 @@
 					</p>
 
 					<div class="mb-8 grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6">
-						>
 						<div
 							class="rounded-lg border border-blue-200 bg-blue-50 p-6 dark:border-blue-700 dark:bg-blue-900/30"
 						>
