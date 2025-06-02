@@ -55,6 +55,7 @@
 		"marked": "^15.0.12",
 		"nanoid": "^5.1.5",
 		"prismjs": "^1.30.0",
+		"svelte-inspect-value": "^0.7.2",
 		"workbox-window": "^7.3.0",
 		"zod": "^3.25.42"
 	}

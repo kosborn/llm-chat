@@ -3,6 +3,8 @@
 	import { chatStore } from '$lib/stores/chat-store.svelte.js';
 	import { providerStore } from '$lib/stores/provider-store.svelte.js';
 	import { networkStore } from '$lib/stores/network-store.svelte.js';
+	import { clientChatService } from '$lib/services/client-chat.js';
+	import InspectValue from 'svelte-inspect-value';
 
 	let isOpen = $state(false);
 	let autoScroll = $state(true);
@@ -10,7 +12,7 @@
 	let selectedTypes = $state<Set<string>>(new Set());
 	let hiddenTypes = $state<Set<string>>(new Set(['message_update']));
 	let showFilterMenu = $state(false);
-	let activeTab = $state<'messages' | 'stores'>('messages');
+	let activeTab = $state<'messages' | 'stores' | 'services'>('messages');
 
 	function handleKeyDown(event: KeyboardEvent) {
 		// Cmd+D to toggle debug mode (Mac) or Ctrl+D (Windows/Linux)
@@ -214,6 +216,27 @@
 		};
 	}
 
+	function getServiceState() {
+		return {
+			'Client Chat Service': {
+				canSendMessages: clientChatService.canSendMessages(),
+				getDetailedStatus: clientChatService.getDetailedStatus(),
+				apiUsageStats: clientChatService.getApiUsageStats(),
+				providerManager: {
+					currentProvider: clientChatService.getProviderManager().getCurrentProvider(),
+					currentModel: clientChatService.getProviderManager().getCurrentModel(),
+					currentSelection: clientChatService.getProviderManager().getCurrentSelection(),
+					serverAvailableProviders: clientChatService
+						.getProviderManager()
+						.getServerAvailableProviders(),
+					clientAvailableProviders: clientChatService
+						.getProviderManager()
+						.getClientAvailableProviders()
+				}
+			}
+		};
+	}
+
 	$effect(() => {
 		if (autoScroll && messagesContainer && isOpen) {
 			messagesContainer.scrollTop = 0;
@@ -301,12 +324,24 @@
 				>
 					System Stores
 				</button>
+				<button
+					class="px-4 py-2 text-sm font-medium {activeTab === 'services'
+						? 'border-b-2 border-blue-500 text-blue-600 dark:text-blue-400'
+						: 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}"
+					onclick={() => (activeTab = 'services')}
+				>
+					Services
+				</button>
 			</div>
 
 			<div class="flex items-center justify-between">
 				<div class="flex items-center gap-3">
 					<h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
-						{activeTab === 'messages' ? 'Debug Console' : 'System Stores'}
+						{activeTab === 'messages'
+							? 'Debug Console'
+							: activeTab === 'stores'
+								? 'System Stores'
+								: 'Services'}
 					</h2>
 					{#if activeTab === 'messages'}
 						<div class="flex items-center gap-2">
@@ -616,7 +651,7 @@
 						{/each}
 					</div>
 				{/if}
-			{:else}
+			{:else if activeTab === 'stores'}
 				<!-- System Stores Tab -->
 				<div class="space-y-4">
 					{#each Object.entries(getStoreState()) as [storeName, storeData]}
@@ -643,9 +678,39 @@
 								</button>
 							</div>
 							<div class="max-h-64 overflow-auto">
-								<pre class="text-xs text-gray-700 dark:text-gray-300"><code
-										>{JSON.stringify(storeData, null, 2)}</code
-									></pre>
+								<InspectValue value={storeData} theme="dark" />
+							</div>
+						</div>
+					{/each}
+				</div>
+			{:else}
+				<!-- Services Tab -->
+				<div class="space-y-4">
+					{#each Object.entries(getServiceState()) as [serviceName, serviceData]}
+						<div
+							class="rounded-lg border border-gray-200 bg-white p-4 dark:border-gray-600 dark:bg-gray-800"
+						>
+							<div class="mb-3 flex items-center justify-between">
+								<h3 class="text-sm font-medium text-gray-900 dark:text-gray-100">
+									{serviceName}
+								</h3>
+								<button
+									class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+									onclick={() => copyToClipboard(JSON.stringify(serviceData, null, 2))}
+									title="Copy service state to clipboard"
+								>
+									<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path
+											stroke-linecap="round"
+											stroke-linejoin="round"
+											stroke-width="2"
+											d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+										></path>
+									</svg>
+								</button>
+							</div>
+							<div class="max-h-64 overflow-auto">
+								<InspectValue value={serviceData} theme="dark" />
 							</div>
 						</div>
 					{/each}
