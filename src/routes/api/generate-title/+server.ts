@@ -11,6 +11,17 @@ export async function POST({ request }: { request: Request }) {
 	try {
 		const { userMessage, assistantMessage, provider, model } = await request.json();
 
+		// Filter out empty messages
+		if (!userMessage?.trim() || !assistantMessage?.trim()) {
+			return new Response(
+				JSON.stringify({ error: 'Both user and assistant messages must have content' }),
+				{
+					status: 400,
+					headers: { 'Content-Type': 'application/json' }
+				}
+			);
+		}
+
 		const availableProviders = getAvailableProviders();
 
 		// Check if any API keys are available

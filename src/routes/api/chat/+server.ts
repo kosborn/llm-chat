@@ -11,6 +11,7 @@ import {
 } from '$lib/providers/server.js';
 import { getDefaultModelForProvider } from '$lib/providers/index.js';
 import { debugConsole } from '$lib/utils/console.js';
+import { filterEmptyContentBlocks } from '$lib/utils/message-filter.js';
 
 // Debug logging utility for server-side debugging
 const DEBUG_MODE = process.env.NODE_ENV === 'development';
@@ -31,12 +32,41 @@ export async function POST({ request }: { request: Request }) {
 		debugLog(`[${requestId}] Incoming chat request`);
 
 		const {
-			messages,
+			messages: rawMessages,
 			provider,
 			model,
 			mentionedTools = [],
 			enabledTools = []
 		} = await request.json();
+
+		// Filter out empty messages and empty content blocks
+		const messages = rawMessages
+			.filter((msg: any) => {
+				if (!msg.content) return false;
+
+				// Handle string content
+				if (typeof msg.content === 'string') {
+					return msg.content.trim().length > 0;
+				}
+
+				// Handle array content (for multi-modal messages)
+				if (Array.isArray(msg.content)) {
+					const filteredContent = filterEmptyContentBlocks(msg.content);
+					return filteredContent.length > 0;
+				}
+
+				return false;
+			})
+			.map((msg: any) => {
+				// Filter empty content blocks from array content
+				if (Array.isArray(msg.content)) {
+					return {
+						...msg,
+						content: filterEmptyContentBlocks(msg.content)
+					};
+				}
+				return msg;
+			});
 
 		debugLog(`[${requestId}] Parsed request body`, {
 			messageCount: messages.length,

@@ -5,6 +5,7 @@ import { debugStore } from '$lib/stores/debug-store.svelte.js';
 import { ToolMentionManager } from '$lib/utils/tool-mention-manager.js';
 import { toolRegistry } from '$lib/tools/registry.js';
 import { debugConsole } from '$lib/utils/console.js';
+import { prepareMessagesForLLM } from '$lib/utils/message-filter.js';
 import type { ChatMessage, ApiUsageMetadata } from '../../app.d.ts';
 import type { ProviderId } from '$lib/providers/index.js';
 
@@ -112,10 +113,7 @@ class ClientChatService {
 		model: string,
 		mentionedTools?: string[]
 	): Promise<ChatResponse> {
-		const outboundMessages = messages.map((msg) => ({
-			role: msg.role,
-			content: msg.content
-		}));
+		const outboundMessages = prepareMessagesForLLM(messages);
 
 		// Log outbound message to debug store
 		debugStore.logOutboundMessage(outboundMessages, 'server', {
@@ -187,11 +185,8 @@ class ClientChatService {
 			const providerInstance = providerManager.getClientProviderInstance(provider);
 			const modelInstance = providerInstance(model);
 
-			// Convert ChatMessage format to AI SDK format
-			const aiMessages = messages.map((msg) => ({
-				role: msg.role as 'user' | 'assistant' | 'system',
-				content: msg.content
-			}));
+			// Convert ChatMessage format to AI SDK format and filter empty messages
+			const aiMessages = prepareMessagesForLLM(messages);
 
 			// Log outbound message to debug store
 			debugStore.logOutboundMessage(aiMessages, 'client', {
