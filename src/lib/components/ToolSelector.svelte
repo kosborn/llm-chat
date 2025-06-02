@@ -80,13 +80,24 @@
 	$effect(() => {
 		if (visible && (position.x !== stablePosition.x || position.y !== stablePosition.y)) {
 			const viewportWidth = window.innerWidth;
+			const isDesktop = viewportWidth >= 768; // md breakpoint
 
 			let newX = position.x;
 			let newY = position.y;
 
-			// Adjust horizontal position if popup would go off-screen (assuming max width)
-			if (newX + 320 > viewportWidth) {
-				newX = Math.max(10, viewportWidth - 320 - 10);
+			if (isDesktop) {
+				// Desktop: Adjust horizontal position if popup would go off-screen (assuming max width)
+				if (newX + 320 > viewportWidth) {
+					newX = Math.max(10, viewportWidth - 320 - 10);
+				}
+			} else {
+				// Mobile: Center horizontally, already calculated in ChatInput
+				// Ensure it doesn't go off screen edges
+				if (newX < 10) {
+					newX = 10;
+				} else if (newX + 320 > viewportWidth - 10) {
+					newX = viewportWidth - 320 - 10;
+				}
 			}
 
 			// Calculate available space above cursor for upward growth
