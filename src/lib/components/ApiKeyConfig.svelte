@@ -227,14 +227,14 @@
 
 {#if isOpen}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+		class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto"
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
 		onclick={handleDialogClick}
 		onkeydown={handleKeyDown}
 	>
-		<div class="mx-4 w-full max-w-4xl rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
+		<div class="mx-4 my-4 w-full max-w-4xl rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900 min-h-0 max-h-full">
 			<!-- Header -->
 			<div class="mb-6 flex items-center justify-between">
 				<h2 class="text-2xl font-bold text-gray-900 dark:text-white">AI Configuration</h2>
@@ -255,7 +255,7 @@
 			</div>
 
 			<!-- Two Column Layout -->
-			<div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+			<div class="grid grid-cols-1 gap-6 lg:grid-cols-2 overflow-y-auto">
 				<!-- Left Column: Configuration -->
 				<div class="space-y-4">
 					<!-- Server Status -->
