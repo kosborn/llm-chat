@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { providerStore } from '$lib/stores/provider-store.svelte.js';
-	import { networkStore } from '$lib/stores/network-store.svelte.js';
 	import { onMount } from 'svelte';
-	import type { ProviderId } from '$lib/providers/index.js';
-	import { debugConsole } from '$lib/utils/console.js';
+	import { browser } from '$app/environment';
+	import { getAllProviders, validateApiKey, type ProviderId } from '$lib/providers';
 
 	interface Props {
 		isOpen: boolean;
@@ -12,360 +10,418 @@
 
 	let { isOpen, onClose } = $props<Props>();
 
-	// Component state
-	let keyInput = $state('');
-	let selectedProvider = $state<ProviderId>('groq');
-	let keyVisible = $state(false);
-	let validationState = $state<{
-		isValid: boolean;
-		error: string;
-	}>({ isValid: false, error: '' });
-	
-	// Server state
-	let serverStatus = $state<{
-		available: boolean;
-		checking: boolean;
-		lastCheck: number;
-	}>({ available: false, checking: false, lastCheck: 0 });
+	// Local state
+	let selectedProviderId = $state<ProviderId>('groq');
+	let apiKeyInput = $state('');
+	let showApiKey = $state(false);
+	let serverAvailable = $state(false);
+	let checkingServer = $state(false);
+	let validationError = $state('');
 
-	const availableProviders = providerStore.getAllProviders();
+	// Get providers
+	const providers = getAllProviders();
 
-	// Load current settings when dialog opens
+	// Load saved data when dialog opens
 	$effect(() => {
-		if (isOpen) {
-			keyInput = providerStore.getApiKey() || '';
-			selectedProvider = providerStore.currentProvider;
-			
-			// Check server if not checked recently
-			const now = Date.now();
-			if (now - serverStatus.lastCheck > 30000) {
-				performServerCheck();
-			}
-			
-			runValidation();
+		if (isOpen && browser) {
+			loadSavedConfiguration();
+			checkServerStatus();
 		}
 	});
 
-	async function performServerCheck() {
-		const now = Date.now();
-		if (serverStatus.checking || now - serverStatus.lastCheck < 30000) {
-			return;
+	// Validate API key when it changes
+	$effect(() => {
+		if (apiKeyInput && selectedProviderId) {
+			validateCurrentKey();
+		} else {
+			validationError = '';
 		}
+	});
 
-		serverStatus.checking = true;
-		serverStatus.lastCheck = now;
-
+	function loadSavedConfiguration() {
 		try {
-			serverStatus.available = await providerStore.checkServerAvailability();
+			const savedProvider = localStorage.getItem('ai-provider');
+			const savedKeys = localStorage.getItem('ai-api-keys');
+
+			if (savedProvider) {
+				selectedProviderId = savedProvider as ProviderId;
+			}
+
+			if (savedKeys) {
+				const keys = JSON.parse(savedKeys);
+				apiKeyInput = keys[selectedProviderId] || '';
+			}
 		} catch (error) {
-			debugConsole.log('Server check failed:', error);
-			serverStatus.available = false;
-		} finally {
-			serverStatus.checking = false;
+			console.warn('Failed to load saved configuration:', error);
 		}
 	}
 
-	function runValidation() {
-		// Server available means API key is optional
-		if (serverStatus.available && (!keyInput || !keyInput.trim())) {
-			validationState = { isValid: true, error: '' };
+	async function checkServerStatus() {
+		if (!browser) return;
+
+		checkingServer = true;
+		try {
+			const response = await fetch('/api/server-status', {
+				method: 'HEAD',
+				cache: 'no-cache'
+			});
+			serverAvailable = response.ok;
+		} catch {
+			serverAvailable = false;
+		} finally {
+			checkingServer = false;
+		}
+	}
+
+	function validateCurrentKey() {
+		if (!apiKeyInput.trim()) {
+			validationError = '';
 			return;
 		}
 
-		// No key provided
-		if (!keyInput || !keyInput.trim()) {
-			validationState = serverStatus.available 
-				? { isValid: true, error: '' }
-				: { isValid: false, error: '' };
-			return;
-		}
-
-		// Validate key format
-		const isValidFormat = providerStore.validateApiKey(keyInput, selectedProvider);
-		if (isValidFormat) {
-			validationState = { isValid: true, error: '' };
+		const isValid = validateApiKey(apiKeyInput, selectedProviderId);
+		if (!isValid) {
+			const provider = providers.find((p) => p.id === selectedProviderId);
+			validationError = `Invalid format. Keys should start with "${provider?.apiKeyPrefix}"`;
 		} else {
-			const provider = providerStore.getProvider(selectedProvider);
-			const errorMsg = provider 
-				? `${provider.displayName} API keys should start with "${provider.apiKeyPrefix}"`
-				: 'Invalid API key format';
-			validationState = { isValid: false, error: errorMsg };
+			validationError = '';
 		}
 	}
 
 	function saveConfiguration() {
-		if (serverStatus.available || validationState.isValid) {
-			if (keyInput.trim()) {
-				providerStore.setApiKey(selectedProvider, keyInput);
-			}
-			providerStore.setProvider(selectedProvider);
+		if (!browser) return;
+
+		try {
+			// Save provider
+			localStorage.setItem('ai-provider', selectedProviderId);
+
+			// Save API keys
+			let existingKeys = {};
+			try {
+				const stored = localStorage.getItem('ai-api-keys');
+				if (stored) existingKeys = JSON.parse(stored);
+			} catch {}
+
+			const updatedKeys = {
+				...existingKeys,
+				[selectedProviderId]: apiKeyInput.trim()
+			};
+
+			localStorage.setItem('ai-api-keys', JSON.stringify(updatedKeys));
+
 			onClose();
+		} catch (error) {
+			console.error('Failed to save configuration:', error);
 		}
 	}
 
 	function clearStoredKey() {
-		providerStore.clearApiKey(selectedProvider);
-		keyInput = '';
-		runValidation();
+		if (!browser) return;
+
+		try {
+			const stored = localStorage.getItem('ai-api-keys');
+			if (stored) {
+				const keys = JSON.parse(stored);
+				delete keys[selectedProviderId];
+				localStorage.setItem('ai-api-keys', JSON.stringify(keys));
+			}
+			apiKeyInput = '';
+			validationError = '';
+		} catch (error) {
+			console.error('Failed to clear key:', error);
+		}
 	}
 
-	function cancelChanges() {
-		keyInput = providerStore.getApiKey() || '';
-		selectedProvider = providerStore.currentProvider;
-		runValidation();
+	function useServerMode() {
+		// Clear all API keys and use server
+		if (browser) {
+			localStorage.removeItem('ai-api-keys');
+		}
 		onClose();
 	}
 
-	function useServerAI() {
-		providerStore.clearApiKey();
-		onClose();
+	function handleDialogClick(event: MouseEvent) {
+		if (event.target === event.currentTarget) {
+			onClose();
+		}
 	}
 
-	// Reactive validation on provider change
-	$effect(() => {
-		if (selectedProvider !== undefined) {
-			runValidation();
+	function handleKeyDown(event: KeyboardEvent) {
+		if (event.key === 'Escape') {
+			onClose();
 		}
-	});
+	}
 
-	// Debounced validation on key input
+	// Load API key when provider changes
 	$effect(() => {
-		if (keyInput !== undefined) {
-			const timer = setTimeout(runValidation, 100);
-			return () => clearTimeout(timer);
-		}
-	});
-
-	// Keyboard event handling
-	onMount(() => {
-		function handleKeyboard(event: KeyboardEvent) {
-			if (event.key === 'Escape' && isOpen) {
-				cancelChanges();
+		if (selectedProviderId && browser) {
+			try {
+				const stored = localStorage.getItem('ai-api-keys');
+				if (stored) {
+					const keys = JSON.parse(stored);
+					apiKeyInput = keys[selectedProviderId] || '';
+				} else {
+					apiKeyInput = '';
+				}
+			} catch {
+				apiKeyInput = '';
 			}
 		}
-
-		document.addEventListener('keydown', handleKeyboard);
-		return () => document.removeEventListener('keydown', handleKeyboard);
 	});
 
-	function handleBackgroundClick(event: MouseEvent) {
-		if (event.target === event.currentTarget) {
-			cancelChanges();
+	onMount(() => {
+		if (browser) {
+			document.addEventListener('keydown', handleKeyDown);
+			return () => document.removeEventListener('keydown', handleKeyDown);
 		}
-	}
+	});
+
+	const canSave = $derived(serverAvailable || (apiKeyInput.trim() && !validationError));
+	const hasStoredKey = $derived.by(() => {
+		if (!browser) return false;
+		try {
+			const stored = localStorage.getItem('ai-api-keys');
+			if (stored) {
+				const keys = JSON.parse(stored);
+				return !!keys[selectedProviderId];
+			}
+		} catch {}
+		return false;
+	});
 </script>
 
 {#if isOpen}
 	<div
-		class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-80"
-		onclick={handleBackgroundClick}
-		onkeydown={(e) => e.key === 'Enter' && handleBackgroundClick(e)}
+		class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
+		onclick={handleDialogClick}
+		onkeydown={handleKeyDown}
 	>
-		<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl dark:bg-gray-800">
+		<div class="mx-4 w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900">
 			<!-- Header -->
-			<header class="mb-4 flex items-center justify-between">
-				<h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-					API Configuration
-				</h2>
+			<div class="mb-6 flex items-center justify-between">
+				<h2 class="text-2xl font-bold text-gray-900 dark:text-white">AI Configuration</h2>
 				<button
-					onclick={cancelChanges}
-					type="button"
-					class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-					aria-label="Close"
+					onclick={onClose}
+					class="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
+					aria-label="Close dialog"
 				>
 					<svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M6 18L18 6M6 6l12 12"
+						/>
 					</svg>
 				</button>
-			</header>
+			</div>
 
-			<div class="space-y-4">
-				<!-- Server Status Display -->
-				{#if serverStatus.checking}
-					<div class="rounded-md bg-yellow-50 p-3 dark:bg-yellow-900/30">
-						<div class="flex items-center gap-2">
-							<div class="h-4 w-4 animate-spin rounded-full border-2 border-yellow-600 border-t-transparent"></div>
-							<span class="text-sm text-yellow-800 dark:text-yellow-200">
-								Checking server availability...
-							</span>
-						</div>
+			<!-- Server Status -->
+			{#if checkingServer}
+				<div class="mb-4 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
+					<div class="flex items-center gap-3">
+						<div
+							class="h-5 w-5 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"
+						></div>
+						<span class="text-sm font-medium text-blue-700 dark:text-blue-300">
+							Checking server availability...
+						</span>
 					</div>
-				{:else if serverStatus.available}
-					<div class="rounded-md bg-green-50 p-3 dark:bg-green-900/30">
-						<div class="flex items-center justify-between">
-							<div class="flex items-center gap-2">
-								<div class="h-2 w-2 rounded-full bg-green-500"></div>
-								<span class="text-sm text-green-800 dark:text-green-200">
-									Server AI is available - no API key needed!
-								</span>
-							</div>
-							<button
-								onclick={useServerAI}
-								type="button"
-								class="rounded-md bg-green-600 px-3 py-1 text-xs font-medium text-white hover:bg-green-700"
-							>
-								Use Server
-							</button>
-						</div>
-					</div>
-				{:else}
-					<div class="rounded-md bg-blue-50 p-3 dark:bg-blue-900/30">
-						<div class="flex items-center gap-2">
-							<div class="h-2 w-2 rounded-full {networkStore.isOnline ? 'bg-green-500' : 'bg-red-500'}"></div>
-							<span class="text-sm text-blue-800 dark:text-blue-200">
-								{networkStore.isOnline ? 'Online' : 'Offline'} -
-								{networkStore.isOnline 
-									? 'Server unavailable, configure your own API key'
-									: 'Messages will be queued until online'}
-							</span>
-						</div>
-					</div>
-				{/if}
-
-				<!-- Provider Selection -->
-				<div>
-					<label for="provider" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-						AI Provider
-					</label>
-					<select
-						id="provider"
-						bind:value={selectedProvider}
-						class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-gray-900
-							   focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500
-							   dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-					>
-						{#each availableProviders as provider (provider.id)}
-							<option value={provider.id}>
-								{provider.displayName} ({provider.description})
-							</option>
-						{/each}
-					</select>
 				</div>
-
-				<!-- API Key Input -->
-				<div>
-					<label for="apikey" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">
-						API Key
-					</label>
-					<div class="relative">
-						<input
-							id="apikey"
-							type={keyVisible ? 'text' : 'password'}
-							bind:value={keyInput}
-							placeholder={serverStatus.available
-								? 'Optional - server AI is available'
-								: `Enter your ${providerStore.getProvider(selectedProvider)?.displayName || 'AI'} API key`}
-							class="w-full rounded-md border bg-white px-3 py-2 pr-10 text-gray-900
-								   focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500
-								   dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100
-								   {!validationState.isValid && keyInput && keyInput.length > 0 
-									   ? 'border-red-500' 
-									   : 'border-gray-300'}"
-						/>
+			{:else if serverAvailable}
+				<div class="mb-4 rounded-lg bg-green-50 p-4 dark:bg-green-900/20">
+					<div class="flex items-center justify-between">
+						<div class="flex items-center gap-3">
+							<div class="h-3 w-3 rounded-full bg-green-500"></div>
+							<div>
+								<div class="text-sm font-medium text-green-700 dark:text-green-300">
+									Server AI Available
+								</div>
+								<div class="text-xs text-green-600 dark:text-green-400">No API key required</div>
+							</div>
+						</div>
 						<button
-							type="button"
-							onclick={() => (keyVisible = !keyVisible)}
-							class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-							aria-label={keyVisible ? 'Hide API key' : 'Show API key'}
+							onclick={useServerMode}
+							class="rounded-md bg-green-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 focus:outline-none"
 						>
-							{#if keyVisible}
-								<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-										d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L12 12m-2.122-2.122L7.757 7.757m13.484 13.484L3 3"></path>
-								</svg>
-							{:else}
-								<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-										d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-										d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-								</svg>
-							{/if}
+							Use Server
 						</button>
 					</div>
-					{#if validationState.error}
-						<p class="mt-1 text-sm text-red-600 dark:text-red-400">{validationState.error}</p>
-					{/if}
 				</div>
-
-				<!-- Getting API Key Instructions -->
-				<div class="rounded-md bg-gray-50 p-3 dark:bg-gray-700">
-					<h4 class="mb-2 text-sm font-medium text-gray-900 dark:text-gray-100">
-						How to get your {providerStore.getProvider(selectedProvider)?.displayName || 'AI'} API key:
-					</h4>
-					<div class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
-						{#if providerStore.getProvider(selectedProvider)}
-							{@const currentProvider = providerStore.getProvider(selectedProvider)}
-							{#if currentProvider}
-								<p>1. Visit <a 
-									href={currentProvider.signupUrl} 
-									target="_blank"
-									class="text-blue-600 hover:underline dark:text-blue-400"
-								>{currentProvider.signupUrl}</a></p>
-								<p>2. Sign in or create an account</p>
-								<p>3. Navigate to API Keys section</p>
-								<p>4. Create a new API key</p>
-							{/if}
-						{/if}
+			{:else}
+				<div class="mb-4 rounded-lg bg-orange-50 p-4 dark:bg-orange-900/20">
+					<div class="flex items-center gap-3">
+						<div class="h-3 w-3 rounded-full bg-orange-500"></div>
+						<div class="text-sm text-orange-700 dark:text-orange-300">
+							Server unavailable - API key required for AI functionality
+						</div>
 					</div>
 				</div>
+			{/if}
 
-				<!-- Security Information -->
-				<div class="rounded-md bg-blue-50 p-3 dark:bg-blue-900/30">
-					<div class="flex items-start gap-2">
-						<svg class="mt-0.5 h-5 w-5 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" 
-								d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-						</svg>
-						<div class="text-sm text-blue-800 dark:text-blue-200">
-							<p class="font-medium">Security Notice</p>
-							<p>
-								{#if serverStatus.available}
-									Server AI is available, so an API key is optional. If you provide one, it's stored
-									locally and never sent to our servers.
-								{:else}
-									Your API key is stored locally in your browser and never sent to our servers. All
-									AI requests are made directly from your browser to the provider.
-								{/if}
-							</p>
-						</div>
+			<!-- Provider Selection -->
+			<div class="mb-4">
+				<label
+					for="provider-select"
+					class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+				>
+					AI Provider
+				</label>
+				<select
+					id="provider-select"
+					bind:value={selectedProviderId}
+					class="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:focus:border-blue-400"
+				>
+					{#each providers as provider (provider.id)}
+						<option value={provider.id}>
+							{provider.displayName} - {provider.description}
+						</option>
+					{/each}
+				</select>
+			</div>
+
+			<!-- API Key Input -->
+			<div class="mb-6">
+				<label
+					for="api-key-input"
+					class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300"
+				>
+					API Key
+					{#if serverAvailable}
+						<span class="text-gray-500">(optional)</span>
+					{/if}
+				</label>
+				<div class="relative">
+					<input
+						id="api-key-input"
+						type={showApiKey ? 'text' : 'password'}
+						bind:value={apiKeyInput}
+						placeholder={serverAvailable
+							? 'Optional - leave blank to use server'
+							: 'Enter your API key'}
+						class="w-full rounded-lg border bg-white px-3 py-2 pr-10 shadow-sm focus:ring-1 focus:outline-none
+							   {validationError
+							? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+							: 'border-gray-300 focus:border-blue-500 focus:ring-blue-500'}
+							   dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:focus:border-blue-400"
+					/>
+					<button
+						type="button"
+						onclick={() => (showApiKey = !showApiKey)}
+						class="absolute top-1/2 right-3 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+						aria-label={showApiKey ? 'Hide API key' : 'Show API key'}
+					>
+						{#if showApiKey}
+							<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L12 12m-2.122-2.122L7.757 7.757m13.484 13.484L3 3"
+								/>
+							</svg>
+						{:else}
+							<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+								/>
+								<path
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									stroke-width="2"
+									d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+								/>
+							</svg>
+						{/if}
+					</button>
+				</div>
+				{#if validationError}
+					<p class="mt-1 text-sm text-red-600 dark:text-red-400">{validationError}</p>
+				{/if}
+			</div>
+
+			<!-- Provider Info -->
+			{#if selectedProviderId}
+				{@const currentProvider = providers.find((p) => p.id === selectedProviderId)}
+				{#if currentProvider}
+					<div class="mb-6 rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+						<h3 class="mb-2 text-sm font-medium text-gray-900 dark:text-white">
+							Get your {currentProvider.displayName} API key:
+						</h3>
+						<ol class="space-y-1 text-sm text-gray-600 dark:text-gray-400">
+							<li>
+								1. Visit <a
+									href={currentProvider.signupUrl}
+									target="_blank"
+									rel="noopener noreferrer"
+									class="text-blue-600 hover:underline dark:text-blue-400"
+									>{currentProvider.signupUrl}</a
+								>
+							</li>
+							<li>2. Create an account or sign in</li>
+							<li>3. Navigate to API keys section</li>
+							<li>4. Generate a new API key</li>
+						</ol>
+					</div>
+				{/if}
+			{/if}
+
+			<!-- Security Notice -->
+			<div class="mb-6 rounded-lg bg-blue-50 p-4 dark:bg-blue-900/20">
+				<div class="flex items-start gap-3">
+					<svg
+						class="mt-0.5 h-5 w-5 flex-shrink-0 text-blue-600 dark:text-blue-400"
+						fill="none"
+						stroke="currentColor"
+						viewBox="0 0 24 24"
+					>
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+					<div class="text-sm text-blue-800 dark:text-blue-200">
+						<p class="mb-1 font-medium">Privacy & Security</p>
+						<p>
+							Your API key is stored locally in your browser and never sent to our servers. All AI
+							requests go directly from your browser to the provider.
+						</p>
 					</div>
 				</div>
 			</div>
 
 			<!-- Action Buttons -->
-			<footer class="mt-6 flex justify-end gap-3">
-				{#if providerStore.getApiKey(selectedProvider)}
+			<div class="flex justify-end gap-3">
+				{#if hasStoredKey}
 					<button
 						onclick={clearStoredKey}
-						type="button"
-						class="rounded-md border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50
-							   dark:border-red-600 dark:bg-gray-700 dark:text-red-400 dark:hover:bg-red-900/30"
+						class="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:outline-none dark:border-red-600 dark:bg-gray-800 dark:text-red-400 dark:hover:bg-red-900/20"
 					>
 						Clear Key
 					</button>
 				{/if}
 				<button
-					onclick={cancelChanges}
-					type="button"
-					class="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50
-						   dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+					onclick={onClose}
+					class="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:outline-none dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700"
 				>
 					Cancel
 				</button>
 				<button
 					onclick={saveConfiguration}
-					type="button"
-					disabled={!serverStatus.available && !validationState.isValid}
-					class="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700
-						   disabled:cursor-not-allowed disabled:bg-gray-400 dark:disabled:bg-gray-600"
+					disabled={!canSave}
+					class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-400 dark:disabled:bg-gray-600"
 				>
-					{serverStatus.available ? 'Save Settings' : 'Save'}
+					Save Configuration
 				</button>
-			</footer>
+			</div>
 		</div>
 	</div>
 {/if}
