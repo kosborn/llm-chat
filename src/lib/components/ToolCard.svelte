@@ -9,7 +9,7 @@
 	}
 
 	const { tool, onToggle, onViewDetails }: Props = $props();
-	
+
 	let isOnline = $derived(networkStatus.isOnline);
 
 	function getCategoryColor(category?: string) {

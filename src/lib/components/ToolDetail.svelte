@@ -176,11 +176,17 @@
 		<div class="max-h-[calc(90vh-140px)] overflow-y-auto p-6">
 			<!-- Network Requirements -->
 			{#if tool.requiresNetwork === true}
-				<div class="mb-6 rounded-lg border {isOnline ? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20' : 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'}">
+				<div
+					class="mb-6 rounded-lg border {isOnline
+						? 'border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-900/20'
+						: 'border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/20'}"
+				>
 					<div class="flex items-start gap-3 p-4">
 						<div class="flex-shrink-0">
 							<svg
-								class="h-5 w-5 {isOnline ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}"
+								class="h-5 w-5 {isOnline
+									? 'text-green-600 dark:text-green-400'
+									: 'text-red-600 dark:text-red-400'}"
 								fill="currentColor"
 								viewBox="0 0 20 20"
 							>
@@ -192,10 +198,18 @@
 							</svg>
 						</div>
 						<div>
-							<h4 class="text-sm font-medium {isOnline ? 'text-green-800 dark:text-green-200' : 'text-red-800 dark:text-red-200'}">
+							<h4
+								class="text-sm font-medium {isOnline
+									? 'text-green-800 dark:text-green-200'
+									: 'text-red-800 dark:text-red-200'}"
+							>
 								{isOnline ? 'Internet Connection Required' : 'Tool Currently Unavailable'}
 							</h4>
-							<p class="mt-1 text-sm {isOnline ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}">
+							<p
+								class="mt-1 text-sm {isOnline
+									? 'text-green-700 dark:text-green-300'
+									: 'text-red-700 dark:text-red-300'}"
+							>
 								{#if isOnline}
 									This tool requires an active internet connection to function properly.
 								{:else}
@@ -206,7 +220,9 @@
 					</div>
 				</div>
 			{:else}
-				<div class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
+				<div
+					class="mb-6 rounded-lg border border-blue-200 bg-blue-50 p-4 dark:border-blue-800 dark:bg-blue-900/20"
+				>
 					<div class="flex items-start gap-3">
 						<div class="flex-shrink-0">
 							<svg
@@ -222,9 +238,7 @@
 							</svg>
 						</div>
 						<div>
-							<h4 class="text-sm font-medium text-blue-800 dark:text-blue-200">
-								Works Offline
-							</h4>
+							<h4 class="text-sm font-medium text-blue-800 dark:text-blue-200">Works Offline</h4>
 							<p class="mt-1 text-sm text-blue-700 dark:text-blue-300">
 								This tool works entirely offline and doesn't require an internet connection.
 							</p>

@@ -227,14 +227,16 @@
 
 {#if isOpen}
 	<div
-		class="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm overflow-y-auto"
+		class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 backdrop-blur-sm"
 		role="dialog"
 		aria-modal="true"
 		tabindex="-1"
 		onclick={handleDialogClick}
 		onkeydown={handleKeyDown}
 	>
-		<div class="mx-4 my-4 w-full max-w-4xl rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900 min-h-0 max-h-full">
+		<div
+			class="mx-4 my-4 max-h-full min-h-0 w-full max-w-4xl rounded-xl bg-white p-6 shadow-2xl dark:bg-gray-900"
+		>
 			<!-- Header -->
 			<div class="mb-6 flex items-center justify-between">
 				<h2 class="text-2xl font-bold text-gray-900 dark:text-white">AI Configuration</h2>
@@ -255,7 +257,7 @@
 			</div>
 
 			<!-- Two Column Layout -->
-			<div class="grid grid-cols-1 gap-6 lg:grid-cols-2 overflow-y-auto">
+			<div class="grid grid-cols-1 gap-6 overflow-y-auto lg:grid-cols-2">
 				<!-- Left Column: Configuration -->
 				<div class="space-y-4">
 					<!-- Server Status -->
@@ -279,7 +281,9 @@
 										<div class="text-sm font-medium text-green-700 dark:text-green-300">
 											Server AI Available
 										</div>
-										<div class="text-xs text-green-600 dark:text-green-400">No API key required</div>
+										<div class="text-xs text-green-600 dark:text-green-400">
+											No API key required
+										</div>
 									</div>
 								</div>
 								<button
@@ -369,7 +373,9 @@
 							{:else if serverAvailable}
 								<span class="text-gray-500">(optional - enables client mode fallback)</span>
 							{:else}
-								<span class="text-blue-600 dark:text-blue-400">(required for browser client mode)</span>
+								<span class="text-blue-600 dark:text-blue-400"
+									>(required for browser client mode)</span
+								>
 							{/if}
 						</label>
 						<div class="relative">
@@ -435,18 +441,24 @@
 					<!-- Network Status -->
 					<div class="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
 						<div class="mb-3 flex items-center justify-between">
-							<h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Network & Tools Status</h3>
+							<h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">
+								Network & Tools Status
+							</h3>
 							<NetworkStatusIndicator compact={true} />
 						</div>
 						<div class="grid grid-cols-2 gap-4 text-xs">
 							<div>
 								<span class="font-medium text-gray-600 dark:text-gray-400">Available Tools:</span>
-								<span class="ml-1 font-bold text-green-600 dark:text-green-400">{availableToolsCount}</span>
+								<span class="ml-1 font-bold text-green-600 dark:text-green-400"
+									>{availableToolsCount}</span
+								>
 							</div>
 							{#if unavailableToolsCount > 0}
 								<div>
 									<span class="font-medium text-gray-600 dark:text-gray-400">Offline Tools:</span>
-									<span class="ml-1 font-bold text-red-600 dark:text-red-400">{unavailableToolsCount}</span>
+									<span class="ml-1 font-bold text-red-600 dark:text-red-400"
+										>{unavailableToolsCount}</span
+									>
 								</div>
 							{/if}
 							<div>
@@ -493,7 +505,10 @@
 								<div class="mt-0.5 text-green-600 dark:text-green-400">🌐</div>
 								<div class="text-xs text-green-800 dark:text-green-200">
 									<p class="mb-1 font-medium">Server AI Mode</p>
-									<p>Uses server-hosted AI models. No API key required, but requires internet connection.</p>
+									<p>
+										Uses server-hosted AI models. No API key required, but requires internet
+										connection.
+									</p>
 								</div>
 							</div>
 						</div>
@@ -503,7 +518,10 @@
 								<div class="mt-0.5 text-blue-600 dark:text-blue-400">📱</div>
 								<div class="text-xs text-blue-800 dark:text-blue-200">
 									<p class="mb-1 font-medium">Browser Client Mode</p>
-									<p>Your API key enables direct browser-to-provider communication. Works as fallback when server is unavailable.</p>
+									<p>
+										Your API key enables direct browser-to-provider communication. Works as fallback
+										when server is unavailable.
+									</p>
 								</div>
 							</div>
 						</div>
@@ -525,7 +543,9 @@
 								</svg>
 								<div class="text-xs text-gray-700 dark:text-gray-300">
 									<p class="mb-1 font-medium">Privacy & Security</p>
-									<p>Your API key is stored locally in your browser and never sent to our servers.</p>
+									<p>
+										Your API key is stored locally in your browser and never sent to our servers.
+									</p>
 								</div>
 							</div>
 						</div>

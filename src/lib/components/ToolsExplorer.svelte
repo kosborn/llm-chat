@@ -23,7 +23,15 @@
 	let networkFilter = $state('all'); // 'all', 'offline', 'network'
 	let categories: string[] = $state([]);
 	let tags: string[] = $state([]);
-	let stats = $state({ total: 0, enabled: 0, disabled: 0, categories: 0, tags: 0, requiresNetwork: 0, worksOffline: 0 });
+	let stats = $state({
+		total: 0,
+		enabled: 0,
+		disabled: 0,
+		categories: 0,
+		tags: 0,
+		requiresNetwork: 0,
+		worksOffline: 0
+	});
 	let isOnline = $derived(networkStatus.isOnline);
 
 	onMount(async () => {
@@ -246,7 +254,9 @@
 						/>
 					</svg>
 				</div>
-				<h3 class="mb-2 text-lg font-medium text-gray-900 dark:text-white">Network tools offline</h3>
+				<h3 class="mb-2 text-lg font-medium text-gray-900 dark:text-white">
+					Network tools offline
+				</h3>
 				<p class="text-gray-500 dark:text-gray-400">
 					These tools require internet connection but you're currently offline.
 				</p>

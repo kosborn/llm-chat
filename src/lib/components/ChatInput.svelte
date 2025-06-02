@@ -58,23 +58,26 @@
 	// Send button styling based on provider status
 	const sendButtonClass = $derived(() => {
 		if (disabled) {
-			return "flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-gray-400 px-3 py-3 font-medium text-white transition-colors disabled:cursor-not-allowed md:min-w-[80px] md:px-6";
+			return 'flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-gray-400 px-3 py-3 font-medium text-white transition-colors disabled:cursor-not-allowed md:min-w-[80px] md:px-6';
 		}
-		
+
 		if (!networkStore.isOnline || !providerStore.isConfigured || !providerStore.canSend) {
-			return "flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-3 font-medium text-white transition-colors hover:bg-red-700 md:min-w-[80px] md:px-6";
+			return 'flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-3 font-medium text-white transition-colors hover:bg-red-700 md:min-w-[80px] md:px-6';
 		}
-		
-		if (providerStore.effectiveMode === 'server' || (providerStore.preferredMode === 'server' && providerStore.effectiveMode === 'server')) {
-			return "flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-3 font-medium text-white transition-colors hover:bg-green-700 md:min-w-[80px] md:px-6";
+
+		if (
+			providerStore.effectiveMode === 'server' ||
+			(providerStore.preferredMode === 'server' && providerStore.effectiveMode === 'server')
+		) {
+			return 'flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-green-600 px-3 py-3 font-medium text-white transition-colors hover:bg-green-700 md:min-w-[80px] md:px-6';
 		}
-		
+
 		if (providerStore.effectiveMode === 'client' || providerStore.preferredMode === 'client') {
-			return "flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-purple-600 px-3 py-3 font-medium text-white transition-colors hover:bg-purple-700 md:min-w-[80px] md:px-6";
+			return 'flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-purple-600 px-3 py-3 font-medium text-white transition-colors hover:bg-purple-700 md:min-w-[80px] md:px-6';
 		}
-		
+
 		// Default blue for auto mode
-		return "flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-3 font-medium text-white transition-colors hover:bg-blue-700 md:min-w-[80px] md:px-6";
+		return 'flex min-w-[60px] items-center justify-center gap-2 rounded-lg bg-blue-600 px-3 py-3 font-medium text-white transition-colors hover:bg-blue-700 md:min-w-[80px] md:px-6';
 	});
 
 	function handleSubmit(event?: SubmitEvent) {
@@ -304,11 +307,7 @@
 			/>
 		</div>
 
-		<button
-			type="submit"
-			{disabled}
-			class={sendButtonClass()}
-		>
+		<button type="submit" {disabled} class={sendButtonClass()}>
 			{#if disabled}
 				<div
 					class="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"

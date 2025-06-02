@@ -16,26 +16,20 @@
 	let networkTools = $derived(getNetworkTools());
 
 	let statusText = $derived(
-		isOnline
-			? compact ? 'Online' : 'Connected'
-			: compact ? 'Offline' : 'Disconnected'
+		isOnline ? (compact ? 'Online' : 'Connected') : compact ? 'Offline' : 'Disconnected'
 	);
 
 	let statusColor = $derived(
 		isOnline ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
 	);
 
-	let dotColor = $derived(
-		isOnline ? 'bg-green-500' : 'bg-red-500'
-	);
+	let dotColor = $derived(isOnline ? 'bg-green-500' : 'bg-red-500');
 
 	let availableToolsCount = $derived(
 		isOnline ? toolStats.enabled : Object.keys(offlineTools).length
 	);
 
-	let unavailableToolsCount = $derived(
-		isOnline ? 0 : Object.keys(networkTools).length
-	);
+	let unavailableToolsCount = $derived(isOnline ? 0 : Object.keys(networkTools).length);
 
 	async function handleRefresh() {
 		await networkStatus.forceCheck();

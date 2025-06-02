@@ -1,4 +1,8 @@
-import { filterEmptyMessages, prepareMessagesForLLM, filterEmptyContentBlocks } from './message-filter.js';
+import {
+	filterEmptyMessages,
+	prepareMessagesForLLM,
+	filterEmptyContentBlocks
+} from './message-filter.js';
 import type { ChatMessage } from '../../app.d.ts';
 
 // Example messages with empty content that should be filtered
@@ -50,24 +54,24 @@ const exampleMessages: ChatMessage[] = [
 
 export function demonstrateFiltering() {
 	console.log('=== Message Filtering Demonstration ===\n');
-	
+
 	console.log('Original messages:');
 	exampleMessages.forEach((msg, index) => {
 		console.log(`${index + 1}. ${msg.role}: ${JSON.stringify(msg.content)}`);
 	});
-	
+
 	console.log('\n--- After filtering empty messages ---');
 	const filtered = filterEmptyMessages(exampleMessages);
 	filtered.forEach((msg, index) => {
 		console.log(`${index + 1}. ${msg.role}: ${JSON.stringify(msg.content)}`);
 	});
-	
+
 	console.log('\n--- Prepared for LLM (AI SDK format) ---');
 	const prepared = prepareMessagesForLLM(exampleMessages);
 	prepared.forEach((msg, index) => {
 		console.log(`${index + 1}. ${msg.role}: ${JSON.stringify(msg.content)}`);
 	});
-	
+
 	console.log('\n--- Content block filtering example ---');
 	const mixedContent = [
 		{ type: 'text', text: 'Valid text' },
@@ -76,11 +80,11 @@ export function demonstrateFiltering() {
 		{ type: 'text', text: '   \n  ' },
 		{ type: 'text', text: 'Another valid text' }
 	];
-	
+
 	console.log('Before filtering:', JSON.stringify(mixedContent, null, 2));
 	const filteredContent = filterEmptyContentBlocks(mixedContent);
 	console.log('After filtering:', JSON.stringify(filteredContent, null, 2));
-	
+
 	return {
 		original: exampleMessages.length,
 		filtered: filtered.length,
