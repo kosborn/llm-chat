@@ -243,7 +243,19 @@ class ChatStore {
 
 	async autoRenameChat(chatId: string, forceRegenerate = false): Promise<void> {
 		const chat = this.chats.find((c) => c.id === chatId);
-		if (!chat || chat.messages.length < 2) return;
+		if (!chat) {
+			if (forceRegenerate) {
+				throw new Error('Chat not found');
+			}
+			return;
+		}
+
+		if (chat.messages.length < 2) {
+			if (forceRegenerate) {
+				throw new Error('Chat needs at least one exchange to generate a title');
+			}
+			return;
+		}
 
 		// If forced regeneration, always proceed
 		if (forceRegenerate) {
@@ -265,8 +277,12 @@ class ChatStore {
 		const userMessage = chat.messages.find((m) => m.role === 'user');
 		const assistantMessage = chat.messages.find((m) => m.role === 'assistant');
 
-		if (!userMessage || !assistantMessage || !userMessage.content || !assistantMessage.content)
+		if (!userMessage || !assistantMessage || !userMessage.content || !assistantMessage.content) {
+			if (forceRegenerate) {
+				throw new Error('Chat must have both user and assistant messages with content');
+			}
 			return;
+		}
 
 		// Check if we can generate titles (online and has API key if needed)
 		if (!clientChatService.canSendMessages()) {
@@ -277,12 +293,23 @@ class ChatStore {
 		}
 
 		try {
+			debugConsole.log(
+				'Generating title for chat:',
+				chatId,
+				'with provider:',
+				chat.provider,
+				'model:',
+				chat.model
+			);
+
 			const title = await clientChatService.generateTitle(
 				userMessage.content,
 				assistantMessage.content,
 				chat.provider,
 				chat.model
 			);
+
+			debugConsole.log('Generated title result:', title);
 
 			if (title?.trim()) {
 				await this.updateChatTitle(chatId, title.trim());
@@ -292,6 +319,7 @@ class ChatStore {
 				setTimeout(() => {
 					this.titleFlashChatId = null;
 				}, 600);
+				debugConsole.log('Title updated successfully to:', title.trim());
 			} else if (forceRegenerate) {
 				// Check if we're offline or missing API key for better error messages
 				if (!clientChatService.canSendMessages()) {

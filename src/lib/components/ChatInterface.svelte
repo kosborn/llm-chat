@@ -194,7 +194,16 @@
 	}
 
 	async function handleRegenerateTitleFromHeader() {
-		if (!chatStore.currentChat) return;
+		if (!chatStore.currentChat) {
+			notificationStore.error('No chat selected');
+			return;
+		}
+
+		// Check if chat has enough messages
+		if (chatStore.currentChat.messages.length < 2) {
+			notificationStore.error('Chat needs at least one exchange to generate a title');
+			return;
+		}
 
 		// Check if we can send messages (handles both server and client-side requirements)
 		if (!clientChatService.canSendMessages()) {
@@ -204,13 +213,27 @@
 
 		try {
 			autoRenamingChatId = chatStore.currentChat.id;
+			debugConsole.log('Starting title regeneration for chat:', chatStore.currentChat.id);
+
 			await chatStore.autoRenameChat(chatStore.currentChat.id, true);
+
+			// If we get here without error, title was successfully regenerated
+			notificationStore.success('Title regenerated successfully');
+			debugConsole.log('Title regeneration completed successfully');
 		} catch (error) {
 			debugConsole.error('Failed to regenerate title:', error);
 			if (error instanceof Error && error.message === 'API_KEY_MISSING') {
 				showApiConfig = true;
 			} else {
-				notificationStore.error('Failed to regenerate title. Please try again.');
+				// Error notifications are already handled in autoRenameChat, but add fallback
+				if (
+					error instanceof Error &&
+					!error.message.includes('offline') &&
+					!error.message.includes('unavailable') &&
+					!error.message.includes('invalid')
+				) {
+					notificationStore.error('Failed to regenerate title. Please try again.');
+				}
 			}
 		} finally {
 			autoRenamingChatId = null;
