@@ -2,6 +2,7 @@
 	import '../app.css';
 	import Toast from '$lib/components/Toast.svelte';
 	import ApiKeyConfig from '$lib/components/ApiKeyConfig.svelte';
+	import PWAInstallPrompt from '$lib/components/PWAInstallPrompt.svelte';
 	import { page } from '$app/stores';
 	import { onMount } from 'svelte';
 	import { providerStore } from '$lib/stores/provider-store.svelte.js';
@@ -11,10 +12,13 @@
 	import { browser } from '$app/environment';
 	import { initializePersistentSettings } from '$lib/tools/registry.js';
 	import { debugConsole } from '$lib/utils/console.js';
+	import { pwaManager } from '$lib/utils/pwa.js';
+	import { registerSW } from 'virtual:pwa-register';
 
 	const { children } = $props();
 
 	let showApiConfig = $state(false);
+	let showPWAPrompt = $state(false);
 	let serverAvailable = $state<boolean | null>(null);
 	let checkingServer = $state(false);
 	let lastCheckTime = 0;
@@ -24,6 +28,35 @@
 	onMount(async () => {
 		// Initialize persistent tool settings first
 		await initializePersistentSettings();
+
+		// Initialize PWA
+		if (browser) {
+			// Register service worker
+			const updateSW = registerSW({
+				onNeedRefresh() {
+					debugConsole.log('PWA update available');
+				},
+				onOfflineReady() {
+					debugConsole.log('PWA ready to work offline');
+				},
+				onRegistered(r) {
+					debugConsole.log('SW Registered: ' + r);
+				},
+				onRegisterError(error) {
+					debugConsole.log('SW registration error', error);
+				}
+			});
+
+			// Request persistent storage for better offline experience
+			await pwaManager.requestPersistentStorage();
+			
+			// Show install prompt after a short delay if available
+			setTimeout(() => {
+				if (pwaManager.canInstall()) {
+					showPWAPrompt = true;
+				}
+			}, 3000);
+		}
 
 		checkServerAvailability();
 		// Check every 30 seconds instead of constantly
@@ -297,3 +330,5 @@
 {#if showApiConfig}
 	<ApiKeyConfig isOpen={showApiConfig} onClose={() => (showApiConfig = false)} />
 {/if}
+
+<PWAInstallPrompt isOpen={showPWAPrompt} onClose={() => (showPWAPrompt = false)} />

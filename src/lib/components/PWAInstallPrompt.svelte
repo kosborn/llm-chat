@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { debugConsole } from '$lib/utils/console.js';
+	import { pwaManager } from '$lib/utils/pwa.js';
 
 	interface Props {
 		isOpen: boolean;
@@ -9,60 +10,34 @@
 
 	let { isOpen, onClose }: Props = $props();
 
-	let deferredPrompt: BeforeInstallPromptEvent | null = null;
 	let showPrompt = $state(false);
 	let isInstalling = $state(false);
-	let isInstalled = $state(false);
-
-	interface BeforeInstallPromptEvent extends Event {
-		prompt(): Promise<{ outcome: 'accepted' | 'dismissed' }>;
-		userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-	}
 
 	onMount(() => {
-		// Check if already installed
-		if (window.matchMedia('(display-mode: standalone)').matches) {
-			isInstalled = true;
-			return;
+		// Check if user has dismissed this before
+		const dismissed = localStorage.getItem('pwa-install-dismissed');
+		if (!dismissed && pwaManager.canInstall()) {
+			showPrompt = true;
 		}
-
-		// Listen for beforeinstallprompt event
-		window.addEventListener('beforeinstallprompt', (e) => {
-			e.preventDefault();
-			deferredPrompt = e;
-
-			// Check if user has dismissed this before
-			const dismissed = localStorage.getItem('pwa-install-dismissed');
-			if (!dismissed) {
-				showPrompt = true;
-			}
-		});
-
-		// Listen for app installed event
-		window.addEventListener('appinstalled', () => {
-			isInstalled = true;
-			showPrompt = false;
-			deferredPrompt = null;
-		});
 	});
 
 	async function handleInstall() {
-		if (!deferredPrompt) return;
+		if (!pwaManager.canInstall()) return;
 
 		isInstalling = true;
 
 		try {
-			const result = await deferredPrompt.prompt();
-			debugConsole.log('Install prompt result:', result);
+			const installed = await pwaManager.install();
+			debugConsole.log('Install result:', installed);
 
-			if (result.outcome === 'accepted') {
+			if (installed) {
 				showPrompt = false;
+				onClose();
 			}
 		} catch (error) {
 			debugConsole.error('Install prompt error:', error);
 		} finally {
 			isInstalling = false;
-			deferredPrompt = null;
 		}
 	}
 
@@ -78,7 +53,7 @@
 		onClose();
 	}
 
-	const shouldShow = $derived((isOpen || showPrompt) && !isInstalled && deferredPrompt);
+	const shouldShow = $derived((isOpen || showPrompt) && !pwaManager.isAppInstalled() && pwaManager.canInstall());
 </script>
 
 {#if shouldShow}
